@@ -1,3 +1,18 @@
+/* Copyright 2023 Jack A Bernard Jr.
+ *
+ * Licensed under the Apache License, Version 2.0 (the License);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an AS IS BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #ifndef ANYOPT_UNINIT_HPP
 #define ANYOPT_UNINIT_HPP
 
@@ -12,7 +27,7 @@ template <typename T>
 class uninit {
   private:
     union {
-#if defined(_MSC_VER) || !defined(__clang__)
+#if defined(_MSC_VER) && !defined(__clang__)
         [[msvc::no_unique_address]]
 #else
         [[no_unique_address]]
@@ -42,7 +57,7 @@ class uninit {
 
     template <typename U, typename... Args>
     constexpr uninit([[maybe_unused]] std::in_place_t in_place, std::initializer_list<U> init, Args&&... args)
-        data_{init, std::forward<Args>(args)...} {}
+        : data_{init, std::forward<Args>(args)...} {}
 
     constexpr ~uninit() noexcept {}
 

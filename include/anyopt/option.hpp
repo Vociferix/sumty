@@ -1,9 +1,25 @@
+/* Copyright 2023 Jack A Bernard Jr.
+ *
+ * Licensed under the Apache License, Version 2.0 (the License);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an AS IS BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #ifndef ANYOPT_OPTION_HPP
 #define ANYOPT_OPTION_HPP
 
 #include <anyopt/uninit.hpp>
 
 #include <cstddef>
+#include <functional>
 #include <initializer_list>
 #include <optional>
 #include <type_traits>
@@ -31,12 +47,15 @@ static inline constexpr none_t none{};
 
 constexpr void swap([[maybe_unused]] none_t& a, none_t& b) noexcept { }
 
+template <typename T>
+class option;
+
 namespace detail {
 
 template <typename T>
 struct option_impl {
   private:
-#if defined(_MSC_VER) || !defined(__clang__)
+#if defined(_MSC_VER) && !defined(__clang__)
     [[msvc::no_unique_address]]
 #else
     [[no_unique_address]]
@@ -174,13 +193,13 @@ struct option_impl {
 template <typename T>
 struct option_impl<T&&> : public option_impl<T> {
   public:
-    using value_type = typename option<T>::value_type;
-    using reference = typename option<T>::reference;
-    using const_reference = typename option<T>::const_reference;
-    using rvalue_reference = typename option<T>::rvalue_reference;
-    using const_rvalue_reference = typename option<T>::const_rvalue_reference;
-    using pointer = typename option<T>::pointer;
-    using const_pointer = typename option<T>::const_pointer;
+    using value_type = typename option_impl<T>::value_type;
+    using reference = typename option_impl<T>::reference;
+    using const_reference = typename option_impl<T>::const_reference;
+    using rvalue_reference = typename option_impl<T>::rvalue_reference;
+    using const_rvalue_reference = typename option_impl<T>::const_rvalue_reference;
+    using pointer = typename option_impl<T>::pointer;
+    using const_pointer = typename option_impl<T>::const_pointer;
 
     constexpr option_impl() noexcept = default;
 
@@ -285,6 +304,15 @@ struct option_impl<void> {
         std::swap(has_value_, other.has_value_);
     }
 };
+
+template <typename T>
+struct is_option : std::false_type {};
+
+template <typename T>
+struct is_option<option<T>> : std::true_type {};
+
+template <typename T>
+static inline constexpr bool is_option_v = is_option<T>::value;
 
 }
 
@@ -932,7 +960,7 @@ constexpr bool operator<=(const option<T>& lhs, [[maybe_unused]] none_t rhs) {
 }
 
 template <typename T>
-constexpr bool operator<=([[maybe_unused]] none_t rhs, [[maybe_unused]] const option<T>& rhs) {
+constexpr bool operator<=([[maybe_unused]] none_t lhs, [[maybe_unused]] const option<T>& rhs) {
     return true;
 }
 
@@ -997,7 +1025,7 @@ constexpr bool operator<=(const option<T>& lhs, [[maybe_unused]] std::nullopt_t 
 }
 
 template <typename T>
-constexpr bool operator<=([[maybe_unused]] std::nullopt_t rhs, [[maybe_unused]] const option<T>& rhs) {
+constexpr bool operator<=([[maybe_unused]] std::nullopt_t lhs, [[maybe_unused]] const option<T>& rhs) {
     return true;
 }
 
@@ -1072,7 +1100,7 @@ constexpr bool operator<=(const option<T>& lhs, [[maybe_unused]] std::nullptr_t 
 
 template <typename T>
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
-constexpr bool operator<=([[maybe_unused]] std::nullptr_t rhs, [[maybe_unused]] const option<T>& rhs) {
+constexpr bool operator<=([[maybe_unused]] std::nullptr_t lhs, [[maybe_unused]] const option<T>& rhs) {
     return true;
 }
 
