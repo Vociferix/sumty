@@ -11,8 +11,9 @@ list(APPEND CMAKE_MODULE_PATH "${catch2_SOURCE_DIR}/extras")
 include(Catch)
 
 add_executable(tests
-    uninit.cpp
-    option.cpp)
+    option.cpp
+    result.cpp
+    variant.cpp)
 
 target_link_libraries(tests PRIVATE
     Catch2::Catch2WithMain

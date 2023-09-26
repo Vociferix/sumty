@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.14)
 
 project(
-    anyopt
+    sumty
     VERSION 0.1.0
     DESCRIPTION "Better optional data types for C++"
-    HOMEPAGE_URL "https://github.com/vociferix/anyopt"
+    HOMEPAGE_URL "https://github.com/vociferix/sumty"
     LANGUAGES CXX)
 
 string(TOUPPER "${PROJECT_NAME}" PROJECT_NAME_CAPS)
@@ -62,7 +62,7 @@ include(${CMAKE_CURRENT_LIST_DIR}/@PROJECT_NAME@Targets.cmake)
         DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
         COMPONENT devel)
 
-    install(DIRECTORY "${PROJECT_SOURCE_DIR}/include/anyopt"
+    install(DIRECTORY "${PROJECT_SOURCE_DIR}/include/sumty"
         DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
         COMPONENT devel)
 
