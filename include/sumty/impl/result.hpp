@@ -37,6 +37,74 @@ constexpr variant<U, V> result<T, E>::convert(R&& res) {
 }
 
 template <typename T, typename E>
+template <typename... Args>
+constexpr result<T, E>::result([[maybe_unused]] std::in_place_t in_place, Args&&... args)
+    : res_(std::in_place_index<0>, std::forward<Args>(args)...) {}
+
+template <typename T, typename E>
+template <typename U, typename... Args>
+constexpr result<T, E>::result([[maybe_unused]] std::in_place_t in_place, std::initializer_list<U> init, Args&&... args)
+    : res_(std::in_place_index<0>, init, std::forward<Args>(args)...) {}
+
+template <typename T, typename E>
+template <typename... Args>
+constexpr result<T, E>::result(std::in_place_index_t<0> in_place, Args&&... args)
+    : res_(in_place, std::forward<Args>(args)...) {}
+
+template <typename T, typename E>
+template <typename U, typename... Args>
+constexpr result<T, E>::result(std::in_place_index_t<0> in_place, std::initializer_list<U> init, Args&&... args)
+    : res_(in_place, init, std::forward<Args>(args)...) {}
+
+template <typename T, typename E>
+template <typename... Args>
+constexpr result<T, E>::result(in_place_error_t in_place, Args&&... args)
+    : res_(in_place, std::forward<Args>(args)...) {}
+
+template <typename T, typename E>
+template <typename U, typename... Args>
+constexpr result<T, E>::result(in_place_error_t in_place, std::initializer_list<U> init, Args&&... args)
+    : res_(in_place, init, std::forward<Args>(args)...) {}
+
+template <typename T, typename E>
+template <typename U>
+    requires(std::is_constructible_v<variant<T, E>, std::in_place_index_t<0>, U&&> &&
+             !std::is_same_v<std::remove_cvref_t<U>, std::in_place_t> &&
+             !std::is_same_v<std::remove_cvref_t<U>, std::in_place_index_t<0>> &&
+             !std::is_same_v<std::remove_cvref_t<U>, std::in_place_index_t<1>> &&
+             !detail::is_error_v<std::remove_cvref_t<U>> &&
+             !detail::is_ok_v<std::remove_cvref_t<U>> &&
+             (!std::is_same_v<std::remove_cvref_t<T>, bool> || !detail::is_result_v<std::remove_cvref_t<U>>))
+explicit(!detail::traits<T>::template is_convertible_from<U&&>)
+constexpr result<T, E>::result(U&& value) : res_(std::in_place_index<0>, std::forward<U>(value)) {}
+
+template <typename T, typename E>
+template <typename U>
+explicit(!detail::traits<T>::template is_convertible_from<U&&>)
+constexpr result<T, E>::result(ok_t<U> ok) : res_(std::in_place_index<0>, *std::move(ok)) {}
+
+template <typename T, typename E>
+template <typename U>
+explicit(!detail::traits<E>::template is_convertible_from<U&&>)
+constexpr result<T, E>::result(error_t<U> err) : res_(std::in_place_index<1>, *std::move(err)) {}
+
+template <typename T, typename E>
+template <typename U, typename V>
+    requires(((std::is_void_v<U> && detail::traits<T>::is_default_constructible) || std::is_constructible_v<variant<T, E>, std::in_place_index_t<0>, typename detail::traits<U>::const_reference>) &&
+             ((std::is_void_v<V> && detail::traits<E>::is_default_constructible) || std::is_constructible_v<variant<T, E>, std::in_place_index_t<1>, typename detail::traits<E>::const_reference>))
+explicit((!std::is_void_v<U> && !detail::traits<T>::template is_convertible_from<U>) || (!std::is_void_v<V> && !detail::traits<E>::template is_convertible_from<V>))
+constexpr result<T, E>::result(const result<U, V>& other)
+    : res_(convert(other)) {}
+
+template <typename T, typename E>
+template <typename U, typename V>
+    requires(((std::is_void_v<U> && detail::traits<T>::is_default_constructible) || std::is_constructible_v<variant<T, E>, std::in_place_index_t<0>, typename detail::traits<U>::rvalue_reference>) &&
+             ((std::is_void_v<V> && detail::traits<E>::is_default_constructible) || std::is_constructible_v<variant<T, E>, std::in_place_index_t<1>, typename detail::traits<E>::rvalue_reference>))
+explicit((!std::is_void_v<U> && !detail::traits<T>::template is_convertible_from<U>) || (!std::is_void_v<V> && !detail::traits<E>::template is_convertible_from<V>))
+constexpr result<T, E>::result(result<U, V>&& other)
+    : res_(convert(std::move(other))) {}
+
+template <typename T, typename E>
 template <typename U>
     requires(!std::is_same_v<result<T, E>, std::remove_cvref_t<U>> &&
              !detail::is_error_v<std::remove_cvref_t<U>> &&
