@@ -44,6 +44,12 @@ install(
     DESTINATION "${CMAKE_INSTALL_DATADIR}/${PROJECT_NAME}"
     COMPONENT devel)
 
+install(
+    DIRECTORY "${PROJECT_BINARY_DIR}/html"
+    DESTINATION "${CMAKE_INSTALL_DOCDIR}"
+    COMPONENT docs
+    OPTIONAL)
+
 set(CPACK_PACKAGE_VENDOR "Jack A Bernard Jr. <jack.a.bernard.jr@gmail.com>")
 set(CPACK_RESOURCE_FILE_LICENSE "${PROJECT_SOURCE_DIR}/LICENSE")
 include(CPack)

@@ -8,4 +8,5 @@ include(GNUInstallDirs)
 
 if("${PROJECT_SOURCE_DIR}" STREQUAL "${CMAKE_SOURCE_DIR}")
     include("${CMAKE_CURRENT_LIST_DIR}/format.cmake")
+    include("${CMAKE_CURRENT_LIST_DIR}/doxygen.cmake")
 endif()
