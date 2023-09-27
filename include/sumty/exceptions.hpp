@@ -17,8 +17,8 @@
 #define SUMTY_EXCEPTIONS_HPP
 
 #include <exception>
-#include <utility>
 #include <type_traits>
+#include <utility>
 
 namespace sumty {
 
@@ -31,9 +31,7 @@ class bad_variant_access : public std::exception {
     bad_variant_access& operator=(const bad_variant_access&) = default;
     bad_variant_access& operator=(bad_variant_access&&) noexcept = default;
 
-    const char* what() const noexcept override {
-        return "bad variant access";
-    }
+    const char* what() const noexcept override { return "bad variant access"; }
 };
 
 class bad_option_access : public std::exception {
@@ -45,9 +43,7 @@ class bad_option_access : public std::exception {
     bad_option_access& operator=(const bad_option_access&) = default;
     bad_option_access& operator=(bad_option_access&&) noexcept = default;
 
-    const char* what() const noexcept override {
-        return "bad option access";
-    }
+    const char* what() const noexcept override { return "bad option access"; }
 };
 
 template <typename E>
@@ -60,33 +56,25 @@ class bad_result_access : public std::exception {
 
     bad_result_access(const bad_result_access&) = default;
 
-    bad_result_access(bad_result_access&&) noexcept(std::is_nothrow_move_constructible_v<E>) = default;
+    bad_result_access(bad_result_access&&) noexcept(
+        std::is_nothrow_move_constructible_v<E>) = default;
 
     ~bad_result_access() noexcept override = default;
 
     bad_result_access& operator=(const bad_result_access&) = default;
 
-    bad_result_access& operator=(bad_result_access&&) noexcept(std::is_nothrow_move_assignable_v<E>) = default;
+    bad_result_access& operator=(bad_result_access&&) noexcept(
+        std::is_nothrow_move_assignable_v<E>) = default;
 
-    E& error() & noexcept {
-        return err_;
-    }
+    E& error() & noexcept { return err_; }
 
-    const E& error() const& noexcept {
-        return err_;
-    }
+    const E& error() const& noexcept { return err_; }
 
-    E&& error() && {
-        return std::move(err_);
-    }
+    E&& error() && { return std::move(err_); }
 
-    const E&& error() const&& {
-        return std::move(err_);
-    }
+    const E&& error() const&& { return std::move(err_); }
 
-    const char* what() const noexcept override {
-        return "bad result access";
-    }
+    const char* what() const noexcept override { return "bad result access"; }
 };
 
 template <>
@@ -104,13 +92,11 @@ class bad_result_access<void> : public std::exception {
 
     bad_result_access& operator=(bad_result_access&&) = default;
 
-    void error() const noexcept { }
+    void error() const noexcept {}
 
-    const char* what() const noexcept override {
-        return "bad result access";
-    }
+    const char* what() const noexcept override { return "bad result access"; }
 };
 
-}
+} // namespace sumty
 
 #endif

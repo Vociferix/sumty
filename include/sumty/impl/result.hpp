@@ -31,29 +31,36 @@ constexpr variant<U, V> result<T, E>::convert(R&& res) {
         if constexpr (std::is_void_v<decltype(std::forward<R>(res).error())>) {
             return result<U, V>{std::in_place_index<1>};
         } else {
-            return result<U, V>{std::in_place_index<1>, std::forward<R>(res).error()};
+            return result<U, V>{std::in_place_index<1>,
+                                std::forward<R>(res).error()};
         }
     }
 }
 
 template <typename T, typename E>
 template <typename... Args>
-constexpr result<T, E>::result([[maybe_unused]] std::in_place_t in_place, Args&&... args)
+constexpr result<T, E>::result([[maybe_unused]] std::in_place_t in_place,
+                               Args&&... args)
     : res_(std::in_place_index<0>, std::forward<Args>(args)...) {}
 
 template <typename T, typename E>
 template <typename U, typename... Args>
-constexpr result<T, E>::result([[maybe_unused]] std::in_place_t in_place, std::initializer_list<U> init, Args&&... args)
+constexpr result<T, E>::result([[maybe_unused]] std::in_place_t in_place,
+                               std::initializer_list<U> init,
+                               Args&&... args)
     : res_(std::in_place_index<0>, init, std::forward<Args>(args)...) {}
 
 template <typename T, typename E>
 template <typename... Args>
-constexpr result<T, E>::result(std::in_place_index_t<0> in_place, Args&&... args)
+constexpr result<T, E>::result(std::in_place_index_t<0> in_place,
+                               Args&&... args)
     : res_(in_place, std::forward<Args>(args)...) {}
 
 template <typename T, typename E>
 template <typename U, typename... Args>
-constexpr result<T, E>::result(std::in_place_index_t<0> in_place, std::initializer_list<U> init, Args&&... args)
+constexpr result<T, E>::result(std::in_place_index_t<0> in_place,
+                               std::initializer_list<U> init,
+                               Args&&... args)
     : res_(in_place, init, std::forward<Args>(args)...) {}
 
 template <typename T, typename E>
@@ -63,45 +70,75 @@ constexpr result<T, E>::result(in_place_error_t in_place, Args&&... args)
 
 template <typename T, typename E>
 template <typename U, typename... Args>
-constexpr result<T, E>::result(in_place_error_t in_place, std::initializer_list<U> init, Args&&... args)
+constexpr result<T, E>::result(in_place_error_t in_place,
+                               std::initializer_list<U> init,
+                               Args&&... args)
     : res_(in_place, init, std::forward<Args>(args)...) {}
 
 template <typename T, typename E>
 template <typename U>
-    requires(std::is_constructible_v<variant<T, E>, std::in_place_index_t<0>, U&&> &&
-             !std::is_same_v<std::remove_cvref_t<U>, std::in_place_t> &&
-             !std::is_same_v<std::remove_cvref_t<U>, std::in_place_index_t<0>> &&
-             !std::is_same_v<std::remove_cvref_t<U>, std::in_place_index_t<1>> &&
-             !detail::is_error_v<std::remove_cvref_t<U>> &&
-             !detail::is_ok_v<std::remove_cvref_t<U>> &&
-             (!std::is_same_v<std::remove_cvref_t<T>, bool> || !detail::is_result_v<std::remove_cvref_t<U>>))
-explicit(!detail::traits<T>::template is_convertible_from<U&&>)
-constexpr result<T, E>::result(U&& value) : res_(std::in_place_index<0>, std::forward<U>(value)) {}
+    requires(
+        std::
+            is_constructible_v<variant<T, E>, std::in_place_index_t<0>, U &&> &&
+        !std::is_same_v<std::remove_cvref_t<U>, std::in_place_t> &&
+        !std::is_same_v<std::remove_cvref_t<U>, std::in_place_index_t<0>> &&
+        !std::is_same_v<std::remove_cvref_t<U>, std::in_place_index_t<1>> &&
+        !detail::is_error_v<std::remove_cvref_t<U>> &&
+        !detail::is_ok_v<std::remove_cvref_t<U>> &&
+        (!std::is_same_v<std::remove_cvref_t<T>, bool> ||
+         !detail::is_result_v<std::remove_cvref_t<U>>))
+explicit(!detail::traits<T>::template is_convertible_from<
+         U&&>) constexpr result<T, E>::result(U&& value)
+    : res_(std::in_place_index<0>, std::forward<U>(value)) {}
 
 template <typename T, typename E>
 template <typename U>
-explicit(!detail::traits<T>::template is_convertible_from<U&&>)
-constexpr result<T, E>::result(ok_t<U> ok) : res_(std::in_place_index<0>, *std::move(ok)) {}
+explicit(!detail::traits<T>::template is_convertible_from<
+         U&&>) constexpr result<T, E>::result(ok_t<U> ok)
+    : res_(std::in_place_index<0>, *std::move(ok)) {}
 
 template <typename T, typename E>
 template <typename U>
-explicit(!detail::traits<E>::template is_convertible_from<U&&>)
-constexpr result<T, E>::result(error_t<U> err) : res_(std::in_place_index<1>, *std::move(err)) {}
+explicit(!detail::traits<E>::template is_convertible_from<
+         U&&>) constexpr result<T, E>::result(error_t<U> err)
+    : res_(std::in_place_index<1>, *std::move(err)) {}
 
 template <typename T, typename E>
 template <typename U, typename V>
-    requires(((std::is_void_v<U> && detail::traits<T>::is_default_constructible) || std::is_constructible_v<variant<T, E>, std::in_place_index_t<0>, typename detail::traits<U>::const_reference>) &&
-             ((std::is_void_v<V> && detail::traits<E>::is_default_constructible) || std::is_constructible_v<variant<T, E>, std::in_place_index_t<1>, typename detail::traits<E>::const_reference>))
-explicit((!std::is_void_v<U> && !detail::traits<T>::template is_convertible_from<U>) || (!std::is_void_v<V> && !detail::traits<E>::template is_convertible_from<V>))
-constexpr result<T, E>::result(const result<U, V>& other)
+    requires(
+        ((std::is_void_v<U> && detail::traits<T>::is_default_constructible) ||
+         std::is_constructible_v<
+             variant<T, E>,
+             std::in_place_index_t<0>,
+             typename detail::traits<U>::const_reference>) &&
+        ((std::is_void_v<V> && detail::traits<E>::is_default_constructible) ||
+         std::is_constructible_v<variant<T, E>,
+                                 std::in_place_index_t<1>,
+                                 typename detail::traits<E>::const_reference>))
+explicit((!std::is_void_v<U> &&
+          !detail::traits<T>::template is_convertible_from<U>) ||
+         (!std::is_void_v<V> &&
+          !detail::traits<E>::template is_convertible_from<
+              V>)) constexpr result<T, E>::result(const result<U, V>& other)
     : res_(convert(other)) {}
 
 template <typename T, typename E>
 template <typename U, typename V>
-    requires(((std::is_void_v<U> && detail::traits<T>::is_default_constructible) || std::is_constructible_v<variant<T, E>, std::in_place_index_t<0>, typename detail::traits<U>::rvalue_reference>) &&
-             ((std::is_void_v<V> && detail::traits<E>::is_default_constructible) || std::is_constructible_v<variant<T, E>, std::in_place_index_t<1>, typename detail::traits<E>::rvalue_reference>))
-explicit((!std::is_void_v<U> && !detail::traits<T>::template is_convertible_from<U>) || (!std::is_void_v<V> && !detail::traits<E>::template is_convertible_from<V>))
-constexpr result<T, E>::result(result<U, V>&& other)
+    requires(
+        ((std::is_void_v<U> && detail::traits<T>::is_default_constructible) ||
+         std::is_constructible_v<
+             variant<T, E>,
+             std::in_place_index_t<0>,
+             typename detail::traits<U>::rvalue_reference>) &&
+        ((std::is_void_v<V> && detail::traits<E>::is_default_constructible) ||
+         std::is_constructible_v<variant<T, E>,
+                                 std::in_place_index_t<1>,
+                                 typename detail::traits<E>::rvalue_reference>))
+explicit((!std::is_void_v<U> &&
+          !detail::traits<T>::template is_convertible_from<U>) ||
+         (!std::is_void_v<V> &&
+          !detail::traits<E>::template is_convertible_from<
+              V>)) constexpr result<T, E>::result(result<U, V>&& other)
     : res_(convert(std::move(other))) {}
 
 template <typename T, typename E>
@@ -122,9 +159,12 @@ constexpr result<T, E>& result<T, E>::operator=(U&& value) {
 
 template <typename T, typename E>
 template <typename U>
-    requires((detail::traits<T>::template is_constructible<typename detail::traits<U>::const_reference> &&
-             detail::traits<T>::template is_assignable<typename detail::traits<U>::const_reference>) ||
-             (std::is_void_v<U> && detail::traits<T>::is_default_constructible) ||
+    requires((detail::traits<T>::template is_constructible<
+                  typename detail::traits<U>::const_reference> &&
+              detail::traits<T>::template is_assignable<
+                  typename detail::traits<U>::const_reference>) ||
+             (std::is_void_v<U> &&
+              detail::traits<T>::is_default_constructible) ||
              std::is_void_v<T>)
 constexpr result<T, E>& result<T, E>::operator=(const ok_t<U>& value) {
     if (res_.index() != 0) {
@@ -135,9 +175,7 @@ constexpr result<T, E>& result<T, E>::operator=(const ok_t<U>& value) {
         }
     } else {
         if constexpr (std::is_void_v<U>) {
-            if constexpr (!std::is_void_v<T>) {
-                res_[index<0>] = T{};
-            }
+            if constexpr (!std::is_void_v<T>) { res_[index<0>] = T{}; }
         } else {
             if constexpr (!std::is_void_v<T>) {
                 if constexpr (std::is_lvalue_reference_v<T>) {
@@ -153,9 +191,12 @@ constexpr result<T, E>& result<T, E>::operator=(const ok_t<U>& value) {
 
 template <typename T, typename E>
 template <typename U>
-    requires((detail::traits<T>::template is_constructible<typename detail::traits<U>::rvalue_reference> &&
-             detail::traits<T>::template is_assignable<typename detail::traits<U>::rvalue_reference>) ||
-             (std::is_void_v<U> && detail::traits<T>::is_default_constructible) ||
+    requires((detail::traits<T>::template is_constructible<
+                  typename detail::traits<U>::rvalue_reference> &&
+              detail::traits<T>::template is_assignable<
+                  typename detail::traits<U>::rvalue_reference>) ||
+             (std::is_void_v<U> &&
+              detail::traits<T>::is_default_constructible) ||
              std::is_void_v<T>)
 constexpr result<T, E>& result<T, E>::operator=(ok_t<U>&& value) {
     if (res_.index() != 0) {
@@ -166,9 +207,7 @@ constexpr result<T, E>& result<T, E>::operator=(ok_t<U>&& value) {
         }
     } else {
         if constexpr (std::is_void_v<U>) {
-            if constexpr (!std::is_void_v<T>) {
-                res_[index<0>] = T{};
-            }
+            if constexpr (!std::is_void_v<T>) { res_[index<0>] = T{}; }
         } else {
             if constexpr (!std::is_void_v<T>) {
                 if constexpr (std::is_lvalue_reference_v<T>) {
@@ -184,9 +223,12 @@ constexpr result<T, E>& result<T, E>::operator=(ok_t<U>&& value) {
 
 template <typename T, typename E>
 template <typename V>
-    requires((detail::traits<E>::template is_constructible<typename detail::traits<V>::const_reference> &&
-             detail::traits<E>::template is_assignable<typename detail::traits<V>::const_reference>) ||
-             (std::is_void_v<V> && detail::traits<E>::is_default_constructible) ||
+    requires((detail::traits<E>::template is_constructible<
+                  typename detail::traits<V>::const_reference> &&
+              detail::traits<E>::template is_assignable<
+                  typename detail::traits<V>::const_reference>) ||
+             (std::is_void_v<V> &&
+              detail::traits<E>::is_default_constructible) ||
              std::is_void_v<E>)
 constexpr result<T, E>& result<T, E>::operator=(const error_t<V>& error) {
     if (res_.index() == 0) {
@@ -197,9 +239,7 @@ constexpr result<T, E>& result<T, E>::operator=(const error_t<V>& error) {
         }
     } else {
         if constexpr (std::is_void_v<V>) {
-            if constexpr (!std::is_void_v<E>) {
-                res_[index<1>] = E{};
-            }
+            if constexpr (!std::is_void_v<E>) { res_[index<1>] = E{}; }
         } else {
             if constexpr (!std::is_void_v<E>) {
                 if constexpr (std::is_lvalue_reference_v<E>) {
@@ -215,9 +255,12 @@ constexpr result<T, E>& result<T, E>::operator=(const error_t<V>& error) {
 
 template <typename T, typename E>
 template <typename V>
-    requires((detail::traits<E>::template is_constructible<typename detail::traits<V>::rvalue_reference> &&
-             detail::traits<E>::template is_assignable<typename detail::traits<V>::rvalue_reference>) ||
-             (std::is_void_v<V> && detail::traits<E>::is_default_constructible) ||
+    requires((detail::traits<E>::template is_constructible<
+                  typename detail::traits<V>::rvalue_reference> &&
+              detail::traits<E>::template is_assignable<
+                  typename detail::traits<V>::rvalue_reference>) ||
+             (std::is_void_v<V> &&
+              detail::traits<E>::is_default_constructible) ||
              std::is_void_v<E>)
 constexpr result<T, E>& result<T, E>::operator=(error_t<V>&& value) {
     if (res_.index() == 0) {
@@ -228,9 +271,7 @@ constexpr result<T, E>& result<T, E>::operator=(error_t<V>&& value) {
         }
     } else {
         if constexpr (std::is_void_v<V>) {
-            if constexpr (!std::is_void_v<E>) {
-                res_[index<1>] = E{};
-            }
+            if constexpr (!std::is_void_v<E>) { res_[index<1>] = E{}; }
         } else {
             if constexpr (!std::is_void_v<E>) {
                 if constexpr (std::is_lvalue_reference_v<E>) {
@@ -255,12 +296,14 @@ constexpr bool result<T, E>::has_value() const noexcept {
 }
 
 template <typename T, typename E>
-constexpr typename result<T, E>::reference result<T, E>::operator*() & noexcept {
+constexpr typename result<T, E>::reference
+result<T, E>::operator*() & noexcept {
     return res_[index<0>];
 }
 
 template <typename T, typename E>
-constexpr typename result<T, E>::const_reference result<T, E>::operator*() const& noexcept {
+constexpr typename result<T, E>::const_reference result<T, E>::operator*()
+    const& noexcept {
     return res_[index<0>];
 }
 
@@ -270,7 +313,8 @@ constexpr typename result<T, E>::rvalue_reference result<T, E>::operator*() && {
 }
 
 template <typename T, typename E>
-constexpr typename result<T, E>::const_rvalue_reference result<T, E>::operator*() const&& {
+constexpr typename result<T, E>::const_rvalue_reference
+result<T, E>::operator*() const&& {
     return std::move(res_)[index<0>];
 }
 
@@ -280,7 +324,8 @@ constexpr typename result<T, E>::pointer result<T, E>::operator->() noexcept {
 }
 
 template <typename T, typename E>
-constexpr typename result<T, E>::const_pointer result<T, E>::operator->() const noexcept {
+constexpr typename result<T, E>::const_pointer result<T, E>::operator->()
+    const noexcept {
     return &res_[index<0>];
 }
 
@@ -314,47 +359,55 @@ constexpr typename result<T, E>::rvalue_reference result<T, E>::value() && {
         if constexpr (std::is_void_v<E>) {
             throw bad_result_access<void>();
         } else {
-            throw bad_result_access<std::remove_cvref_t<E>>(std::move(res_)[index<1>]);
+            throw bad_result_access<std::remove_cvref_t<E>>(
+                std::move(res_)[index<1>]);
         }
     }
     return std::move(res_)[index<0>];
 }
 
 template <typename T, typename E>
-constexpr typename result<T, E>::rvalue_reference result<T, E>::value() const&& {
+constexpr typename result<T, E>::rvalue_reference result<T, E>::value()
+    const&& {
     if (res_.index() != 0) {
         if constexpr (std::is_void_v<E>) {
             throw bad_result_access<void>();
         } else {
-            throw bad_result_access<std::remove_cvref_t<E>>(std::move(res_)[index<1>]);
+            throw bad_result_access<std::remove_cvref_t<E>>(
+                std::move(res_)[index<1>]);
         }
     }
     return std::move(res_)[index<0>];
 }
 
 template <typename T, typename E>
-constexpr typename result<T, E>::error_reference result<T, E>::error() & noexcept {
+constexpr typename result<T, E>::error_reference
+result<T, E>::error() & noexcept {
     return res_[index<1>];
 }
 
 template <typename T, typename E>
-constexpr typename result<T, E>::error_const_reference result<T, E>::error() const& noexcept {
+constexpr typename result<T, E>::error_const_reference result<T, E>::error()
+    const& noexcept {
     return res_[index<1>];
 }
 
 template <typename T, typename E>
-constexpr typename result<T, E>::error_rvalue_reference result<T, E>::error() && {
+constexpr typename result<T, E>::error_rvalue_reference
+result<T, E>::error() && {
     return std::move(res_)[index<1>];
 }
 
 template <typename T, typename E>
-constexpr typename result<T, E>::error_const_rvalue_reference result<T, E>::error() const&& {
+constexpr typename result<T, E>::error_const_rvalue_reference
+result<T, E>::error() const&& {
     return std::move(res_)[index<1>];
 }
 
 template <typename T, typename E>
 template <typename U>
-constexpr typename result<T, E>::value_type result<T, E>::value_or(U&& default_value) const& {
+constexpr typename result<T, E>::value_type result<T, E>::value_or(
+    U&& default_value) const& {
     if (res_.index() == 0) {
         return res_[index<0>];
     } else {
@@ -364,7 +417,8 @@ constexpr typename result<T, E>::value_type result<T, E>::value_or(U&& default_v
 
 template <typename T, typename E>
 template <typename U>
-constexpr typename result<T, E>::value_type result<T, E>::value_or(U&& default_value) && {
+constexpr typename result<T, E>::value_type result<T, E>::value_or(
+    U&& default_value) && {
     if (res_.index() == 0) {
         return std::move(res_)[index<0>];
     } else {
@@ -429,7 +483,8 @@ constexpr auto result<T, E>::and_then(F&& f) const& {
         if (res_.index() == 0) {
             return std::invoke(std::forward<F>(f), res_[index<0>]);
         } else {
-            return std::remove_cvref_t<std::invoke_result_t<F, const_reference>>{};
+            return std::remove_cvref_t<
+                std::invoke_result_t<F, const_reference>>{};
         }
     }
 }
@@ -447,7 +502,8 @@ constexpr auto result<T, E>::and_then(F&& f) && {
         if (res_.index() == 0) {
             return std::invoke(std::forward<F>(f), std::move(res_)[index<0>]);
         } else {
-            return std::remove_cvref_t<std::invoke_result_t<F, rvalue_reference>>{};
+            return std::remove_cvref_t<
+                std::invoke_result_t<F, rvalue_reference>>{};
         }
     }
 }
@@ -465,7 +521,8 @@ constexpr auto result<T, E>::and_then(F&& f) const&& {
         if (res_.index() == 0) {
             return std::invoke(std::forward<F>(f), std::move(res_)[index<0>]);
         } else {
-            return std::remove_cvref_t<std::invoke_result_t<F, const_rvalue_reference>>{};
+            return std::remove_cvref_t<
+                std::invoke_result_t<F, const_rvalue_reference>>{};
         }
     }
 }
@@ -480,7 +537,8 @@ constexpr decltype(auto) result<T, E>::transform(F&& f) & {
                 std::invoke(std::forward<F>(f));
                 return result<res_t, E>{std::in_place};
             } else {
-                return result<res_t, E>{std::in_place, std::invoke(std::forward<F>(f))};
+                return result<res_t, E>{std::in_place,
+                                        std::invoke(std::forward<F>(f))};
             }
         } else {
             return result<res_t, E>{in_place_error, res_[index<1>]};
@@ -492,7 +550,9 @@ constexpr decltype(auto) result<T, E>::transform(F&& f) & {
                 std::invoke(std::forward<F>(f), res_[index<0>]);
                 return result<res_t, E>{std::in_place};
             } else {
-                return result<res_t, E>{std::in_place, std::invoke(std::forward<F>(f), res_[index<0>])};
+                return result<res_t, E>{
+                    std::in_place,
+                    std::invoke(std::forward<F>(f), res_[index<0>])};
             }
         } else {
             return result<res_t, E>{in_place_error, res_[index<1>]};
@@ -510,7 +570,8 @@ constexpr decltype(auto) result<T, E>::transform(F&& f) const& {
                 std::invoke(std::forward<F>(f));
                 return result<res_t, E>{std::in_place};
             } else {
-                return result<res_t, E>{std::in_place, std::invoke(std::forward<F>(f))};
+                return result<res_t, E>{std::in_place,
+                                        std::invoke(std::forward<F>(f))};
             }
         } else {
             return result<res_t, E>{in_place_error, res_[index<1>]};
@@ -522,7 +583,9 @@ constexpr decltype(auto) result<T, E>::transform(F&& f) const& {
                 std::invoke(std::forward<F>(f), res_[index<0>]);
                 return result<res_t, E>{std::in_place};
             } else {
-                return result<res_t, E>{std::in_place, std::invoke(std::forward<F>(f), res_[index<0>])};
+                return result<res_t, E>{
+                    std::in_place,
+                    std::invoke(std::forward<F>(f), res_[index<0>])};
             }
         } else {
             return result<res_t, E>{in_place_error, res_[index<1>]};
@@ -540,7 +603,8 @@ constexpr decltype(auto) result<T, E>::transform(F&& f) && {
                 std::invoke(std::forward<F>(f));
                 return result<res_t, E>{std::in_place};
             } else {
-                return result<res_t, E>{std::in_place, std::invoke(std::forward<F>(f))};
+                return result<res_t, E>{std::in_place,
+                                        std::invoke(std::forward<F>(f))};
             }
         } else {
             return result<res_t, E>{in_place_error, std::move(res_)[index<1>]};
@@ -552,7 +616,9 @@ constexpr decltype(auto) result<T, E>::transform(F&& f) && {
                 std::invoke(std::forward<F>(f), std::move(res_)[index<0>]);
                 return result<res_t, E>{std::in_place};
             } else {
-                return result<res_t, E>{std::in_place, std::invoke(std::forward<F>(f), std::move(res_)[index<0>])};
+                return result<res_t, E>{
+                    std::in_place,
+                    std::invoke(std::forward<F>(f), std::move(res_)[index<0>])};
             }
         } else {
             return result<res_t, E>{in_place_error, std::move(res_)[index<1>]};
@@ -570,7 +636,8 @@ constexpr decltype(auto) result<T, E>::transform(F&& f) const&& {
                 std::invoke(std::forward<F>(f));
                 return result<res_t, E>{std::in_place};
             } else {
-                return result<res_t, E>{std::in_place, std::invoke(std::forward<F>(f))};
+                return result<res_t, E>{std::in_place,
+                                        std::invoke(std::forward<F>(f))};
             }
         } else {
             return result<res_t, E>{in_place_error, std::move(res_)[index<1>]};
@@ -582,7 +649,9 @@ constexpr decltype(auto) result<T, E>::transform(F&& f) const&& {
                 std::invoke(std::forward<F>(f), std::move(res_)[index<0>]);
                 return result<res_t, E>{std::in_place};
             } else {
-                return result<res_t, E>{std::in_place, std::invoke(std::forward<F>(f), std::move(res_)[index<0>])};
+                return result<res_t, E>{
+                    std::in_place,
+                    std::invoke(std::forward<F>(f), std::move(res_)[index<0>])};
             }
         } else {
             return result<res_t, E>{in_place_error, std::move(res_)[index<1>]};
@@ -605,7 +674,8 @@ constexpr auto result<T, E>::or_else(F&& f) const& {
             return std::invoke(std::forward<F>(f));
         }
     } else {
-        using res_t = std::remove_cvref_t<std::invoke_result_t<F, error_const_reference>>;
+        using res_t =
+            std::remove_cvref_t<std::invoke_result_t<F, error_const_reference>>;
         if (res_.index() == 0) {
             if constexpr (std::is_void_v<T>) {
                 return res_t{};
@@ -633,7 +703,8 @@ constexpr auto result<T, E>::or_else(F&& f) && {
             return std::invoke(std::forward<F>(f));
         }
     } else {
-        using res_t = std::remove_cvref_t<std::invoke_result_t<F, error_rvalue_reference>>;
+        using res_t = std::remove_cvref_t<
+            std::invoke_result_t<F, error_rvalue_reference>>;
         if (res_.index() == 0) {
             if constexpr (std::is_void_v<T>) {
                 return res_t{};
@@ -656,7 +727,8 @@ constexpr decltype(auto) result<T, E>::transform_error(F&& f) & {
                 std::invoke(std::forward<F>(f));
                 return result<T, res_t>{in_place_error};
             } else {
-                return result<T, res_t>{in_place_error, std::invoke(std::forward<F>(f))};
+                return result<T, res_t>{in_place_error,
+                                        std::invoke(std::forward<F>(f))};
             }
         } else {
             return result<T, res_t>{std::in_place, res_[index<0>]};
@@ -668,7 +740,9 @@ constexpr decltype(auto) result<T, E>::transform_error(F&& f) & {
                 std::invoke(std::forward<F>(f), res_[index<1>]);
                 return result<T, res_t>{in_place_error};
             } else {
-                return result<T, res_t>{in_place_error, std::invoke(std::forward<F>(f), res_[index<1>])};
+                return result<T, res_t>{
+                    in_place_error,
+                    std::invoke(std::forward<F>(f), res_[index<1>])};
             }
         } else {
             return result<T, res_t>{std::in_place, res_[index<0>]};
@@ -686,7 +760,8 @@ constexpr decltype(auto) result<T, E>::transform_error(F&& f) const& {
                 std::invoke(std::forward<F>(f));
                 return result<T, res_t>{in_place_error};
             } else {
-                return result<T, res_t>{in_place_error, std::invoke(std::forward<F>(f))};
+                return result<T, res_t>{in_place_error,
+                                        std::invoke(std::forward<F>(f))};
             }
         } else {
             return result<T, res_t>{std::in_place, res_[index<0>]};
@@ -698,7 +773,9 @@ constexpr decltype(auto) result<T, E>::transform_error(F&& f) const& {
                 std::invoke(std::forward<F>(f), res_[index<1>]);
                 return result<T, res_t>{in_place_error};
             } else {
-                return result<T, res_t>{in_place_error, std::invoke(std::forward<F>(f), res_[index<1>])};
+                return result<T, res_t>{
+                    in_place_error,
+                    std::invoke(std::forward<F>(f), res_[index<1>])};
             }
         } else {
             return result<T, res_t>{std::in_place, res_[index<0>]};
@@ -716,7 +793,8 @@ constexpr decltype(auto) result<T, E>::transform_error(F&& f) && {
                 std::invoke(std::forward<F>(f));
                 return result<T, res_t>{in_place_error};
             } else {
-                return result<T, res_t>{in_place_error, std::invoke(std::forward<F>(f))};
+                return result<T, res_t>{in_place_error,
+                                        std::invoke(std::forward<F>(f))};
             }
         } else {
             return result<T, res_t>{std::in_place, std::move(res_)[index<0>]};
@@ -728,7 +806,9 @@ constexpr decltype(auto) result<T, E>::transform_error(F&& f) && {
                 std::invoke(std::forward<F>(f), std::move(res_)[index<1>]);
                 return result<T, res_t>{in_place_error};
             } else {
-                return result<T, res_t>{in_place_error, std::invoke(std::forward<F>(f), std::move(res_)[index<1>])};
+                return result<T, res_t>{
+                    in_place_error,
+                    std::invoke(std::forward<F>(f), std::move(res_)[index<1>])};
             }
         } else {
             return result<T, res_t>{std::in_place, std::move(res_)[index<0>]};
@@ -746,7 +826,8 @@ constexpr decltype(auto) result<T, E>::transform_error(F&& f) const&& {
                 std::invoke(std::forward<F>(f));
                 return result<T, res_t>{in_place_error};
             } else {
-                return result<T, res_t>{in_place_error, std::invoke(std::forward<F>(f))};
+                return result<T, res_t>{in_place_error,
+                                        std::invoke(std::forward<F>(f))};
             }
         } else {
             return result<T, res_t>{std::in_place, std::move(res_)[index<0>]};
@@ -758,7 +839,9 @@ constexpr decltype(auto) result<T, E>::transform_error(F&& f) const&& {
                 std::invoke(std::forward<F>(f), std::move(res_)[index<1>]);
                 return result<T, res_t>{in_place_error};
             } else {
-                return result<T, res_t>{in_place_error, std::invoke(std::forward<F>(f), std::move(res_)[index<1>])};
+                return result<T, res_t>{
+                    in_place_error,
+                    std::invoke(std::forward<F>(f), std::move(res_)[index<1>])};
             }
         } else {
             return result<T, res_t>{std::in_place, std::move(res_)[index<0>]};
@@ -767,7 +850,9 @@ constexpr decltype(auto) result<T, E>::transform_error(F&& f) const&& {
 }
 
 template <typename T, typename E>
-constexpr result<typename result<T, E>::reference, typename result<T, E>::error_reference> result<T, E>::ref() noexcept {
+constexpr result<typename result<T, E>::reference,
+                 typename result<T, E>::error_reference>
+result<T, E>::ref() noexcept {
     if (res_.index() == 0) {
         return result<reference, error_reference>{std::in_place, **this};
     } else {
@@ -776,16 +861,22 @@ constexpr result<typename result<T, E>::reference, typename result<T, E>::error_
 }
 
 template <typename T, typename E>
-constexpr result<typename result<T, E>::const_reference, typename result<T, E>::error_const_reference> result<T, E>::ref() const noexcept {
+constexpr result<typename result<T, E>::const_reference,
+                 typename result<T, E>::error_const_reference>
+result<T, E>::ref() const noexcept {
     if (res_.index() == 0) {
-        return result<const_reference, error_const_reference>{std::in_place, **this};
+        return result<const_reference, error_const_reference>{std::in_place,
+                                                              **this};
     } else {
-        return result<const_reference, error_const_reference>{in_place_error, this.error()};
+        return result<const_reference, error_const_reference>{in_place_error,
+                                                              this.error()};
     }
 }
 
 template <typename T, typename E>
-constexpr result<typename result<T, E>::const_reference, typename result<T, E>::error_const_reference> result<T, E>::cref() const noexcept {
+constexpr result<typename result<T, E>::const_reference,
+                 typename result<T, E>::error_const_reference>
+result<T, E>::cref() const noexcept {
     return ref();
 }
 
@@ -843,23 +934,28 @@ constexpr option<E> result<T, E>::error_or_none() && {
 
 template <typename T, typename E>
 template <typename... Args>
-constexpr typename result<T, E>::reference result<T, E>::emplace(Args&&... args) {
+constexpr typename result<T, E>::reference result<T, E>::emplace(
+    Args&&... args) {
     return res_.template emplace<0>(std::forward<Args>(args)...);
 }
 
 template <typename T, typename E>
 template <typename U, typename... Args>
-constexpr typename result<T, E>::reference result<T, E>::emplace(std::initializer_list<U> ilist, Args&&... args) {
+constexpr typename result<T, E>::reference result<T, E>::emplace(
+    std::initializer_list<U> ilist,
+    Args&&... args) {
     return res_.template emplace<0>(std::forward<Args>(args)...);
 }
 
 template <typename T, typename E>
-constexpr void result<T, E>::swap(result<T, E>& other) noexcept(std::is_nothrow_swappable_v<variant<T, E>>) {
+constexpr void result<T, E>::swap(result<T, E>& other) noexcept(
+    std::is_nothrow_swappable_v<variant<T, E>>) {
     res_.swap(other.res_);
 }
 
 template <typename T, typename E, typename U, typename V>
-    requires(std::is_void_v<T> == std::is_void_v<U> && std::is_void_v<E> == std::is_void_v<V>)
+    requires(std::is_void_v<T> == std::is_void_v<U> &&
+             std::is_void_v<E> == std::is_void_v<V>)
 constexpr bool operator==(const result<T, E>& lhs, const result<U, V>& rhs) {
     if (lhs.has_value()) {
         if constexpr (std::is_void_v<T>) {
@@ -895,7 +991,8 @@ constexpr bool operator==(const result<T, E>& lhs, const error_t<V>& rhs) {
 }
 
 template <typename T, typename E>
-constexpr void swap(result<T, E>& a, result<T, E>& b) noexcept(std::is_nothrow_swappable_v<variant<T, E>>) {
+constexpr void swap(result<T, E>& a, result<T, E>& b) noexcept(
+    std::is_nothrow_swappable_v<variant<T, E>>) {
     a.swap(b);
 }
 
@@ -919,4 +1016,4 @@ constexpr ok_t<T> ok(std::initializer_list<U> ilist, Args&&... args) {
     return ok_t<T>{std::in_place, ilist, std::forward<Args>(args)...};
 }
 
-}
+} // namespace sumty

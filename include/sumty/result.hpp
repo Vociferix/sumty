@@ -45,7 +45,8 @@ class result {
     using reference = typename detail::traits<T>::reference;
     using const_reference = typename detail::traits<T>::const_reference;
     using rvalue_reference = typename detail::traits<T>::rvalue_reference;
-    using const_rvalue_reference = typename detail::traits<T>::const_rvalue_reference;
+    using const_rvalue_reference =
+        typename detail::traits<T>::const_rvalue_reference;
     using pointer = typename detail::traits<T>::pointer;
     using const_pointer = typename detail::traits<T>::const_pointer;
 
@@ -53,7 +54,8 @@ class result {
     using error_reference = typename detail::traits<E>::reference;
     using error_const_reference = typename detail::traits<E>::const_reference;
     using error_rvalue_reference = typename detail::traits<E>::rvalue_reference;
-    using error_const_rvalue_reference = typename detail::traits<E>::const_rvalue_reference;
+    using error_const_rvalue_reference =
+        typename detail::traits<E>::const_rvalue_reference;
     using error_pointer = typename detail::traits<E>::pointer;
     using error_const_pointer = typename detail::traits<E>::const_pointer;
 
@@ -66,81 +68,118 @@ class result {
     // For compatibility with std::expected
     using unexpected_type = error_t<E>;
 
-    constexpr result()
-        noexcept(std::is_nothrow_default_constructible_v<variant<T, E>>)
+    constexpr result() noexcept(
+        std::is_nothrow_default_constructible_v<variant<T, E>>)
         requires(std::is_default_constructible_v<variant<T, E>>)
-        = default;
+    = default;
 
-    constexpr result(const result&)
-        noexcept(std::is_nothrow_copy_constructible_v<variant<T, E>>)
+    constexpr result(const result&) noexcept(
+        std::is_nothrow_copy_constructible_v<variant<T, E>>)
         requires(std::is_copy_constructible_v<variant<T, E>>)
-        = default;
+    = default;
 
-    constexpr result(result&&)
-        noexcept(std::is_nothrow_move_constructible_v<variant<T, E>>)
+    constexpr result(result&&) noexcept(
+        std::is_nothrow_move_constructible_v<variant<T, E>>)
         requires(std::is_move_constructible_v<variant<T, E>>)
-        = default;
+    = default;
 
     template <typename... Args>
     constexpr result([[maybe_unused]] std::in_place_t in_place, Args&&... args);
 
     template <typename U, typename... Args>
-    constexpr result([[maybe_unused]] std::in_place_t in_place, std::initializer_list<U> init, Args&&... args);
+    constexpr result([[maybe_unused]] std::in_place_t in_place,
+                     std::initializer_list<U> init,
+                     Args&&... args);
 
     template <typename... Args>
     constexpr result(std::in_place_index_t<0> in_place, Args&&... args);
 
     template <typename U, typename... Args>
-    constexpr result(std::in_place_index_t<0> in_place, std::initializer_list<U> init, Args&&... args);
+    constexpr result(std::in_place_index_t<0> in_place,
+                     std::initializer_list<U> init,
+                     Args&&... args);
 
     template <typename... Args>
     constexpr result(in_place_error_t in_place, Args&&... args);
 
     template <typename U, typename... Args>
-    constexpr result(in_place_error_t in_place, std::initializer_list<U> init, Args&&... args);
+    constexpr result(in_place_error_t in_place,
+                     std::initializer_list<U> init,
+                     Args&&... args);
 
     template <typename U>
-        requires(std::is_constructible_v<variant<T, E>, std::in_place_index_t<0>, U&&> &&
-                 !std::is_same_v<std::remove_cvref_t<U>, std::in_place_t> &&
-                 !std::is_same_v<std::remove_cvref_t<U>, std::in_place_index_t<0>> &&
-                 !std::is_same_v<std::remove_cvref_t<U>, std::in_place_index_t<1>> &&
-                 !detail::is_error_v<std::remove_cvref_t<U>> &&
-                 !detail::is_ok_v<std::remove_cvref_t<U>> &&
-                 (!std::is_same_v<std::remove_cvref_t<T>, bool> || !detail::is_result_v<std::remove_cvref_t<U>>))
-    explicit(!detail::traits<T>::template is_convertible_from<U&&>)
-    constexpr result(U&& value);
+        requires(
+            std::is_constructible_v<variant<T, E>,
+                                    std::in_place_index_t<0>,
+                                    U &&> &&
+            !std::is_same_v<std::remove_cvref_t<U>, std::in_place_t> &&
+            !std::is_same_v<std::remove_cvref_t<U>, std::in_place_index_t<0>> &&
+            !std::is_same_v<std::remove_cvref_t<U>, std::in_place_index_t<1>> &&
+            !detail::is_error_v<std::remove_cvref_t<U>> &&
+            !detail::is_ok_v<std::remove_cvref_t<U>> &&
+            (!std::is_same_v<std::remove_cvref_t<T>, bool> ||
+             !detail::is_result_v<std::remove_cvref_t<U>>))
+    explicit(!detail::traits<T>::template is_convertible_from<
+             U&&>) constexpr result(U&& value);
 
     template <typename U>
-    explicit(!detail::traits<T>::template is_convertible_from<U&&>)
-    constexpr result(ok_t<U> ok);
+    explicit(!detail::traits<T>::template is_convertible_from<
+             U&&>) constexpr result(ok_t<U> ok);
 
     template <typename U>
-    explicit(!detail::traits<E>::template is_convertible_from<U&&>)
-    constexpr result(error_t<U> err);
+    explicit(!detail::traits<E>::template is_convertible_from<
+             U&&>) constexpr result(error_t<U> err);
 
     template <typename U, typename V>
-        requires(((std::is_void_v<U> && detail::traits<T>::is_default_constructible) || std::is_constructible_v<variant<T, E>, std::in_place_index_t<0>, typename detail::traits<U>::const_reference>) &&
-                 ((std::is_void_v<V> && detail::traits<E>::is_default_constructible) || std::is_constructible_v<variant<T, E>, std::in_place_index_t<1>, typename detail::traits<E>::const_reference>))
-    explicit((!std::is_void_v<U> && !detail::traits<T>::template is_convertible_from<U>) || (!std::is_void_v<V> && !detail::traits<E>::template is_convertible_from<V>))
-    constexpr result(const result<U, V>& other);
+        requires(((std::is_void_v<U> &&
+                   detail::traits<T>::is_default_constructible) ||
+                  std::is_constructible_v<
+                      variant<T, E>,
+                      std::in_place_index_t<0>,
+                      typename detail::traits<U>::const_reference>) &&
+                 ((std::is_void_v<V> &&
+                   detail::traits<E>::is_default_constructible) ||
+                  std::is_constructible_v<
+                      variant<T, E>,
+                      std::in_place_index_t<1>,
+                      typename detail::traits<E>::const_reference>))
+    explicit((!std::is_void_v<U> &&
+              !detail::traits<T>::template is_convertible_from<U>) ||
+             (!std::is_void_v<V> &&
+              !detail::traits<E>::template is_convertible_from<
+                  V>)) constexpr result(const result<U, V>& other);
 
     template <typename U, typename V>
-        requires(((std::is_void_v<U> && detail::traits<T>::is_default_constructible) || std::is_constructible_v<variant<T, E>, std::in_place_index_t<0>, typename detail::traits<U>::rvalue_reference>) &&
-                 ((std::is_void_v<V> && detail::traits<E>::is_default_constructible) || std::is_constructible_v<variant<T, E>, std::in_place_index_t<1>, typename detail::traits<E>::rvalue_reference>))
-    explicit((!std::is_void_v<U> && !detail::traits<T>::template is_convertible_from<U>) || (!std::is_void_v<V> && !detail::traits<E>::template is_convertible_from<V>))
-    constexpr result(result<U, V>&& other);
+        requires(((std::is_void_v<U> &&
+                   detail::traits<T>::is_default_constructible) ||
+                  std::is_constructible_v<
+                      variant<T, E>,
+                      std::in_place_index_t<0>,
+                      typename detail::traits<U>::rvalue_reference>) &&
+                 ((std::is_void_v<V> &&
+                   detail::traits<E>::is_default_constructible) ||
+                  std::is_constructible_v<
+                      variant<T, E>,
+                      std::in_place_index_t<1>,
+                      typename detail::traits<E>::rvalue_reference>))
+    explicit((!std::is_void_v<U> &&
+              !detail::traits<T>::template is_convertible_from<U>) ||
+             (!std::is_void_v<V> &&
+              !detail::traits<E>::template is_convertible_from<
+                  V>)) constexpr result(result<U, V>&& other);
 
-    constexpr ~result() noexcept(std::is_nothrow_destructible_v<variant<T, E>>) = default;
+    constexpr ~result() noexcept(
+        std::is_nothrow_destructible_v<variant<T, E>>) = default;
 
-    constexpr result& operator=(const result&)
-        noexcept(std::is_nothrow_copy_assignable_v<variant<T, E>>)
+    constexpr result& operator=(const result&) noexcept(
+        std::is_nothrow_copy_assignable_v<variant<T, E>>)
         requires(std::is_copy_assignable_v<variant<T, E>>)
-        = default;
+    = default;
 
-    constexpr result& operator=(result&&)
-        noexcept(std::is_nothrow_move_assignable_v<variant<T, E>>)
+    constexpr result& operator=(result&&) noexcept(
+        std::is_nothrow_move_assignable_v<variant<T, E>>)
         requires(std::is_move_assignable_v<variant<T, E>>)
-        = default;
+    = default;
 
     template <typename U>
         requires(!std::is_same_v<result, std::remove_cvref_t<U>> &&
@@ -151,30 +190,42 @@ class result {
     constexpr result& operator=(U&& value);
 
     template <typename U>
-        requires((detail::traits<T>::template is_constructible<typename detail::traits<U>::const_reference> &&
-                 detail::traits<T>::template is_assignable<typename detail::traits<U>::const_reference>) ||
-                 (std::is_void_v<U> && detail::traits<T>::is_default_constructible) ||
+        requires((detail::traits<T>::template is_constructible<
+                      typename detail::traits<U>::const_reference> &&
+                  detail::traits<T>::template is_assignable<
+                      typename detail::traits<U>::const_reference>) ||
+                 (std::is_void_v<U> &&
+                  detail::traits<T>::is_default_constructible) ||
                  std::is_void_v<T>)
     constexpr result& operator=(const ok_t<U>& value);
 
     template <typename U>
-        requires((detail::traits<T>::template is_constructible<typename detail::traits<U>::rvalue_reference> &&
-                 detail::traits<T>::template is_assignable<typename detail::traits<U>::rvalue_reference>) ||
-                 (std::is_void_v<U> && detail::traits<T>::is_default_constructible) ||
+        requires((detail::traits<T>::template is_constructible<
+                      typename detail::traits<U>::rvalue_reference> &&
+                  detail::traits<T>::template is_assignable<
+                      typename detail::traits<U>::rvalue_reference>) ||
+                 (std::is_void_v<U> &&
+                  detail::traits<T>::is_default_constructible) ||
                  std::is_void_v<T>)
     constexpr result& operator=(ok_t<U>&& value);
 
     template <typename V>
-        requires((detail::traits<E>::template is_constructible<typename detail::traits<V>::const_reference> &&
-                 detail::traits<E>::template is_assignable<typename detail::traits<V>::const_reference>) ||
-                 (std::is_void_v<V> && detail::traits<E>::is_default_constructible) ||
+        requires((detail::traits<E>::template is_constructible<
+                      typename detail::traits<V>::const_reference> &&
+                  detail::traits<E>::template is_assignable<
+                      typename detail::traits<V>::const_reference>) ||
+                 (std::is_void_v<V> &&
+                  detail::traits<E>::is_default_constructible) ||
                  std::is_void_v<E>)
     constexpr result& operator=(const error_t<V>& error);
 
     template <typename V>
-        requires((detail::traits<E>::template is_constructible<typename detail::traits<V>::rvalue_reference> &&
-                 detail::traits<E>::template is_assignable<typename detail::traits<V>::rvalue_reference>) ||
-                 (std::is_void_v<V> && detail::traits<E>::is_default_constructible) ||
+        requires((detail::traits<E>::template is_constructible<
+                      typename detail::traits<V>::rvalue_reference> &&
+                  detail::traits<E>::template is_assignable<
+                      typename detail::traits<V>::rvalue_reference>) ||
+                 (std::is_void_v<V> &&
+                  detail::traits<E>::is_default_constructible) ||
                  std::is_void_v<E>)
     constexpr result& operator=(error_t<V>&& value);
 
@@ -264,9 +315,11 @@ class result {
 
     constexpr result<reference, error_reference> ref() noexcept;
 
-    constexpr result<const_reference, error_const_reference> ref() const noexcept;
+    constexpr result<const_reference, error_const_reference> ref()
+        const noexcept;
 
-    constexpr result<const_reference, error_const_reference> cref() const noexcept;
+    constexpr result<const_reference, error_const_reference> cref()
+        const noexcept;
 
     constexpr option<T> or_none() const& noexcept;
 
@@ -282,11 +335,13 @@ class result {
     template <typename U, typename... Args>
     constexpr reference emplace(std::initializer_list<U> ilist, Args&&... args);
 
-    constexpr void swap(result& other) noexcept(std::is_nothrow_swappable_v<variant<T, E>>);
+    constexpr void swap(result& other) noexcept(
+        std::is_nothrow_swappable_v<variant<T, E>>);
 };
 
 template <typename T, typename E, typename U, typename V>
-    requires(std::is_void_v<T> == std::is_void_v<U> && std::is_void_v<E> == std::is_void_v<V>)
+    requires(std::is_void_v<T> == std::is_void_v<U> &&
+             std::is_void_v<E> == std::is_void_v<V>)
 constexpr bool operator==(const result<T, E>& lhs, const result<U, V>& rhs);
 
 template <typename T, typename E, typename U>
@@ -296,7 +351,8 @@ template <typename T, typename E, typename V>
 constexpr bool operator==(const result<T, E>& lhs, const error_t<V>& rhs);
 
 template <typename T, typename E>
-constexpr void swap(result<T, E>& a, result<T, E>& b) noexcept(std::is_nothrow_swappable_v<variant<T, E>>);
+constexpr void swap(result<T, E>& a, result<T, E>& b) noexcept(
+    std::is_nothrow_swappable_v<variant<T, E>>);
 
 template <typename E, typename... Args>
 constexpr error_t<E> error(Args&&... args);
@@ -320,37 +376,49 @@ class error_t {
 
     constexpr error_t(const error_t&) = default;
 
-    constexpr error_t(error_t&&) noexcept(detail::traits<E>::is_nothrow_move_constructible) = default;
+    constexpr error_t(error_t&&) noexcept(
+        detail::traits<E>::is_nothrow_move_constructible) = default;
 
     template <typename... Args>
     constexpr error_t([[maybe_unused]] std::in_place_t in_place, Args&&... args)
         : err_(std::in_place_index<0>, std::forward<Args>(args)...) {}
 
     template <typename U, typename... Args>
-    constexpr error_t([[maybe_unused]] std::in_place_t in_place, std::initializer_list<U> init, Args&&... args)
+    constexpr error_t([[maybe_unused]] std::in_place_t in_place,
+                      std::initializer_list<U> init,
+                      Args&&... args)
         : err_(std::in_place_index<0>, init, std::forward<Args>(args)...) {}
 
     template <typename... Args>
-    constexpr error_t([[maybe_unused]] in_place_error_t in_place, Args&&... args)
+    constexpr error_t([[maybe_unused]] in_place_error_t in_place,
+                      Args&&... args)
         : err_(std::in_place_index<0>, std::forward<Args>(args)...) {}
 
     template <typename U, typename... Args>
-    constexpr error_t([[maybe_unused]] in_place_error_t in_place, std::initializer_list<U> init, Args&&... args)
+    constexpr error_t([[maybe_unused]] in_place_error_t in_place,
+                      std::initializer_list<U> init,
+                      Args&&... args)
         : err_(std::in_place_index<0>, init, std::forward<Args>(args)...) {}
 
     template <typename V>
-        requires(std::is_constructible_v<variant<E>, std::in_place_index_t<0>, V&&> &&
-                 !std::is_same_v<std::remove_cvref_t<V>, std::in_place_t> &&
-                 !std::is_same_v<std::remove_cvref_t<V>, std::in_place_index_t<1>> &&
-                 (!std::is_same_v<std::remove_cvref_t<E>, bool> || !detail::is_result_v<std::remove_cvref_t<V>>))
+        requires(
+            std::is_constructible_v<variant<E>,
+                                    std::in_place_index_t<0>,
+                                    V &&> &&
+            !std::is_same_v<std::remove_cvref_t<V>, std::in_place_t> &&
+            !std::is_same_v<std::remove_cvref_t<V>, std::in_place_index_t<1>> &&
+            (!std::is_same_v<std::remove_cvref_t<E>, bool> ||
+             !detail::is_result_v<std::remove_cvref_t<V>>))
     constexpr error_t(V&& err)
         : err_(std::in_place_index<0>, std::forward<V>(err)) {}
 
-    constexpr ~error_t() noexcept(detail::traits<E>::is_nothrow_destructible) = default;
+    constexpr ~error_t() noexcept(detail::traits<E>::is_nothrow_destructible) =
+        default;
 
     constexpr error_t& operator=(const error_t&) = default;
 
-    constexpr error_t& operator=(error_t&&) noexcept(detail::traits<E>::is_nothrow_move_assignable) = default;
+    constexpr error_t& operator=(error_t&&) noexcept(
+        detail::traits<E>::is_nothrow_move_assignable) = default;
 
     template <typename V>
         requires(!std::is_same_v<error_t, std::remove_cvref_t<V>> &&
@@ -365,7 +433,8 @@ class error_t {
         return err_[index<0>];
     }
 
-    constexpr typename detail::traits<E>::const_reference operator*() const& noexcept {
+    constexpr typename detail::traits<E>::const_reference operator*()
+        const& noexcept {
         return err_[index<0>];
     }
 
@@ -373,7 +442,8 @@ class error_t {
         return std::move(err_)[index<0>];
     }
 
-    constexpr typename detail::traits<E>::const_rvalue_reference operator*() const&& {
+    constexpr typename detail::traits<E>::const_rvalue_reference operator*()
+        const&& {
         return std::move(err_)[index<0>];
     }
 
@@ -381,7 +451,8 @@ class error_t {
         return &err_[index<0>];
     }
 
-    constexpr typename detail::traits<E>::const_pointer operator->() const noexcept {
+    constexpr typename detail::traits<E>::const_pointer operator->()
+        const noexcept {
         return &err_[index<0>];
     }
 
@@ -389,7 +460,8 @@ class error_t {
         return err_[index<0>];
     }
 
-    constexpr typename detail::traits<E>::const_reference error() const& noexcept {
+    constexpr typename detail::traits<E>::const_reference error()
+        const& noexcept {
         return err_[index<0>];
     }
 
@@ -397,17 +469,20 @@ class error_t {
         return std::move(err_)[index<0>];
     }
 
-    constexpr typename detail::traits<E>::const_rvalue_reference error() const&& {
+    constexpr typename detail::traits<E>::const_rvalue_reference error()
+        const&& {
         return std::move(err_)[index<0>];
     }
 
-    constexpr void swap(error_t& other) noexcept(std::is_nothrow_swappable_v<variant<E>>) {
+    constexpr void swap(error_t& other) noexcept(
+        std::is_nothrow_swappable_v<variant<E>>) {
         err_.swap(other.err_);
     }
 
     template <typename V>
         requires(std::is_void_v<E> == std::is_void_v<V>)
-    friend constexpr bool operator==(const error_t& lhs, const error_t<V>& rhs) {
+    friend constexpr bool operator==(const error_t& lhs,
+                                     const error_t<V>& rhs) {
         if constexpr (std::is_void_v<E>) {
             return true;
         } else {
@@ -422,7 +497,8 @@ class error_t {
 };
 
 template <typename E>
-constexpr void swap(error_t<E>& a, error_t<E>& b) noexcept(std::is_nothrow_swappable_v<variant<E>>) {
+constexpr void swap(error_t<E>& a, error_t<E>& b) noexcept(
+    std::is_nothrow_swappable_v<variant<E>>) {
     a.swap(b);
 }
 
@@ -436,28 +512,36 @@ class ok_t {
 
     constexpr ok_t(const ok_t&) = default;
 
-    constexpr ok_t(ok_t&&) noexcept(detail::traits<T>::is_nothrow_move_constructible) = default;
+    constexpr ok_t(ok_t&&) noexcept(
+        detail::traits<T>::is_nothrow_move_constructible) = default;
 
     template <typename... Args>
     constexpr ok_t([[maybe_unused]] std::in_place_t in_place, Args&&... args)
         : ok_(std::in_place_index<0>, std::forward<Args>(args)...) {}
 
     template <typename U, typename... Args>
-    constexpr ok_t([[maybe_unused]] std::in_place_t in_place, std::initializer_list<U> init, Args&&... args)
+    constexpr ok_t([[maybe_unused]] std::in_place_t in_place,
+                   std::initializer_list<U> init,
+                   Args&&... args)
         : ok_(std::in_place_index<0>, init, std::forward<Args>(args)...) {}
 
     template <typename U>
-        requires(std::is_constructible_v<variant<T>, std::in_place_index_t<0>, U&&> &&
+        requires(std::is_constructible_v<variant<T>,
+                                         std::in_place_index_t<0>,
+                                         U &&> &&
                  !std::is_same_v<std::remove_cvref_t<U>, std::in_place_t> &&
-                 (!std::is_same_v<std::remove_cvref_t<T>, bool> || !detail::is_result_v<std::remove_cvref_t<U>>))
+                 (!std::is_same_v<std::remove_cvref_t<T>, bool> ||
+                  !detail::is_result_v<std::remove_cvref_t<U>>))
     constexpr ok_t(U&& value)
         : ok_(std::in_place_index<0>, std::forward<U>(value)) {}
 
-    constexpr ~ok_t() noexcept(detail::traits<T>::is_nothrow_destructible) = default;
+    constexpr ~ok_t() noexcept(detail::traits<T>::is_nothrow_destructible) =
+        default;
 
     constexpr ok_t& operator=(const ok_t&) = default;
 
-    constexpr ok_t& operator=(ok_t&&) noexcept(detail::traits<T>::is_nothrow_move_assignable) = default;
+    constexpr ok_t& operator=(ok_t&&) noexcept(
+        detail::traits<T>::is_nothrow_move_assignable) = default;
 
     template <typename U>
         requires(!std::is_same_v<ok_t, std::remove_cvref_t<U>> &&
@@ -472,7 +556,8 @@ class ok_t {
         return ok_[index<0>];
     }
 
-    constexpr typename detail::traits<T>::const_reference operator*() const& noexcept {
+    constexpr typename detail::traits<T>::const_reference operator*()
+        const& noexcept {
         return ok_[index<0>];
     }
 
@@ -480,7 +565,8 @@ class ok_t {
         return std::move(ok_)[index<0>];
     }
 
-    constexpr typename detail::traits<T>::const_rvalue_reference operator*() const&& {
+    constexpr typename detail::traits<T>::const_rvalue_reference operator*()
+        const&& {
         return std::move(ok_)[index<0>];
     }
 
@@ -488,7 +574,8 @@ class ok_t {
         return &ok_[index<0>];
     }
 
-    constexpr typename detail::traits<T>::const_pointer operator->() const noexcept {
+    constexpr typename detail::traits<T>::const_pointer operator->()
+        const noexcept {
         return &ok_[index<0>];
     }
 
@@ -496,7 +583,8 @@ class ok_t {
         return ok_[index<0>];
     }
 
-    constexpr typename detail::traits<T>::const_reference value() const& noexcept {
+    constexpr typename detail::traits<T>::const_reference value()
+        const& noexcept {
         return ok_[index<0>];
     }
 
@@ -504,11 +592,13 @@ class ok_t {
         return std::move(ok_)[index<0>];
     }
 
-    constexpr typename detail::traits<T>::const_rvalue_reference value() const&& {
+    constexpr typename detail::traits<T>::const_rvalue_reference value()
+        const&& {
         return std::move(ok_)[index<0>];
     }
 
-    constexpr void swap(ok_t& other) noexcept(std::is_nothrow_swappable_v<variant<T>>) {
+    constexpr void swap(ok_t& other) noexcept(
+        std::is_nothrow_swappable_v<variant<T>>) {
         ok_.swap(other.ok_);
     }
 
@@ -529,11 +619,12 @@ class ok_t {
 };
 
 template <typename T>
-constexpr void swap(ok_t<T>& a, ok_t<T>& b) noexcept(std::is_nothrow_swappable_v<variant<T>>) {
+constexpr void swap(ok_t<T>& a, ok_t<T>& b) noexcept(
+    std::is_nothrow_swappable_v<variant<T>>) {
     a.swap(b);
 }
 
-}
+} // namespace sumty
 
 #include "sumty/impl/result.hpp"
 

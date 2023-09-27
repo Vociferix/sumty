@@ -34,11 +34,13 @@ union auto_union<> {
 
     constexpr ~auto_union() noexcept {}
 
-    constexpr auto_union& operator=([[maybe_unused]] const auto_union& rhs) noexcept {
+    constexpr auto_union& operator=(
+        [[maybe_unused]] const auto_union& rhs) noexcept {
         return *this;
     }
 
-    constexpr auto_union& operator=([[maybe_unused]] auto_union&& rhs) noexcept {
+    constexpr auto_union& operator=(
+        [[maybe_unused]] auto_union&& rhs) noexcept {
         return *this;
     }
 };
@@ -56,11 +58,13 @@ union auto_union<T0, TN...> {
 
     constexpr ~auto_union() noexcept {}
 
-    constexpr auto_union& operator=([[maybe_unused]] const auto_union& rhs) noexcept {
+    constexpr auto_union& operator=(
+        [[maybe_unused]] const auto_union& rhs) noexcept {
         return *this;
     }
 
-    constexpr auto_union& operator=([[maybe_unused]] auto_union&& rhs) noexcept {
+    constexpr auto_union& operator=(
+        [[maybe_unused]] auto_union&& rhs) noexcept {
         return *this;
     }
 
@@ -69,7 +73,7 @@ union auto_union<T0, TN...> {
         if constexpr (IDX == 0) {
             return head_;
         } else {
-            return tail_.template get<IDX-1>();
+            return tail_.template get<IDX - 1>();
         }
     }
 
@@ -78,7 +82,7 @@ union auto_union<T0, TN...> {
         if constexpr (IDX == 0) {
             return head_;
         } else {
-            return tail_.template get<IDX-1>();
+            return tail_.template get<IDX - 1>();
         }
     }
 
@@ -87,7 +91,7 @@ union auto_union<T0, TN...> {
         if constexpr (IDX == 0) {
             std::construct_at(&head_, std::forward<Args>(args)...);
         } else {
-            tail_.template construct<IDX-1>(std::forward<Args>(args)...);
+            tail_.template construct<IDX - 1>(std::forward<Args>(args)...);
         }
     }
 
@@ -96,7 +100,7 @@ union auto_union<T0, TN...> {
         if constexpr (IDX == 0) {
             std::destroy_at(&head_);
         } else {
-            tail_.template destroy<IDX-1>();
+            tail_.template destroy<IDX - 1>();
         }
     }
 };
@@ -114,11 +118,13 @@ union auto_union<T0&&, TN...> {
 
     constexpr ~auto_union() noexcept {}
 
-    constexpr auto_union& operator=([[maybe_unused]] const auto_union& rhs) noexcept {
+    constexpr auto_union& operator=(
+        [[maybe_unused]] const auto_union& rhs) noexcept {
         return *this;
     }
 
-    constexpr auto_union& operator=([[maybe_unused]] auto_union&& rhs) noexcept {
+    constexpr auto_union& operator=(
+        [[maybe_unused]] auto_union&& rhs) noexcept {
         return *this;
     }
 
@@ -127,7 +133,7 @@ union auto_union<T0&&, TN...> {
         if constexpr (IDX == 0) {
             return head_;
         } else {
-            return tail_.template get<IDX-1>();
+            return tail_.template get<IDX - 1>();
         }
     }
 
@@ -136,7 +142,7 @@ union auto_union<T0&&, TN...> {
         if constexpr (IDX == 0) {
             return head_;
         } else {
-            return tail_.template get<IDX-1>();
+            return tail_.template get<IDX - 1>();
         }
     }
 
@@ -145,7 +151,7 @@ union auto_union<T0&&, TN...> {
         if constexpr (IDX == 0) {
             std::construct_at(&head_, std::forward<Args>(args)...);
         } else {
-            tail_.template construct<IDX-1>(std::forward<Args>(args)...);
+            tail_.template construct<IDX - 1>(std::forward<Args>(args)...);
         }
     }
 
@@ -154,7 +160,7 @@ union auto_union<T0&&, TN...> {
         if constexpr (IDX == 0) {
             std::destroy_at(&head_);
         } else {
-            tail_.template destroy<IDX-1>();
+            tail_.template destroy<IDX - 1>();
         }
     }
 };
@@ -172,11 +178,13 @@ union auto_union<T0&, TN...> {
 
     constexpr ~auto_union() noexcept {}
 
-    constexpr auto_union& operator=([[maybe_unused]] const auto_union& rhs) noexcept {
+    constexpr auto_union& operator=(
+        [[maybe_unused]] const auto_union& rhs) noexcept {
         return *this;
     }
 
-    constexpr auto_union& operator=([[maybe_unused]] auto_union&& rhs) noexcept {
+    constexpr auto_union& operator=(
+        [[maybe_unused]] auto_union&& rhs) noexcept {
         return *this;
     }
 
@@ -185,7 +193,7 @@ union auto_union<T0&, TN...> {
         if constexpr (IDX == 0) {
             return *head_;
         } else {
-            return tail_.template get<IDX-1>();
+            return tail_.template get<IDX - 1>();
         }
     }
 
@@ -194,15 +202,13 @@ union auto_union<T0&, TN...> {
         if constexpr (IDX == 0) {
             head_ = std::addressof(std::forward<Args>(args)...);
         } else {
-            tail_.template construct<IDX-1>(std::forward<Args>(args)...);
+            tail_.template construct<IDX - 1>(std::forward<Args>(args)...);
         }
     }
 
     template <size_t IDX>
     void destroy() {
-        if constexpr (IDX != 0) {
-            tail_.template destroy<IDX-1>();
-        }
+        if constexpr (IDX != 0) { tail_.template destroy<IDX - 1>(); }
     }
 };
 
@@ -218,36 +224,34 @@ union auto_union<void, TN...> {
 
     constexpr ~auto_union() noexcept {}
 
-    constexpr auto_union& operator=([[maybe_unused]] const auto_union& rhs) noexcept {
+    constexpr auto_union& operator=(
+        [[maybe_unused]] const auto_union& rhs) noexcept {
         return *this;
     }
 
-    constexpr auto_union& operator=([[maybe_unused]] auto_union&& rhs) noexcept {
+    constexpr auto_union& operator=(
+        [[maybe_unused]] auto_union&& rhs) noexcept {
         return *this;
     }
 
     template <size_t IDX>
     constexpr decltype(auto) get() const noexcept {
-        if constexpr (IDX != 0) {
-            return tail_.template get<IDX-1>();
-        }
+        if constexpr (IDX != 0) { return tail_.template get<IDX - 1>(); }
     }
 
     template <size_t IDX, typename... Args>
     void construct([[maybe_unused]] Args&&... args) {
         if constexpr (IDX != 0) {
-            tail_.template construct<IDX-1>(std::forward<Args>(args)...);
+            tail_.template construct<IDX - 1>(std::forward<Args>(args)...);
         }
     }
 
     template <size_t IDX>
     void destroy() {
-        if constexpr (IDX != 0) {
-            tail_.template destroy<IDX-1>();
-        }
+        if constexpr (IDX != 0) { tail_.template destroy<IDX - 1>(); }
     }
 };
 
-}
+} // namespace sumty::detail
 
 #endif

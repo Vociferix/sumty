@@ -35,6 +35,6 @@ class ok_t;
 template <typename E>
 class error_t;
 
-}
+} // namespace sumty
 
 #endif

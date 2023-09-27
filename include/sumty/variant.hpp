@@ -40,7 +40,7 @@ class variant_impl;
 template <typename... T>
 using variant_impl_t = variant_impl<void, T...>;
 
-}
+} // namespace detail
 
 template <typename... T>
 class variant {
@@ -54,36 +54,54 @@ class variant {
     constexpr bool holds_alt_impl() const noexcept;
 
   public:
-    constexpr variant() noexcept(detail::traits<detail::first_t<T...>>::is_nothrow_default_constructible) requires(detail::traits<detail::first_t<T...>>::is_default_constructible) = default;
+    constexpr variant() noexcept(
+        detail::traits<detail::first_t<T...>>::is_nothrow_default_constructible)
+        requires(detail::traits<
+                    detail::first_t<T...>>::is_default_constructible)
+    = default;
 
-    constexpr variant(const variant&) requires(true && ... && detail::traits<T>::is_copy_constructible) = default;
+    constexpr variant(const variant&)
+        requires(true && ... && detail::traits<T>::is_copy_constructible)
+    = default;
 
-    constexpr variant(variant&&) noexcept((true && ... && detail::traits<T>::is_nothrow_move_constructible)) requires(true && ... && detail::traits<T>::is_move_constructible) = default;
+    constexpr variant(variant&&) noexcept(
+        (true && ... && detail::traits<T>::is_nothrow_move_constructible))
+        requires(true && ... && detail::traits<T>::is_move_constructible)
+    = default;
 
     template <size_t IDX, typename... Args>
     constexpr variant(std::in_place_index_t<IDX> in_place, Args&&... args);
 
     template <size_t IDX, typename U, typename... Args>
-    constexpr variant(std::in_place_index_t<IDX> in_place, std::initializer_list<U> init, Args&&... args);
+    constexpr variant(std::in_place_index_t<IDX> in_place,
+                      std::initializer_list<U> init,
+                      Args&&... args);
 
     template <typename U, typename... Args>
         requires(detail::is_unique_v<U, T...>)
-    constexpr variant([[maybe_unused]] std::in_place_type_t<U> in_place, Args&&... args);
+    constexpr variant([[maybe_unused]] std::in_place_type_t<U> in_place,
+                      Args&&... args);
 
     template <typename U, typename V, typename... Args>
         requires(detail::is_unique_v<U, T...>)
-    constexpr variant([[maybe_unused]] std::in_place_type_t<U> in_place, std::initializer_list<V> init, Args&&... args);
+    constexpr variant([[maybe_unused]] std::in_place_type_t<U> in_place,
+                      std::initializer_list<V> init,
+                      Args&&... args);
 
-    constexpr ~variant() noexcept((true && ... && detail::traits<T>::is_nothrow_destructible)) = default;
+    constexpr ~variant() noexcept(
+        (true && ... && detail::traits<T>::is_nothrow_destructible)) = default;
 
     constexpr variant& operator=(const variant& rhs)
         requires(true && ... && detail::traits<T>::is_copy_assignable)
-         = default;
+    = default;
 
-    constexpr variant& operator=(variant&& rhs)
-        noexcept((true && ... && (detail::traits<T>::is_nothrow_move_assignable && detail::traits<T>::is_nothrow_destructible && detail::traits<T>::is_nothrow_move_constructible)))
+    constexpr variant& operator=(variant&& rhs) noexcept(
+        (true && ... &&
+         (detail::traits<T>::is_nothrow_move_assignable &&
+          detail::traits<T>::is_nothrow_destructible &&
+          detail::traits<T>::is_nothrow_move_constructible)))
         requires(true && ... && detail::traits<T>::is_move_assignable)
-        = default;
+    = default;
 
     constexpr size_t index() const noexcept;
 
@@ -91,7 +109,8 @@ class variant {
     constexpr decltype(auto) emplace(Args&&... args);
 
     template <size_t I, typename U, typename... Args>
-    constexpr decltype(auto) emplace(std::initializer_list<U> ilist, Args&&... args);
+    constexpr decltype(auto) emplace(std::initializer_list<U> ilist,
+                                     Args&&... args);
 
     template <typename U, typename... Args>
         requires(detail::is_unique_v<U, T...>)
@@ -99,7 +118,8 @@ class variant {
 
     template <typename U, typename V, typename... Args>
         requires(detail::is_unique_v<U, T...>)
-    constexpr decltype(auto) emplace(std::initializer_list<V> ilist, Args&&... args);
+    constexpr decltype(auto) emplace(std::initializer_list<V> ilist,
+                                     Args&&... args);
 
     template <size_t I>
     constexpr decltype(auto) operator[](index_t<I> index) & noexcept;
@@ -172,7 +192,8 @@ class variant {
     template <typename V>
     constexpr decltype(auto) visit(V&& visitor) const&&;
 
-    constexpr void swap(variant& other) noexcept(noexcept(data_.swap(other.data_)));
+    constexpr void swap(variant& other) noexcept(
+        noexcept(data_.swap(other.data_)));
 };
 
 template <typename T, typename... U>
@@ -200,7 +221,8 @@ template <typename T>
 struct variant_size;
 
 template <typename... T>
-struct variant_size<variant<T...>> : std::integral_constant<size_t, sizeof...(T)> {};
+struct variant_size<variant<T...>>
+    : std::integral_constant<size_t, sizeof...(T)> {};
 
 template <typename... T>
 struct variant_size<const variant<T...>> : variant_size<variant<T...>> {};
@@ -217,18 +239,21 @@ struct variant_alternative<I, variant<T...>> {
 };
 
 template <size_t I, typename... T>
-struct variant_alternative<I, const variant<T...>> : variant_alternative<I, variant<T...>> {};
+struct variant_alternative<I, const variant<T...>>
+    : variant_alternative<I, variant<T...>> {};
 
 template <size_t I, typename T>
 using variant_alternative_t = typename variant_alternative<I, T>::type;
 
-}
+} // namespace sumty
 
 template <typename... T>
-struct std::variant_size<::sumty::variant<T...>> : ::sumty::variant_size<::sumty::variant<T...>> {};
+struct std::variant_size<::sumty::variant<T...>>
+    : ::sumty::variant_size<::sumty::variant<T...>> {};
 
 template <size_t I, typename... T>
-struct std::variant_alternative<I, ::sumty::variant<T...>> : ::sumty::variant_alternative<I, ::sumty::variant<T...>> {};
+struct std::variant_alternative<I, ::sumty::variant<T...>>
+    : ::sumty::variant_alternative<I, ::sumty::variant<T...>> {};
 
 #include "sumty/impl/variant.hpp"
 

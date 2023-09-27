@@ -22,7 +22,8 @@ template <typename T>
 constexpr option<T>::option([[maybe_unused]] none_t none) noexcept : option() {}
 
 template <typename T>
-constexpr option<T>::option([[maybe_unused]] std::nullopt_t null) noexcept : option() {}
+constexpr option<T>::option([[maybe_unused]] std::nullopt_t null) noexcept
+    : option() {}
 
 template <typename T>
 constexpr option<T>::option([[maybe_unused]] std::nullptr_t null) noexcept
@@ -31,66 +32,84 @@ constexpr option<T>::option([[maybe_unused]] std::nullptr_t null) noexcept
 
 template <typename T>
 template <typename U>
-    requires(std::is_lvalue_reference_v<T> && std::is_convertible_v<U*, typename option<T>::pointer>)
-explicit(!std::is_convertible_v<U*, typename option<T>::pointer>)
-constexpr option<T>::option(U* ptr) noexcept {
-    if (ptr != nullptr) {
-        opt_.template emplace<1>(*ptr);
-    }
+    requires(std::is_lvalue_reference_v<T> &&
+             std::is_convertible_v<U*, typename option<T>::pointer>)
+explicit(
+    !std::is_convertible_v<U*,
+                           typename option<T>::pointer>) constexpr option<T>::
+    option(U* ptr) noexcept {
+    if (ptr != nullptr) { opt_.template emplace<1>(*ptr); }
 }
 
 template <typename T>
 template <typename U>
-    requires(std::is_constructible_v<variant<void, T>, std::in_place_index_t<1>, typename detail::traits<U>::const_reference>)
-explicit(!detail::traits<T>::template is_convertible_from<U>)
-constexpr option<T>::option(const option<U>& other) : option() {
-    if (other.has_value()) {
-        opt_.emplace(*other);
-    }
+    requires(
+        std::is_constructible_v<variant<void, T>,
+                                std::in_place_index_t<1>,
+                                typename detail::traits<U>::const_reference>)
+explicit(!detail::traits<T>::template is_convertible_from<U>) constexpr option<
+    T>::option(const option<U>& other)
+    : option() {
+    if (other.has_value()) { opt_.emplace(*other); }
 }
 
 template <typename T>
 template <typename U>
-    requires(std::is_constructible_v<variant<void, T>, std::in_place_index_t<1>, typename detail::traits<U>::rvalue_reference>)
-explicit(!detail::traits<T>::template is_convertible_from<U>)
-constexpr option<T>::option(option<U>&& other) : option() {
-    if (other.has_value()) {
-        opt_.emplace(*std::move(other));
-    }
+    requires(
+        std::is_constructible_v<variant<void, T>,
+                                std::in_place_index_t<1>,
+                                typename detail::traits<U>::rvalue_reference>)
+explicit(!detail::traits<T>::template is_convertible_from<U>) constexpr option<
+    T>::option(option<U>&& other)
+    : option() {
+    if (other.has_value()) { opt_.emplace(*std::move(other)); }
 }
 
 template <typename T>
 template <typename... Args>
-explicit(sizeof...(Args) == 0)
-constexpr option<T>::option([[maybe_unused]] std::in_place_t in_place, Args&&... args)
+explicit(sizeof...(Args) == 0) constexpr option<T>::option(
+    [[maybe_unused]] std::in_place_t in_place,
+    Args&&... args)
     : opt_(std::in_place_index<1>, std::forward<Args>(args)...) {}
 
 template <typename T>
 template <typename U, typename... Args>
-constexpr option<T>::option([[maybe_unused]] std::in_place_t in_place, std::initializer_list<U> init, Args&&... args)
+constexpr option<T>::option([[maybe_unused]] std::in_place_t in_place,
+                            std::initializer_list<U> init,
+                            Args&&... args)
     : opt_(std::in_place_index<1>, init, std::forward<Args>(args)...) {}
 
 template <typename T>
 template <typename U>
-    requires(std::is_constructible_v<variant<void, T>, std::in_place_index_t<1>, U&&> && !std::is_same_v<std::remove_cvref_t<U>, std::in_place_t> && (!std::is_same_v<std::remove_const_t<T>, bool> || !detail::is_option_v<U>))
-explicit(!detail::traits<T>::template is_convertible_from<U>)
-constexpr option<T>::option(U&& value)
+    requires(std::is_constructible_v<variant<void, T>,
+                                     std::in_place_index_t<1>,
+                                     U &&> &&
+             !std::is_same_v<std::remove_cvref_t<U>, std::in_place_t> &&
+             (!std::is_same_v<std::remove_const_t<T>, bool> ||
+              !detail::is_option_v<U>))
+explicit(!detail::traits<T>::template is_convertible_from<U>) constexpr option<
+    T>::option(U&& value)
     : opt_(std::in_place_index<1>, std::forward<U>(value)) {}
 
 template <typename T>
-constexpr option<T>& option<T>::operator=([[maybe_unused]] none_t none) noexcept(detail::traits<T>::is_nothrow_destructible) {
+constexpr option<T>&
+option<T>::operator=([[maybe_unused]] none_t none) noexcept(
+    detail::traits<T>::is_nothrow_destructible) {
     opt_.template emplace<0>();
     return *this;
 }
 
 template <typename T>
-constexpr option<T>& option<T>::operator=([[maybe_unused]] std::nullopt_t null) noexcept(detail::traits<T>::is_nothrow_destructible) {
+constexpr option<T>&
+option<T>::operator=([[maybe_unused]] std::nullopt_t null) noexcept(
+    detail::traits<T>::is_nothrow_destructible) {
     opt_.template emplace<0>();
     return *this;
 }
 
 template <typename T>
-constexpr option<T>& option<T>::operator=([[maybe_unused]] std::nullptr_t null) noexcept
+constexpr option<T>& option<T>::operator=(
+    [[maybe_unused]] std::nullptr_t null) noexcept
     requires(std::is_lvalue_reference_v<T>)
 {
     opt_.template emplace<0>();
@@ -99,7 +118,13 @@ constexpr option<T>& option<T>::operator=([[maybe_unused]] std::nullptr_t null) 
 
 template <typename T>
 template <typename U>
-    requires(!std::is_same_v<std::remove_cvref_t<U>, option<T>> && std::is_constructible_v<variant<void, T>, std::in_place_index_t<1>, U&&> && detail::traits<T>::template is_assignable<U&&> && (!std::is_scalar_v<typename option<T>::value_type> || !std::is_same_v<T, std::decay_t<U>>))
+    requires(!std::is_same_v<std::remove_cvref_t<U>, option<T>> &&
+             std::is_constructible_v<variant<void, T>,
+                                     std::in_place_index_t<1>,
+                                     U &&> &&
+             detail::traits<T>::template is_assignable<U &&> &&
+             (!std::is_scalar_v<typename option<T>::value_type> ||
+              !std::is_same_v<T, std::decay_t<U>>))
 constexpr option<T>& option<T>::operator=(U&& value) {
     opt_.template emplace<1>(std::forward<U>(value));
     return *this;
@@ -107,7 +132,8 @@ constexpr option<T>& option<T>::operator=(U&& value) {
 
 template <typename T>
 template <typename U>
-    requires(std::is_lvalue_reference_v<typename option<T>::value_type> && std::is_convertible_v<U*, typename option<T>::pointer>)
+    requires(std::is_lvalue_reference_v<typename option<T>::value_type> &&
+             std::is_convertible_v<U*, typename option<T>::pointer>)
 constexpr option<T>& option<T>::operator=(U* ptr) noexcept {
     opt_.set_ptr(ptr);
     return *this;
@@ -115,20 +141,24 @@ constexpr option<T>& option<T>::operator=(U* ptr) noexcept {
 
 template <typename T>
 template <typename U>
-    requires(!detail::traits<T>::template is_constructible<option<U>&> &&
-             !detail::traits<T>::template is_constructible<const option<U>&> &&
-             !detail::traits<T>::template is_constructible<option<U>&&> &&
-             !detail::traits<T>::template is_constructible<const option<U>&&> &&
-             !detail::traits<T>::template is_convertible_from<option<U>&> &&
-             !detail::traits<T>::template is_convertible_from<const option<U>&> &&
-             !detail::traits<T>::template is_convertible_from<option<U>&&> &&
-             !detail::traits<T>::template is_convertible_from<const option<U>&&> &&
-             !detail::traits<T>::template is_assignable<option<U>&> &&
-             !detail::traits<T>::template is_assignable<const option<U>&> &&
-             !detail::traits<T>::template is_assignable<option<U>&&> &&
-             !detail::traits<T>::template is_assignable<const option<U>&&> &&
-             (std::is_lvalue_reference_v<T> || detail::traits<T>::template is_constructible<typename detail::traits<U>::const_reference>) &&
-             detail::traits<T>::template is_assignable<typename detail::traits<U>::const_reference>)
+    requires(
+        !detail::traits<T>::template is_constructible<option<U>&> &&
+        !detail::traits<T>::template is_constructible<const option<U>&> &&
+        !detail::traits<T>::template is_constructible<option<U> &&> &&
+        !detail::traits<T>::template is_constructible<const option<U> &&> &&
+        !detail::traits<T>::template is_convertible_from<option<U>&> &&
+        !detail::traits<T>::template is_convertible_from<const option<U>&> &&
+        !detail::traits<T>::template is_convertible_from<option<U> &&> &&
+        !detail::traits<T>::template is_convertible_from<const option<U> &&> &&
+        !detail::traits<T>::template is_assignable<option<U>&> &&
+        !detail::traits<T>::template is_assignable<const option<U>&> &&
+        !detail::traits<T>::template is_assignable<option<U> &&> &&
+        !detail::traits<T>::template is_assignable<const option<U> &&> &&
+        (std::is_lvalue_reference_v<T> ||
+         detail::traits<T>::template is_constructible<
+             typename detail::traits<U>::const_reference>) &&
+        detail::traits<T>::template is_assignable<
+            typename detail::traits<U>::const_reference>)
 constexpr option<T>& option<T>::operator=(const option<U>& value) {
     if (value.has_value()) {
         opt_.template emplace<1>(*value);
@@ -140,20 +170,24 @@ constexpr option<T>& option<T>::operator=(const option<U>& value) {
 
 template <typename T>
 template <typename U>
-    requires(!detail::traits<T>::template is_constructible<option<U>&> &&
-             !detail::traits<T>::template is_constructible<const option<U>&> &&
-             !detail::traits<T>::template is_constructible<option<U>&&> &&
-             !detail::traits<T>::template is_constructible<const option<U>&&> &&
-             !detail::traits<T>::template is_convertible_from<option<U>&> &&
-             !detail::traits<T>::template is_convertible_from<const option<U>&> &&
-             !detail::traits<T>::template is_convertible_from<option<U>&&> &&
-             !detail::traits<T>::template is_convertible_from<const option<U>&&> &&
-             !detail::traits<T>::template is_assignable<option<U>&> &&
-             !detail::traits<T>::template is_assignable<const option<U>&> &&
-             !detail::traits<T>::template is_assignable<option<U>&&> &&
-             !detail::traits<T>::template is_assignable<const option<U>&&> &&
-             (std::is_lvalue_reference_v<T> || detail::traits<T>::template is_constructible<typename detail::traits<U>::rvalue_reference>) &&
-             detail::traits<T>::template is_assignable<typename detail::traits<U>::rvalue_reference>)
+    requires(
+        !detail::traits<T>::template is_constructible<option<U>&> &&
+        !detail::traits<T>::template is_constructible<const option<U>&> &&
+        !detail::traits<T>::template is_constructible<option<U> &&> &&
+        !detail::traits<T>::template is_constructible<const option<U> &&> &&
+        !detail::traits<T>::template is_convertible_from<option<U>&> &&
+        !detail::traits<T>::template is_convertible_from<const option<U>&> &&
+        !detail::traits<T>::template is_convertible_from<option<U> &&> &&
+        !detail::traits<T>::template is_convertible_from<const option<U> &&> &&
+        !detail::traits<T>::template is_assignable<option<U>&> &&
+        !detail::traits<T>::template is_assignable<const option<U>&> &&
+        !detail::traits<T>::template is_assignable<option<U> &&> &&
+        !detail::traits<T>::template is_assignable<const option<U> &&> &&
+        (std::is_lvalue_reference_v<T> ||
+         detail::traits<T>::template is_constructible<
+             typename detail::traits<U>::rvalue_reference>) &&
+        detail::traits<T>::template is_assignable<
+            typename detail::traits<U>::rvalue_reference>)
 constexpr option<T>& option<T>::operator=(option<U>&& value) {
     if (value.has_value()) {
         opt_.template emplace<1>(*std::move(value));
@@ -170,9 +204,11 @@ constexpr option<T>::operator bool() const noexcept {
 
 template <typename T>
 template <typename U>
-    requires(std::is_lvalue_reference_v<T> && std::is_assignable_v<typename option<T>::pointer&, U*>)
-explicit(!std::is_convertible_v<typename option<T>::pointer, U*>)
-constexpr option<T>::operator U*() const noexcept {
+    requires(std::is_lvalue_reference_v<T> &&
+             std::is_assignable_v<typename option<T>::pointer&, U*>)
+explicit(!std::is_convertible_v<typename option<T>::pointer,
+                                U*>) constexpr option<T>::operator U*()
+    const noexcept {
     if (opt_.index() == 0) {
         return nullptr;
     } else {
@@ -191,7 +227,8 @@ constexpr typename option<T>::reference option<T>::operator*() & noexcept {
 }
 
 template <typename T>
-constexpr typename option<T>::const_reference option<T>::operator*() const& noexcept {
+constexpr typename option<T>::const_reference option<T>::operator*()
+    const& noexcept {
     return opt_[index<1>];
 }
 
@@ -201,7 +238,8 @@ constexpr typename option<T>::rvalue_reference option<T>::operator*() && {
 }
 
 template <typename T>
-constexpr typename option<T>::const_rvalue_reference option<T>::operator*() const&& {
+constexpr typename option<T>::const_rvalue_reference option<T>::operator*()
+    const&& {
     return std::move(opt_)[index<1>];
 }
 
@@ -211,45 +249,39 @@ constexpr typename option<T>::pointer option<T>::operator->() noexcept {
 }
 
 template <typename T>
-constexpr typename option<T>::const_pointer option<T>::operator->() const noexcept {
+constexpr typename option<T>::const_pointer option<T>::operator->()
+    const noexcept {
     return opt_.template get_if<1>();
 }
 
 template <typename T>
 constexpr typename option<T>::reference option<T>::value() & {
-    if (opt_.index() == 0) {
-        throw bad_option_access();
-    }
+    if (opt_.index() == 0) { throw bad_option_access(); }
     return opt_[index<1>];
 }
 
 template <typename T>
 constexpr typename option<T>::const_reference option<T>::value() const& {
-    if (opt_.index() == 0) {
-        throw bad_option_access();
-    }
+    if (opt_.index() == 0) { throw bad_option_access(); }
     return opt_[index<1>];
 }
 
 template <typename T>
 constexpr typename option<T>::rvalue_reference option<T>::value() && {
-    if (opt_.index() == 0) {
-        throw bad_option_access();
-    }
+    if (opt_.index() == 0) { throw bad_option_access(); }
     return std::move(opt_)[index<1>];
 }
 
 template <typename T>
 constexpr typename option<T>::rvalue_reference option<T>::value() const&& {
-    if (opt_.index() == 0) {
-        throw bad_option_access();
-    }
+    if (opt_.index() == 0) { throw bad_option_access(); }
     return std::move(opt_)[index<1>];
 }
 
 template <typename T>
 template <typename U>
-constexpr typename option<T>::value_type option<T>::value_or(U&& default_value) const& {
+constexpr typename option<T>::value_type option<T>::value_or(
+    U&& default_value) const& {
     if (opt_.index() != 0) {
         return opt_[index<1>];
     } else {
@@ -259,7 +291,8 @@ constexpr typename option<T>::value_type option<T>::value_or(U&& default_value) 
 
 template <typename T>
 template <typename U>
-constexpr typename option<T>::value_type option<T>::value_or(U&& default_value) && {
+constexpr typename option<T>::value_type option<T>::value_or(
+    U&& default_value) && {
     if (opt_.index() != 0) {
         return std::move(opt_)[index<1>];
     } else {
@@ -324,7 +357,8 @@ constexpr auto option<T>::and_then(F&& f) const& {
         if (opt_.index() != 0) {
             return std::invoke(std::forward<F>(f), opt_[index<1>]);
         } else {
-            return std::remove_cvref_t<std::invoke_result_t<F, const_reference>>{};
+            return std::remove_cvref_t<
+                std::invoke_result_t<F, const_reference>>{};
         }
     }
 }
@@ -342,7 +376,8 @@ constexpr auto option<T>::and_then(F&& f) && {
         if (opt_.index() != 0) {
             return std::invoke(std::forward<F>(f), std::move(opt_)[index<1>]);
         } else {
-            return std::remove_cvref_t<std::invoke_result_t<F, rvalue_reference>>{};
+            return std::remove_cvref_t<
+                std::invoke_result_t<F, rvalue_reference>>{};
         }
     }
 }
@@ -360,7 +395,8 @@ constexpr auto option<T>::and_then(F&& f) const&& {
         if (opt_.index() != 0) {
             return std::invoke(std::forward<F>(f), std::move(opt_)[index<1>]);
         } else {
-            return std::remove_cvref_t<std::invoke_result_t<F, const_rvalue_reference>>{};
+            return std::remove_cvref_t<
+                std::invoke_result_t<F, const_rvalue_reference>>{};
         }
     }
 }
@@ -375,7 +411,8 @@ constexpr decltype(auto) option<T>::transform(F&& f) & {
                 std::invoke(std::forward<F>(f));
                 return option<res_t>{std::in_place};
             } else {
-                return option<res_t>{std::in_place, std::invoke(std::forward<F>(f))};
+                return option<res_t>{std::in_place,
+                                     std::invoke(std::forward<F>(f))};
             }
         } else {
             return option<res_t>{};
@@ -387,7 +424,9 @@ constexpr decltype(auto) option<T>::transform(F&& f) & {
                 std::invoke(std::forward<F>(f), opt_[index<1>]);
                 return option<res_t>{std::in_place};
             } else {
-                return option<res_t>{std::in_place, std::invoke(std::forward<F>(f), opt_[index<1>])};
+                return option<res_t>{
+                    std::in_place,
+                    std::invoke(std::forward<F>(f), opt_[index<1>])};
             }
         } else {
             return option<res_t>{};
@@ -405,7 +444,8 @@ constexpr decltype(auto) option<T>::transform(F&& f) const& {
                 std::invoke(std::forward<F>(f));
                 return option<res_t>{std::in_place};
             } else {
-                return option<res_t>{std::in_place, std::invoke(std::forward<F>(f))};
+                return option<res_t>{std::in_place,
+                                     std::invoke(std::forward<F>(f))};
             }
         } else {
             return option<res_t>{};
@@ -417,7 +457,9 @@ constexpr decltype(auto) option<T>::transform(F&& f) const& {
                 std::invoke(std::forward<F>(f), opt_[index<1>]);
                 return option<res_t>{std::in_place};
             } else {
-                return option<res_t>{std::in_place, std::invoke(std::forward<F>(f), opt_[index<1>])};
+                return option<res_t>{
+                    std::in_place,
+                    std::invoke(std::forward<F>(f), opt_[index<1>])};
             }
         } else {
             return option<res_t>{};
@@ -435,7 +477,8 @@ constexpr decltype(auto) option<T>::transform(F&& f) && {
                 std::invoke(std::forward<F>(f));
                 return option<res_t>{std::in_place};
             } else {
-                return option<res_t>{std::in_place, std::invoke(std::forward<F>(f))};
+                return option<res_t>{std::in_place,
+                                     std::invoke(std::forward<F>(f))};
             }
         } else {
             return option<res_t>{};
@@ -447,7 +490,9 @@ constexpr decltype(auto) option<T>::transform(F&& f) && {
                 std::invoke(std::forward<F>(f), std::move(opt_)[index<1>]);
                 return option<res_t>{std::in_place};
             } else {
-                return option<res_t>{std::in_place, std::invoke(std::forward<F>(f), std::move(opt_)[index<1>])};
+                return option<res_t>{
+                    std::in_place,
+                    std::invoke(std::forward<F>(f), std::move(opt_)[index<1>])};
             }
         } else {
             return option<res_t>{};
@@ -465,7 +510,8 @@ constexpr decltype(auto) option<T>::transform(F&& f) const&& {
                 std::invoke(std::forward<F>(f));
                 return option<res_t>{std::in_place};
             } else {
-                return option<res_t>{std::in_place, std::invoke(std::forward<F>(f))};
+                return option<res_t>{std::in_place,
+                                     std::invoke(std::forward<F>(f))};
             }
         } else {
             return option<res_t>{};
@@ -477,7 +523,9 @@ constexpr decltype(auto) option<T>::transform(F&& f) const&& {
                 std::invoke(std::forward<F>(f), std::move(opt_)[index<1>]);
                 return option<res_t>{std::in_place};
             } else {
-                return option<res_t>{std::in_place, std::invoke(std::forward<F>(f), std::move(opt_)[index<1>])};
+                return option<res_t>{
+                    std::in_place,
+                    std::invoke(std::forward<F>(f), std::move(opt_)[index<1>])};
             }
         } else {
             return option<res_t>{};
@@ -506,7 +554,8 @@ constexpr option<T> option<T>::or_else(F&& f) && {
 }
 
 template <typename T>
-constexpr void option<T>::swap(option& other) noexcept(noexcept(opt_.swap(other.opt_))) {
+constexpr void option<T>::swap(option& other) noexcept(
+    noexcept(opt_.swap(other.opt_))) {
     opt_.swap(other.opt_);
 }
 
@@ -561,8 +610,10 @@ constexpr bool operator>=(const option<T>& lhs, const option<U>& rhs) {
 }
 
 template <typename T, typename U>
-    requires(std::three_way_comparable_with<std::remove_cvref_t<U>, std::remove_cvref_t<T>>)
-constexpr std::compare_three_way_result_t<std::remove_cvref_t<T>, std::remove_cvref_t<U>>
+    requires(std::three_way_comparable_with<std::remove_cvref_t<U>,
+                                            std::remove_cvref_t<T>>)
+constexpr std::compare_three_way_result_t<std::remove_cvref_t<T>,
+                                          std::remove_cvref_t<U>>
 operator<=>(const option<T>& lhs, const option<U>& rhs) {
     if (lhs.has_value() && rhs.has_value()) {
         return *lhs <=> *rhs;
@@ -632,8 +683,10 @@ constexpr bool operator>=(const U& lhs, const option<T>& rhs) {
 }
 
 template <typename T, typename U>
-    requires(std::three_way_comparable_with<std::remove_cvref_t<U>, std::remove_cvref_t<T>>)
-constexpr std::compare_three_way_result_t<std::remove_cvref_t<T>, std::remove_cvref_t<U>>
+    requires(std::three_way_comparable_with<std::remove_cvref_t<U>,
+                                            std::remove_cvref_t<T>>)
+constexpr std::compare_three_way_result_t<std::remove_cvref_t<T>,
+                                          std::remove_cvref_t<U>>
 operator<=>(const option<T>& lhs, const U& rhs) {
     if (lhs.has_value()) {
         return *lhs <=> rhs;
@@ -663,7 +716,8 @@ constexpr bool operator!=([[maybe_unused]] none_t lhs, const option<T>& rhs) {
 }
 
 template <typename T>
-constexpr bool operator<([[maybe_unused]] const option<T>& lhs, [[maybe_unused]] none_t rhs) {
+constexpr bool operator<([[maybe_unused]] const option<T>& lhs,
+                         [[maybe_unused]] none_t rhs) {
     return false;
 }
 
@@ -678,7 +732,8 @@ constexpr bool operator>(const option<T>& lhs, [[maybe_unused]] none_t rhs) {
 }
 
 template <typename T>
-constexpr bool operator>([[maybe_unused]] none_t lhs, [[maybe_unused]] const option<T>& rhs) {
+constexpr bool operator>([[maybe_unused]] none_t lhs,
+                         [[maybe_unused]] const option<T>& rhs) {
     return false;
 }
 
@@ -688,12 +743,14 @@ constexpr bool operator<=(const option<T>& lhs, [[maybe_unused]] none_t rhs) {
 }
 
 template <typename T>
-constexpr bool operator<=([[maybe_unused]] none_t lhs, [[maybe_unused]] const option<T>& rhs) {
+constexpr bool operator<=([[maybe_unused]] none_t lhs,
+                          [[maybe_unused]] const option<T>& rhs) {
     return true;
 }
 
 template <typename T>
-constexpr bool operator>=([[maybe_unused]] const option<T>& lhs, [[maybe_unused]] none_t rhs) {
+constexpr bool operator>=([[maybe_unused]] const option<T>& lhs,
+                          [[maybe_unused]] none_t rhs) {
     return true;
 }
 
@@ -703,150 +760,179 @@ constexpr bool operator>=([[maybe_unused]] none_t lhs, const option<T>& rhs) {
 }
 
 template <typename T>
-constexpr std::strong_ordering operator<=>(const option<T>& lhs, [[maybe_unused]] none_t rhs) {
+constexpr std::strong_ordering operator<=>(const option<T>& lhs,
+                                           [[maybe_unused]] none_t rhs) {
     return lhs.has_value() <=> false;
 }
 
 template <typename T>
-constexpr bool operator==(const option<T>& lhs, [[maybe_unused]] std::nullopt_t rhs) {
+constexpr bool operator==(const option<T>& lhs,
+                          [[maybe_unused]] std::nullopt_t rhs) {
     return !lhs.has_value();
 }
 
 template <typename T>
-constexpr bool operator==([[maybe_unused]] std::nullopt_t lhs, const option<T>& rhs) {
+constexpr bool operator==([[maybe_unused]] std::nullopt_t lhs,
+                          const option<T>& rhs) {
     return !rhs.has_value();
 }
 
 template <typename T>
-constexpr bool operator!=(const option<T>& lhs, [[maybe_unused]] std::nullopt_t rhs) {
+constexpr bool operator!=(const option<T>& lhs,
+                          [[maybe_unused]] std::nullopt_t rhs) {
     return lhs.has_value();
 }
 
 template <typename T>
-constexpr bool operator!=([[maybe_unused]] std::nullopt_t lhs, const option<T>& rhs) {
+constexpr bool operator!=([[maybe_unused]] std::nullopt_t lhs,
+                          const option<T>& rhs) {
     return rhs.has_value();
 }
 
 template <typename T>
-constexpr bool operator<([[maybe_unused]] const option<T>& lhs, [[maybe_unused]] std::nullopt_t rhs) {
+constexpr bool operator<([[maybe_unused]] const option<T>& lhs,
+                         [[maybe_unused]] std::nullopt_t rhs) {
     return false;
 }
 
 template <typename T>
-constexpr bool operator<([[maybe_unused]] std::nullopt_t lhs, const option<T>& rhs) {
+constexpr bool operator<([[maybe_unused]] std::nullopt_t lhs,
+                         const option<T>& rhs) {
     return rhs.has_value();
 }
 
 template <typename T>
-constexpr bool operator>(const option<T>& lhs, [[maybe_unused]] std::nullopt_t rhs) {
+constexpr bool operator>(const option<T>& lhs,
+                         [[maybe_unused]] std::nullopt_t rhs) {
     return lhs.has_value();
 }
 
 template <typename T>
-constexpr bool operator>([[maybe_unused]] std::nullopt_t lhs, [[maybe_unused]] const option<T>& rhs) {
+constexpr bool operator>([[maybe_unused]] std::nullopt_t lhs,
+                         [[maybe_unused]] const option<T>& rhs) {
     return false;
 }
 
 template <typename T>
-constexpr bool operator<=(const option<T>& lhs, [[maybe_unused]] std::nullopt_t rhs) {
+constexpr bool operator<=(const option<T>& lhs,
+                          [[maybe_unused]] std::nullopt_t rhs) {
     return !lhs.has_value();
 }
 
 template <typename T>
-constexpr bool operator<=([[maybe_unused]] std::nullopt_t lhs, [[maybe_unused]] const option<T>& rhs) {
+constexpr bool operator<=([[maybe_unused]] std::nullopt_t lhs,
+                          [[maybe_unused]] const option<T>& rhs) {
     return true;
 }
 
 template <typename T>
-constexpr bool operator>=([[maybe_unused]] const option<T>& lhs, [[maybe_unused]] std::nullopt_t rhs) {
+constexpr bool operator>=([[maybe_unused]] const option<T>& lhs,
+                          [[maybe_unused]] std::nullopt_t rhs) {
     return true;
 }
 
 template <typename T>
-constexpr bool operator>=([[maybe_unused]] std::nullopt_t lhs, const option<T>& rhs) {
+constexpr bool operator>=([[maybe_unused]] std::nullopt_t lhs,
+                          const option<T>& rhs) {
     return !rhs.has_value();
 }
 
 template <typename T>
-constexpr std::strong_ordering operator<=>(const option<T>& lhs, [[maybe_unused]] std::nullopt_t rhs) {
+constexpr std::strong_ordering operator<=>(
+    const option<T>& lhs,
+    [[maybe_unused]] std::nullopt_t rhs) {
     return lhs.has_value() <=> false;
 }
 
 template <typename T>
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
-constexpr bool operator==(const option<T>& lhs, [[maybe_unused]] std::nullptr_t rhs) {
+constexpr bool operator==(const option<T>& lhs,
+                          [[maybe_unused]] std::nullptr_t rhs) {
     return !lhs.has_value();
 }
 
 template <typename T>
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
-constexpr bool operator==([[maybe_unused]] std::nullptr_t lhs, const option<T>& rhs) {
+constexpr bool operator==([[maybe_unused]] std::nullptr_t lhs,
+                          const option<T>& rhs) {
     return !rhs.has_value();
 }
 
 template <typename T>
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
-constexpr bool operator!=(const option<T>& lhs, [[maybe_unused]] std::nullptr_t rhs) {
+constexpr bool operator!=(const option<T>& lhs,
+                          [[maybe_unused]] std::nullptr_t rhs) {
     return lhs.has_value();
 }
 
 template <typename T>
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
-constexpr bool operator!=([[maybe_unused]] std::nullptr_t lhs, const option<T>& rhs) {
+constexpr bool operator!=([[maybe_unused]] std::nullptr_t lhs,
+                          const option<T>& rhs) {
     return rhs.has_value();
 }
 
 template <typename T>
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
-constexpr bool operator<([[maybe_unused]] const option<T>& lhs, [[maybe_unused]] std::nullptr_t rhs) {
+constexpr bool operator<([[maybe_unused]] const option<T>& lhs,
+                         [[maybe_unused]] std::nullptr_t rhs) {
     return false;
 }
 
 template <typename T>
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
-constexpr bool operator<([[maybe_unused]] std::nullptr_t lhs, const option<T>& rhs) {
+constexpr bool operator<([[maybe_unused]] std::nullptr_t lhs,
+                         const option<T>& rhs) {
     return rhs.has_value();
 }
 
 template <typename T>
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
-constexpr bool operator>(const option<T>& lhs, [[maybe_unused]] std::nullptr_t rhs) {
+constexpr bool operator>(const option<T>& lhs,
+                         [[maybe_unused]] std::nullptr_t rhs) {
     return lhs.has_value();
 }
 
 template <typename T>
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
-constexpr bool operator>([[maybe_unused]] std::nullptr_t lhs, [[maybe_unused]] const option<T>& rhs) {
+constexpr bool operator>([[maybe_unused]] std::nullptr_t lhs,
+                         [[maybe_unused]] const option<T>& rhs) {
     return false;
 }
 
 template <typename T>
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
-constexpr bool operator<=(const option<T>& lhs, [[maybe_unused]] std::nullptr_t rhs) {
+constexpr bool operator<=(const option<T>& lhs,
+                          [[maybe_unused]] std::nullptr_t rhs) {
     return !lhs.has_value();
 }
 
 template <typename T>
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
-constexpr bool operator<=([[maybe_unused]] std::nullptr_t lhs, [[maybe_unused]] const option<T>& rhs) {
+constexpr bool operator<=([[maybe_unused]] std::nullptr_t lhs,
+                          [[maybe_unused]] const option<T>& rhs) {
     return true;
 }
 
 template <typename T>
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
-constexpr bool operator>=([[maybe_unused]] const option<T>& lhs, [[maybe_unused]] std::nullptr_t rhs) {
+constexpr bool operator>=([[maybe_unused]] const option<T>& lhs,
+                          [[maybe_unused]] std::nullptr_t rhs) {
     return true;
 }
 
 template <typename T>
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
-constexpr bool operator>=([[maybe_unused]] std::nullptr_t lhs, const option<T>& rhs) {
+constexpr bool operator>=([[maybe_unused]] std::nullptr_t lhs,
+                          const option<T>& rhs) {
     return !rhs.has_value();
 }
 
 template <typename T>
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
-constexpr std::strong_ordering operator<=>(const option<T>& lhs, [[maybe_unused]] std::nullptr_t rhs) {
+constexpr std::strong_ordering operator<=>(
+    const option<T>& lhs,
+    [[maybe_unused]] std::nullptr_t rhs) {
     return lhs.has_value() <=> false;
 }
 
@@ -860,4 +946,4 @@ constexpr option<T> some(std::initializer_list<U> ilist, Args&&... args) {
     return option<T>{std::in_place, ilist, std::forward<Args>(args)...};
 }
 
-}
+} // namespace sumty

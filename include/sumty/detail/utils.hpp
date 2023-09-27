@@ -33,17 +33,25 @@ struct discriminant<COUNT, std::enable_if_t<(COUNT <= 1)>> {
 };
 
 template <uint64_t COUNT>
-struct discriminant<COUNT, std::enable_if_t<(COUNT <= static_cast<uint64_t>(~uint8_t{0}))>> {
+struct discriminant<
+    COUNT,
+    std::enable_if_t<(COUNT <= static_cast<uint64_t>(~uint8_t{0}))>> {
     using type = uint8_t;
 };
 
 template <uint64_t COUNT>
-struct discriminant<COUNT, std::enable_if_t<(COUNT <= static_cast<uint64_t>(~uint16_t{0}) && COUNT > static_cast<uint64_t>(~uint8_t{0}))>> {
+struct discriminant<
+    COUNT,
+    std::enable_if_t<(COUNT <= static_cast<uint64_t>(~uint16_t{0}) &&
+                      COUNT > static_cast<uint64_t>(~uint8_t{0}))>> {
     using type = uint16_t;
 };
 
 template <uint64_t COUNT>
-struct discriminant<COUNT, std::enable_if_t<(COUNT <= static_cast<uint64_t>(~uint32_t{0}) && COUNT > static_cast<uint64_t>(~uint16_t{0}))>> {
+struct discriminant<
+    COUNT,
+    std::enable_if_t<(COUNT <= static_cast<uint64_t>(~uint32_t{0}) &&
+                      COUNT > static_cast<uint64_t>(~uint16_t{0}))>> {
     using type = uint32_t;
 };
 
@@ -60,7 +68,7 @@ struct select<0, T0, TN...> {
 
 template <size_t IDX, typename T0, typename... TN>
 struct select<IDX, T0, TN...> {
-    using type = typename select<IDX-1, TN...>::type;
+    using type = typename select<IDX - 1, TN...>::type;
 };
 
 template <size_t IDX>
@@ -84,7 +92,7 @@ template <size_t N, typename T, typename U0, typename... UN>
 struct type_count_impl<N, T, U0, UN...> : type_count_impl<N, T, UN...> {};
 
 template <size_t N, typename T, typename... UN>
-struct type_count_impl<N, T, T, UN...> : type_count_impl<N+1, T, UN...> {};
+struct type_count_impl<N, T, T, UN...> : type_count_impl<N + 1, T, UN...> {};
 
 template <typename T, typename... U>
 struct type_count : type_count_impl<0, T, U...> {};
@@ -102,7 +110,7 @@ template <size_t IDX, typename T, typename... U>
 struct index_of_impl;
 
 template <size_t IDX, typename T, typename U0, typename... UN>
-struct index_of_impl<IDX, T, U0, UN...> : index_of_impl<IDX+1, T, UN...> {};
+struct index_of_impl<IDX, T, U0, UN...> : index_of_impl<IDX + 1, T, UN...> {};
 
 template <size_t IDX, typename T, typename... UN>
 struct index_of_impl<IDX, T, T, UN...> : std::integral_constant<size_t, IDX> {};
@@ -158,6 +166,6 @@ struct is_error<error_t<E>> : std::true_type {};
 template <typename T>
 static inline constexpr bool is_error_v = is_error<T>::value;
 
-}
+} // namespace sumty::detail
 
 #endif
