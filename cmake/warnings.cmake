@@ -1,4 +1,4 @@
-option(WERROR "Treat warnings as errors" ${${PROJECT_NAME_CAPS}_DEVEL})
+option(WERROR "Treat warnings as errors" ${DEVEL})
 
 set(MSVC_WARNINGS
     /W4 # Baseline reasonable warnings

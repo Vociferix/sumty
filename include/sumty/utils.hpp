@@ -41,7 +41,7 @@ template <size_t N>
 struct index_t {
     template <typename S>
     constexpr decltype(auto) operator()(S&& s) const
-        requires requires(S&& s) { std::forward<S>(s)[index_t<N>{}]; }
+        requires requires { std::forward<S>(s)[index_t<N>{}]; }
     {
         return std::forward<S>(s)[index_t<N>{}];
     }
@@ -54,7 +54,7 @@ template <typename T>
 struct type_t {
     template <typename S>
     constexpr decltype(auto) operator()(S&& s) const
-        requires requires(S&& s) { std::forward<S>(s)[type_t<T>{}]; }
+        requires requires { std::forward<S>(s)[type_t<T>{}]; }
     {
         return std::forward<S>(s)[type_t<T>{}];
     }

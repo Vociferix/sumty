@@ -18,6 +18,9 @@
 
 #include "sumty/detail/fwd.hpp"
 
+#include <cstddef>
+#include <cstdint>
+#include <limits>
 #include <type_traits>
 
 namespace sumty::detail {
@@ -33,22 +36,23 @@ struct discriminant<COUNT, std::enable_if_t<(COUNT <= 1)>> {
 };
 
 template <uint64_t COUNT>
-struct discriminant<COUNT,
-                    std::enable_if_t<(COUNT <= static_cast<uint64_t>(~uint8_t{0}))>> {
+struct discriminant<
+    COUNT,
+    std::enable_if_t<(COUNT > 1 && COUNT <= (std::numeric_limits<uint8_t>::max)())>> {
     using type = uint8_t;
 };
 
 template <uint64_t COUNT>
 struct discriminant<COUNT,
-                    std::enable_if_t<(COUNT <= static_cast<uint64_t>(~uint16_t{0}) &&
-                                      COUNT > static_cast<uint64_t>(~uint8_t{0}))>> {
+                    std::enable_if_t<(COUNT <= (std::numeric_limits<uint16_t>::max)() &&
+                                      COUNT > (std::numeric_limits<uint8_t>::max)())>> {
     using type = uint16_t;
 };
 
 template <uint64_t COUNT>
 struct discriminant<COUNT,
-                    std::enable_if_t<(COUNT <= static_cast<uint64_t>(~uint32_t{0}) &&
-                                      COUNT > static_cast<uint64_t>(~uint16_t{0}))>> {
+                    std::enable_if_t<(COUNT <= (std::numeric_limits<uint32_t>::max)() &&
+                                      COUNT > (std::numeric_limits<uint16_t>::max)())>> {
     using type = uint32_t;
 };
 

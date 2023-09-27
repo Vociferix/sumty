@@ -16,42 +16,29 @@
 #ifndef SUMTY_VARIANT_HPP
 #define SUMTY_VARIANT_HPP
 
-#include "sumty/detail/fwd.hpp"
-#include "sumty/detail/traits.hpp"
+#include "sumty/detail/fwd.hpp"    // IWYU pragma: export
+#include "sumty/detail/traits.hpp" // IWYU pragma: export
 #include "sumty/detail/utils.hpp"
-#include "sumty/exceptions.hpp"
+#include "sumty/detail/variant_impl.hpp"
 #include "sumty/utils.hpp"
 
 #include <cstddef>
-#include <cstdint>
-#include <functional>
 #include <initializer_list>
 #include <type_traits>
 #include <utility>
-#include <variant> // for std::variant_size and std::variant_alternative
 
 namespace sumty {
-
-namespace detail {
-
-template <typename Enable, typename... T>
-class variant_impl;
-
-template <typename... T>
-using variant_impl_t = variant_impl<void, T...>;
-
-} // namespace detail
 
 template <typename... T>
 class variant {
   private:
-    SUMTY_NO_UNIQ_ADDR detail::variant_impl_t<T...> data_;
+    SUMTY_NO_UNIQ_ADDR detail::variant_impl<void, T...> data_;
 
     template <size_t IDX, typename V, typename U>
     static constexpr decltype(auto) visit_impl(V&& visitor, U&& var);
 
     template <size_t IDX, typename U>
-    constexpr bool holds_alt_impl() const noexcept;
+    [[nodiscard]] constexpr bool holds_alt_impl() const noexcept;
 
   public:
     constexpr variant() noexcept(
@@ -69,7 +56,9 @@ class variant {
     = default;
 
     template <size_t IDX, typename... Args>
-    constexpr variant(std::in_place_index_t<IDX> inplace, Args&&... args);
+    explicit(sizeof...(Args) == 0)
+        // NOLINTNEXTLINE(hicpp-explicit-conversions)
+        constexpr variant(std::in_place_index_t<IDX> inplace, Args&&... args);
 
     template <size_t IDX, typename U, typename... Args>
     constexpr variant(std::in_place_index_t<IDX> inplace,
@@ -78,7 +67,9 @@ class variant {
 
     template <typename U, typename... Args>
         requires(detail::is_unique_v<U, T...>)
-    constexpr variant(std::in_place_type_t<U> inplace, Args&&... args);
+    explicit(sizeof...(Args) == 0)
+        // NOLINTNEXTLINE(hicpp-explicit-conversions)
+        constexpr variant(std::in_place_type_t<U> inplace, Args&&... args);
 
     template <typename U, typename V, typename... Args>
         requires(detail::is_unique_v<U, T...>)
@@ -101,7 +92,7 @@ class variant {
         requires(true && ... && detail::traits<T>::is_move_assignable)
     = default;
 
-    constexpr size_t index() const noexcept;
+    [[nodiscard]] constexpr size_t index() const noexcept;
 
     template <size_t I, typename... Args>
     constexpr decltype(auto) emplace(Args&&... args);
@@ -118,63 +109,63 @@ class variant {
     constexpr decltype(auto) emplace(std::initializer_list<V> ilist, Args&&... args);
 
     template <size_t I>
-    constexpr decltype(auto) operator[](index_t<I> index) & noexcept;
+    [[nodiscard]] constexpr decltype(auto) operator[](index_t<I> index) & noexcept;
 
     template <size_t I>
-    constexpr decltype(auto) operator[](index_t<I> index) const& noexcept;
+    [[nodiscard]] constexpr decltype(auto) operator[](index_t<I> index) const& noexcept;
 
     template <size_t I>
-    constexpr decltype(auto) operator[](index_t<I> index) &&;
+    [[nodiscard]] constexpr decltype(auto) operator[](index_t<I> index) &&;
 
     template <size_t I>
-    constexpr decltype(auto) operator[](index_t<I> index) const&&;
+    [[nodiscard]] constexpr decltype(auto) operator[](index_t<I> index) const&&;
 
     template <typename U>
         requires(detail::is_unique_v<U, T...>)
-    constexpr decltype(auto) operator[](type_t<U> type) & noexcept;
+    [[nodiscard]] constexpr decltype(auto) operator[](type_t<U> type) & noexcept;
 
     template <typename U>
         requires(detail::is_unique_v<U, T...>)
-    constexpr decltype(auto) operator[](type_t<U> type) const& noexcept;
+    [[nodiscard]] constexpr decltype(auto) operator[](type_t<U> type) const& noexcept;
 
     template <typename U>
         requires(detail::is_unique_v<U, T...>)
-    constexpr decltype(auto) operator[](type_t<U> type) &&;
+    [[nodiscard]] constexpr decltype(auto) operator[](type_t<U> type) &&;
 
     template <typename U>
         requires(detail::is_unique_v<U, T...>)
-    constexpr decltype(auto) operator[](type_t<U> type) const&&;
+    [[nodiscard]] constexpr decltype(auto) operator[](type_t<U> type) const&&;
 
     template <size_t I>
-    constexpr decltype(auto) get() &;
+    [[nodiscard]] constexpr decltype(auto) get() &;
 
     template <size_t I>
-    constexpr decltype(auto) get() const&;
+    [[nodiscard]] constexpr decltype(auto) get() const&;
 
     template <size_t I>
-    constexpr decltype(auto) get() &&;
+    [[nodiscard]] constexpr decltype(auto) get() &&;
 
     template <size_t I>
-    constexpr decltype(auto) get() const&&;
+    [[nodiscard]] constexpr decltype(auto) get() const&&;
 
     template <typename U>
         requires(detail::is_unique_v<U, T...>)
-    constexpr decltype(auto) get() &;
+    [[nodiscard]] constexpr decltype(auto) get() &;
 
     template <typename U>
         requires(detail::is_unique_v<U, T...>)
-    constexpr decltype(auto) get() const&;
+    [[nodiscard]] constexpr decltype(auto) get() const&;
 
     template <typename U>
         requires(detail::is_unique_v<U, T...>)
-    constexpr decltype(auto) get() &&;
+    [[nodiscard]] constexpr decltype(auto) get() &&;
 
     template <typename U>
         requires(detail::is_unique_v<U, T...>)
-    constexpr decltype(auto) get() const&&;
+    [[nodiscard]] constexpr decltype(auto) get() const&&;
 
     template <typename U>
-    constexpr bool holds_alternative() const noexcept;
+    [[nodiscard]] constexpr bool holds_alternative() const noexcept;
 
     template <typename V>
     constexpr decltype(auto) visit(V&& visitor) &;
@@ -241,14 +232,6 @@ using variant_alternative_t = typename variant_alternative<I, T>::type;
 
 } // namespace sumty
 
-template <typename... T>
-struct std::variant_size<::sumty::variant<T...>>
-    : ::sumty::variant_size<::sumty::variant<T...>> {};
-
-template <size_t I, typename... T>
-struct std::variant_alternative<I, ::sumty::variant<T...>>
-    : ::sumty::variant_alternative<I, ::sumty::variant<T...>> {};
-
-#include "sumty/impl/variant.hpp"
+#include "sumty/impl/variant.hpp" // IWYU pragma: export
 
 #endif

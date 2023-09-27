@@ -1,0 +1,21 @@
+---
+Checks: "*,
+         -abseil-*,
+         -altera-*,
+         -android-*,
+         -fuchsia-*,
+         -google-*,
+         -llvm*,
+         -zircon-*,
+         -modernize-use-trailing-return-type,
+         -readability-else-after-return,
+         -readability-static-accessed-through-instance,
+         -readability-avoid-const-params-in-decls,
+         -readability-identifier-length,
+         -cppcoreguidelines-non-private-member-variables-in-classes,
+         -cppcoreguidelines-pro-type-union-access,
+         -misc-non-private-member-variables-in-classes,
+         -bugprone-forwarding-reference-overload,
+"
+HeaderFilterRegex: '.*/sumty/.*'
+FormatStyle: file

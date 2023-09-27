@@ -13,8 +13,17 @@
  * limitations under the License.
  */
 
+#ifndef SUMTY_IMPL_RESULT_HPP
+#define SUMTY_IMPL_RESULT_HPP
+
+#include "sumty/exceptions.hpp"
 #include "sumty/option.hpp"
-#include "sumty/result.hpp"
+#include "sumty/variant.hpp"
+
+#include <functional>
+#include <initializer_list>
+#include <type_traits>
+#include <utility>
 
 namespace sumty {
 
@@ -82,20 +91,16 @@ template <typename U>
              !detail::is_ok_v<std::remove_cvref_t<U>> &&
              (!std::is_same_v<std::remove_cvref_t<T>, bool> ||
               !detail::is_result_v<std::remove_cvref_t<U>>))
-explicit(!detail::traits<T>::template is_convertible_from<
-         U&&>) constexpr result<T, E>::result(U&& value)
+constexpr result<T, E>::result(U&& value)
     : res_(std::in_place_index<0>, std::forward<U>(value)) {}
 
 template <typename T, typename E>
 template <typename U>
-explicit(!detail::traits<T>::template is_convertible_from<
-         U&&>) constexpr result<T, E>::result(ok_t<U> ok)
-    : res_(std::in_place_index<0>, *std::move(ok)) {}
+constexpr result<T, E>::result(ok_t<U> ok) : res_(std::in_place_index<0>, *std::move(ok)) {}
 
 template <typename T, typename E>
 template <typename U>
-explicit(!detail::traits<E>::template is_convertible_from<
-         U&&>) constexpr result<T, E>::result(error_t<U> err)
+constexpr result<T, E>::result(error_t<U> err)
     : res_(std::in_place_index<1>, *std::move(err)) {}
 
 template <typename T, typename E>
@@ -108,11 +113,7 @@ template <typename U, typename V>
               std::is_constructible_v<variant<T, E>,
                                       std::in_place_index_t<1>,
                                       typename detail::traits<E>::const_reference>))
-explicit((!std::is_void_v<U> && !detail::traits<T>::template is_convertible_from<U>) ||
-         (!std::is_void_v<V> &&
-          !detail::traits<E>::template is_convertible_from<
-              V>)) constexpr result<T, E>::result(const result<U, V>& other)
-    : res_(convert(other)) {}
+constexpr result<T, E>::result(const result<U, V>& other) : res_(convert(other)) {}
 
 template <typename T, typename E>
 template <typename U, typename V>
@@ -124,26 +125,16 @@ template <typename U, typename V>
               std::is_constructible_v<variant<T, E>,
                                       std::in_place_index_t<1>,
                                       typename detail::traits<E>::rvalue_reference>))
-explicit((!std::is_void_v<U> && !detail::traits<T>::template is_convertible_from<U>) ||
-         (!std::is_void_v<V> &&
-          !detail::traits<E>::template is_convertible_from<
-              V>)) constexpr result<T, E>::result(result<U, V>&& other)
-    : res_(convert(std::move(other))) {}
+constexpr result<T, E>::result(result<U, V>&& other) : res_(convert(std::move(other))) {}
 
 template <typename T, typename E>
 template <typename U>
-    requires(!std::is_same_v<result<T, E>, std::remove_cvref_t<U>> &&
-             !detail::is_error_v<std::remove_cvref_t<U>> &&
-             !detail::is_ok_v<std::remove_cvref_t<U>> &&
-             detail::traits<T>::template is_constructible<U> &&
-             detail::traits<T>::template is_assignable<U>)
-constexpr result<T, E>& result<T, E>::operator=(U&& value) {
+constexpr void result<T, E>::assign_value(U&& value) {
     if (res_.index() == 0) {
         res_[index<0>] = std::forward<U>(value);
     } else {
         res_.template emplace<0>(std::forward<U>(value));
     }
-    return *this;
 }
 
 template <typename T, typename E>
@@ -247,7 +238,7 @@ template <typename V>
                   typename detail::traits<V>::rvalue_reference>) ||
              (std::is_void_v<V> && detail::traits<E>::is_default_constructible) ||
              std::is_void_v<E>)
-constexpr result<T, E>& result<T, E>::operator=(error_t<V>&& value) {
+constexpr result<T, E>& result<T, E>::operator=(error_t<V>&& error) {
     if (res_.index() == 0) {
         if constexpr (std::is_void_v<V>) {
             res_.template emplace<1>();
@@ -813,7 +804,7 @@ result<T, E>::ref() noexcept {
     if (res_.index() == 0) {
         return result<reference, error_reference>{std::in_place, **this};
     } else {
-        return result<reference, error_reference>{in_place_error, this.error()};
+        return result<reference, error_reference>{in_place_error, error()};
     }
 }
 
@@ -824,7 +815,7 @@ result<T, E>::ref() const noexcept {
     if (res_.index() == 0) {
         return result<const_reference, error_const_reference>{std::in_place, **this};
     } else {
-        return result<const_reference, error_const_reference>{in_place_error, this.error()};
+        return result<const_reference, error_const_reference>{in_place_error, error()};
     }
 }
 
@@ -898,7 +889,7 @@ template <typename U, typename... Args>
 constexpr typename result<T, E>::reference result<T, E>::emplace(
     std::initializer_list<U> ilist,
     Args&&... args) {
-    return res_.template emplace<0>(std::forward<Args>(args)...);
+    return res_.template emplace<0>(ilist, std::forward<Args>(args)...);
 }
 
 template <typename T, typename E>
@@ -1006,12 +997,8 @@ constexpr error_t<E>::error_t(V&& err)
 
 template <typename E>
 template <typename V>
-    requires(!std::is_same_v<error_t<E>, std::remove_cvref_t<V>> &&
-             detail::traits<E>::template is_constructible<V> &&
-             detail::traits<E>::template is_assignable<V>)
-constexpr error_t<E>& error_t<E>::operator=(V&& err) {
-    err_[index<0>] = std::forward<V>(err);
-    return *this;
+constexpr void error_t<E>::assign_value(V&& error) {
+    err_[index<0>] = std::forward<V>(error);
 }
 
 template <typename E>
@@ -1123,12 +1110,8 @@ constexpr ok_t<T>::ok_t(U&& value) : ok_(std::in_place_index<0>, std::forward<U>
 
 template <typename T>
 template <typename U>
-    requires(!std::is_same_v<ok_t<T>, std::remove_cvref_t<U>> &&
-             detail::traits<T>::template is_constructible<U> &&
-             detail::traits<T>::template is_assignable<U>)
-constexpr ok_t<T>& ok_t<T>::operator=(U&& value) {
+constexpr void ok_t<T>::assign_value(U&& value) {
     ok_[index<0>] = std::forward<U>(value);
-    return *this;
 }
 
 template <typename T>
@@ -1216,3 +1199,5 @@ constexpr void swap(ok_t<T>& a,
 }
 
 } // namespace sumty
+
+#endif

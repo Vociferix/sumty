@@ -16,8 +16,15 @@
 #ifndef SUMTY_DETAIL_AUTO_UNION_HPP
 #define SUMTY_DETAIL_AUTO_UNION_HPP
 
-#include "sumty/detail/traits.hpp"
-#include "sumty/utils.hpp"
+#include "sumty/utils.hpp" // IWYU pragma: keep
+
+#include <cstddef>
+#include <memory>
+#include <type_traits>
+#include <utility>
+
+// NOLINTBEGIN(cert-oop54-cpp)
+// NOLINTBEGIN(bugprone-unhandled-self-assignment)
 
 namespace sumty::detail {
 
@@ -65,7 +72,7 @@ union auto_union<T0, TN...> {
     }
 
     template <size_t IDX>
-    constexpr decltype(auto) get() noexcept {
+    [[nodiscard]] constexpr decltype(auto) get() noexcept {
         if constexpr (IDX == 0) {
             return head_;
         } else {
@@ -74,7 +81,7 @@ union auto_union<T0, TN...> {
     }
 
     template <size_t IDX>
-    constexpr decltype(auto) get() const noexcept {
+    [[nodiscard]] constexpr decltype(auto) get() const noexcept {
         if constexpr (IDX == 0) {
             return head_;
         } else {
@@ -123,7 +130,7 @@ union auto_union<T0&&, TN...> {
     }
 
     template <size_t IDX>
-    constexpr decltype(auto) get() noexcept {
+    [[nodiscard]] constexpr decltype(auto) get() noexcept {
         if constexpr (IDX == 0) {
             return head_;
         } else {
@@ -132,7 +139,7 @@ union auto_union<T0&&, TN...> {
     }
 
     template <size_t IDX>
-    constexpr decltype(auto) get() const noexcept {
+    [[nodiscard]] constexpr decltype(auto) get() const noexcept {
         if constexpr (IDX == 0) {
             return head_;
         } else {
@@ -181,7 +188,7 @@ union auto_union<T0&, TN...> {
     }
 
     template <size_t IDX>
-    constexpr decltype(auto) get() const noexcept {
+    [[nodiscard]] constexpr decltype(auto) get() const noexcept {
         if constexpr (IDX == 0) {
             return *head_;
         } else {
@@ -225,8 +232,12 @@ union auto_union<void, TN...> {
     }
 
     template <size_t IDX>
-    constexpr decltype(auto) get() const noexcept {
-        if constexpr (IDX != 0) { return tail_.template get<IDX - 1>(); }
+    [[nodiscard]] constexpr decltype(auto) get() const noexcept {
+        if constexpr (IDX != 0) {
+            return tail_.template get<IDX - 1>();
+        } else {
+            return;
+        }
     }
 
     template <size_t IDX, typename... Args>
@@ -243,5 +254,8 @@ union auto_union<void, TN...> {
 };
 
 } // namespace sumty::detail
+
+// NOLINTEND(bugprone-unhandled-self-assignment)
+// NOLINTEND(cert-oop54-cpp)
 
 #endif

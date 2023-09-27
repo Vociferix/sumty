@@ -15,4 +15,8 @@ add_executable(tests option.cpp result.cpp variant.cpp)
 target_link_libraries(tests PRIVATE Catch2::Catch2WithMain ${PROJECT_NAME}::${PROJECT_NAME}
                                     ${PROJECT_NAME}-settings)
 
+if(COMMAND ${PROJECT_NAME}_enable_lints)
+    cmake_language(CALL ${PROJECT_NAME}_enable_lints tests)
+endif()
+
 catch_discover_tests(tests)

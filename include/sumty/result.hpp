@@ -16,21 +16,24 @@
 #ifndef SUMTY_RESULT_HPP
 #define SUMTY_RESULT_HPP
 
-#include "sumty/detail/fwd.hpp"
-#include "sumty/detail/traits.hpp"
-#include "sumty/detail/utils.hpp"
-#include "sumty/exceptions.hpp"
-#include "sumty/utils.hpp"
+#include "sumty/detail/fwd.hpp"    // IWYU pragma: export
+#include "sumty/detail/traits.hpp" // IWYU pragma: export
+#include "sumty/utils.hpp"         // IWYU pragma: export
 #include "sumty/variant.hpp"
 
-#include <cstddef>
-#include <exception>
-#include <functional>
+// IWYU pragma: no_include "sumty/option.hpp"
+
 #include <initializer_list>
 #include <type_traits>
 #include <utility>
 
 namespace sumty {
+
+template <typename T>
+class ok_t;
+
+template <typename E>
+class error_t;
 
 template <typename T, typename E>
 class result {
@@ -80,26 +83,32 @@ class result {
     = default;
 
     template <typename... Args>
-    constexpr result(std::in_place_t in_place, Args&&... args);
+    explicit(sizeof...(Args) == 0)
+        // NOLINTNEXTLINE(hicpp-explicit-conversions)
+        constexpr result(std::in_place_t inplace, Args&&... args);
 
     template <typename U, typename... Args>
-    constexpr result(std::in_place_t in_place,
+    constexpr result(std::in_place_t inplace,
                      std::initializer_list<U> init,
                      Args&&... args);
 
     template <typename... Args>
-    constexpr result(std::in_place_index_t<0> in_place, Args&&... args);
+    explicit(sizeof...(Args) == 0)
+        // NOLINTNEXTLINE(hicpp-explicit-conversions)
+        constexpr result(std::in_place_index_t<0> inplace, Args&&... args);
 
     template <typename U, typename... Args>
-    constexpr result(std::in_place_index_t<0> in_place,
+    constexpr result(std::in_place_index_t<0> inplace,
                      std::initializer_list<U> init,
                      Args&&... args);
 
     template <typename... Args>
-    constexpr result(in_place_error_t in_place, Args&&... args);
+    explicit(sizeof...(Args) == 0)
+        // NOLINTNEXTLINE(hicpp-explicit-conversions)
+        constexpr result(in_place_error_t inplace, Args&&... args);
 
     template <typename U, typename... Args>
-    constexpr result(in_place_error_t in_place,
+    constexpr result(in_place_error_t inplace,
                      std::initializer_list<U> init,
                      Args&&... args);
 
@@ -112,16 +121,19 @@ class result {
                  !detail::is_ok_v<std::remove_cvref_t<U>> &&
                  (!std::is_same_v<std::remove_cvref_t<T>, bool> ||
                   !detail::is_result_v<std::remove_cvref_t<U>>))
-    explicit(!detail::traits<T>::template is_convertible_from<U&&>) constexpr result(
-        U&& value);
+    explicit(!detail::traits<T>::template is_convertible_from<U&&>)
+        // NOLINTNEXTLINE(hicpp-explicit-conversions)
+        constexpr result(U&& value);
 
     template <typename U>
-    explicit(!detail::traits<T>::template is_convertible_from<U&&>) constexpr result(
-        ok_t<U> ok);
+    explicit(!detail::traits<T>::template is_convertible_from<U&&>)
+        // NOLINTNEXTLINE(hicpp-explicit-conversions)
+        constexpr result(ok_t<U> ok);
 
     template <typename U>
-    explicit(!detail::traits<E>::template is_convertible_from<U&&>) constexpr result(
-        error_t<U> err);
+    explicit(!detail::traits<E>::template is_convertible_from<U&&>)
+        // NOLINTNEXTLINE(hicpp-explicit-conversions)
+        constexpr result(error_t<U> err);
 
     template <typename U, typename V>
         requires(((std::is_void_v<U> && detail::traits<T>::is_default_constructible) ||
@@ -133,8 +145,9 @@ class result {
                                           std::in_place_index_t<1>,
                                           typename detail::traits<E>::const_reference>))
     explicit((!std::is_void_v<U> && !detail::traits<T>::template is_convertible_from<U>) ||
-             (!std::is_void_v<V> && !detail::traits<E>::template is_convertible_from<
-                                        V>)) constexpr result(const result<U, V>& other);
+             (!std::is_void_v<V> && !detail::traits<E>::template is_convertible_from<V>))
+        // NOLINTNEXTLINE(hicpp-explicit-conversions)
+        constexpr result(const result<U, V>& other);
 
     template <typename U, typename V>
         requires(((std::is_void_v<U> && detail::traits<T>::is_default_constructible) ||
@@ -146,8 +159,9 @@ class result {
                                           std::in_place_index_t<1>,
                                           typename detail::traits<E>::rvalue_reference>))
     explicit((!std::is_void_v<U> && !detail::traits<T>::template is_convertible_from<U>) ||
-             (!std::is_void_v<V> && !detail::traits<E>::template is_convertible_from<
-                                        V>)) constexpr result(result<U, V>&& other);
+             (!std::is_void_v<V> && !detail::traits<E>::template is_convertible_from<V>))
+        // NOLINTNEXTLINE(hicpp-explicit-conversions)
+        constexpr result(result<U, V>&& other);
 
     constexpr ~result() noexcept(std::is_nothrow_destructible_v<variant<T, E>>) = default;
 
@@ -161,13 +175,25 @@ class result {
         requires(std::is_move_assignable_v<variant<T, E>>)
     = default;
 
+  private:
     template <typename U>
-        requires(!std::is_same_v<result, std::remove_cvref_t<U>> &&
-                 !detail::is_error_v<std::remove_cvref_t<U>> &&
-                 !detail::is_ok_v<std::remove_cvref_t<U>> &&
-                 detail::traits<T>::template is_constructible<U> &&
-                 detail::traits<T>::template is_assignable<U>)
-    constexpr result& operator=(U&& value);
+    static inline constexpr bool assign_value_req =
+        !std::is_same_v<result, std::remove_cvref_t<U>> &&
+        !detail::is_error_v<std::remove_cvref_t<U>> &&
+        !detail::is_ok_v<std::remove_cvref_t<U>> &&
+        detail::traits<T>::template is_constructible<U> &&
+        detail::traits<T>::template is_assignable<U>;
+
+    template <typename U>
+    constexpr void assign_value(U&& value);
+
+  public:
+    template <typename U>
+        requires assign_value_req<U>
+    constexpr result<T, E>& operator=(U&& value) {
+        assign_value(std::forward<U>(value));
+        return *this;
+    }
 
     template <typename U>
         requires((detail::traits<T>::template is_constructible<
@@ -203,49 +229,52 @@ class result {
                       typename detail::traits<V>::rvalue_reference>) ||
                  (std::is_void_v<V> && detail::traits<E>::is_default_constructible) ||
                  std::is_void_v<E>)
-    constexpr result& operator=(error_t<V>&& value);
+    constexpr result& operator=(error_t<V>&& error);
 
+    // NOLINTNEXTLINE(hicpp-explicit-conversions)
     constexpr operator bool() const noexcept;
 
-    constexpr bool has_value() const noexcept;
+    [[nodiscard]] constexpr bool has_value() const noexcept;
 
-    constexpr reference operator*() & noexcept;
+    [[nodiscard]] constexpr reference operator*() & noexcept;
 
-    constexpr const_reference operator*() const& noexcept;
+    [[nodiscard]] constexpr const_reference operator*() const& noexcept;
 
-    constexpr rvalue_reference operator*() &&;
+    [[nodiscard]] constexpr rvalue_reference operator*() &&;
 
-    constexpr const_rvalue_reference operator*() const&&;
+    [[nodiscard]] constexpr const_rvalue_reference operator*() const&&;
 
-    constexpr pointer operator->() noexcept;
+    // cppcheck-suppress functionConst
+    [[nodiscard]] constexpr pointer operator->() noexcept;
 
-    constexpr const_pointer operator->() const noexcept;
+    [[nodiscard]] constexpr const_pointer operator->() const noexcept;
 
-    constexpr reference value() &;
+    [[nodiscard]] constexpr reference value() &;
 
-    constexpr const_reference value() const&;
+    [[nodiscard]] constexpr const_reference value() const&;
 
-    constexpr rvalue_reference value() &&;
+    [[nodiscard]] constexpr rvalue_reference value() &&;
 
-    constexpr rvalue_reference value() const&&;
+    [[nodiscard]] constexpr rvalue_reference value() const&&;
 
-    constexpr error_reference error() & noexcept;
+    // cppcheck-suppress functionConst
+    [[nodiscard]] constexpr error_reference error() & noexcept;
 
-    constexpr error_const_reference error() const& noexcept;
+    [[nodiscard]] constexpr error_const_reference error() const& noexcept;
 
-    constexpr error_rvalue_reference error() &&;
+    [[nodiscard]] constexpr error_rvalue_reference error() &&;
 
-    constexpr error_const_rvalue_reference error() const&&;
+    [[nodiscard]] constexpr error_const_rvalue_reference error() const&&;
 
     template <typename U>
-    constexpr value_type value_or(U&& default_value) const&;
+    [[nodiscard]] constexpr value_type value_or(U&& default_value) const&;
 
     template <typename U>
-    constexpr value_type value_or(U&& default_value) &&;
+    [[nodiscard]] constexpr value_type value_or(U&& default_value) &&;
 
-    constexpr value_type value_or() const&;
+    [[nodiscard]] constexpr value_type value_or() const&;
 
-    constexpr value_type value_or() &&;
+    [[nodiscard]] constexpr value_type value_or() &&;
 
     template <typename F>
     constexpr auto and_then(F&& f) &;
@@ -289,19 +318,21 @@ class result {
     template <typename F>
     constexpr decltype(auto) transform_error(F&& f) const&&;
 
-    constexpr result<reference, error_reference> ref() noexcept;
+    [[nodiscard]] constexpr result<reference, error_reference> ref() noexcept;
 
-    constexpr result<const_reference, error_const_reference> ref() const noexcept;
+    [[nodiscard]] constexpr result<const_reference, error_const_reference> ref()
+        const noexcept;
 
-    constexpr result<const_reference, error_const_reference> cref() const noexcept;
+    [[nodiscard]] constexpr result<const_reference, error_const_reference> cref()
+        const noexcept;
 
-    constexpr option<T> or_none() const& noexcept;
+    [[nodiscard]] constexpr option<T> or_none() const& noexcept;
 
-    constexpr option<T> or_none() &&;
+    [[nodiscard]] constexpr option<T> or_none() &&;
 
-    constexpr option<E> error_or_none() const& noexcept;
+    [[nodiscard]] constexpr option<E> error_or_none() const& noexcept;
 
-    constexpr option<E> error_or_none() &&;
+    [[nodiscard]] constexpr option<E> error_or_none() &&;
 
     template <typename... Args>
     constexpr reference emplace(Args&&... args);
@@ -353,7 +384,9 @@ class error_t {
         detail::traits<E>::is_nothrow_move_constructible) = default;
 
     template <typename... Args>
-    constexpr error_t(std::in_place_t inplace, Args&&... args);
+    explicit(sizeof...(Args) == 0)
+        // NOLINTNEXTLINE(hicpp-explicit-conversions)
+        constexpr error_t(std::in_place_t inplace, Args&&... args);
 
     template <typename U, typename... Args>
     constexpr error_t(std::in_place_t inplace,
@@ -361,7 +394,9 @@ class error_t {
                       Args&&... args);
 
     template <typename... Args>
-    constexpr error_t(in_place_error_t inplace, Args&&... args);
+    explicit(sizeof...(Args) == 0)
+        // NOLINTNEXTLINE(hicpp-explicit-conversions)
+        constexpr error_t(in_place_error_t inplace, Args&&... args);
 
     template <typename U, typename... Args>
     constexpr error_t(in_place_error_t inplace,
@@ -374,7 +409,9 @@ class error_t {
                  !std::is_same_v<std::remove_cvref_t<V>, std::in_place_index_t<1>> &&
                  (!std::is_same_v<std::remove_cvref_t<E>, bool> ||
                   !detail::is_result_v<std::remove_cvref_t<V>>))
-    constexpr error_t(V&& err);
+    explicit(detail::traits<E>::template convertible_from<V&&>)
+        // NOLINTNEXTLINE(hicpp-explicit-conversions)
+        constexpr error_t(V&& err);
 
     constexpr ~error_t() noexcept(detail::traits<E>::is_nothrow_destructible) = default;
 
@@ -383,11 +420,22 @@ class error_t {
     constexpr error_t& operator=(error_t&&) noexcept(
         detail::traits<E>::is_nothrow_move_assignable) = default;
 
+  private:
     template <typename V>
-        requires(!std::is_same_v<error_t, std::remove_cvref_t<V>> &&
-                 detail::traits<E>::template is_constructible<V> &&
-                 detail::traits<E>::template is_assignable<V>)
-    constexpr error_t& operator=(V&& err);
+    static inline constexpr bool assign_value_req =
+        !std::is_same_v<error_t, std::remove_cvref_t<V>> &&
+        detail::traits<E>::template is_constructible<V> &&
+        detail::traits<E>::template is_assignable<V>;
+
+    template <typename V>
+    constexpr void assign_value(V&& error);
+
+  public:
+    template <typename V>
+        requires assign_value_req<V>
+    constexpr error_t& operator=(V&& error) {
+        assign_value(std::forward<V>(error));
+    }
 
     constexpr typename detail::traits<E>::reference operator*() & noexcept;
 
@@ -397,10 +445,12 @@ class error_t {
 
     constexpr typename detail::traits<E>::const_rvalue_reference operator*() const&&;
 
+    // cppcheck-suppress functionConst
     constexpr typename detail::traits<E>::pointer operator->() noexcept;
 
     constexpr typename detail::traits<E>::const_pointer operator->() const noexcept;
 
+    // cppcheck-suppress functionConst
     constexpr typename detail::traits<E>::reference error() & noexcept;
 
     constexpr typename detail::traits<E>::const_reference error() const& noexcept;
@@ -442,7 +492,9 @@ class ok_t {
         default;
 
     template <typename... Args>
-    constexpr ok_t(std::in_place_t inplace, Args&&... args);
+    explicit(sizeof...(Args) == 0)
+        // NOLINTNEXTLINE(hicpp-explicit-conversions)
+        constexpr ok_t(std::in_place_t inplace, Args&&... args);
 
     template <typename U, typename... Args>
     constexpr ok_t(std::in_place_t inplace, std::initializer_list<U> init, Args&&... args);
@@ -452,7 +504,9 @@ class ok_t {
                  !std::is_same_v<std::remove_cvref_t<U>, std::in_place_t> &&
                  (!std::is_same_v<std::remove_cvref_t<T>, bool> ||
                   !detail::is_result_v<std::remove_cvref_t<U>>))
-    constexpr ok_t(U&& value);
+    explicit(detail::traits<T>::template convertible_from<U&&>)
+        // NOLINTNEXTLINE(hicpp-explicit-conversions)
+        constexpr ok_t(U&& value);
 
     constexpr ~ok_t() noexcept(detail::traits<T>::is_nothrow_destructible) = default;
 
@@ -461,11 +515,23 @@ class ok_t {
     constexpr ok_t& operator=(ok_t&&) noexcept(
         detail::traits<T>::is_nothrow_move_assignable) = default;
 
+  private:
     template <typename U>
-        requires(!std::is_same_v<ok_t, std::remove_cvref_t<U>> &&
-                 detail::traits<T>::template is_constructible<U> &&
-                 detail::traits<T>::template is_assignable<U>)
-    constexpr ok_t& operator=(U&& value);
+    static inline constexpr bool assign_value_req =
+        !std::is_same_v<ok_t, std::remove_cvref_t<U>> &&
+        detail::traits<T>::template is_constructible<U> &&
+        detail::traits<T>::template is_assignable<U>;
+
+    template <typename U>
+    constexpr void assign_value(U&& value);
+
+  public:
+    template <typename U>
+        requires assign_value_req<U>
+    constexpr ok_t& operator=(U&& value) {
+        assign_value(std::forward<U>(value));
+        return *this;
+    }
 
     constexpr typename detail::traits<T>::reference operator*() & noexcept;
 
@@ -475,10 +541,12 @@ class ok_t {
 
     constexpr typename detail::traits<T>::const_rvalue_reference operator*() const&&;
 
+    // cppcheck-suppress functionConst
     constexpr typename detail::traits<T>::pointer operator->() noexcept;
 
     constexpr typename detail::traits<T>::const_pointer operator->() const noexcept;
 
+    // cppcheck-suppress functionConst
     constexpr typename detail::traits<T>::reference value() & noexcept;
 
     constexpr typename detail::traits<T>::const_reference value() const& noexcept;
@@ -508,6 +576,6 @@ constexpr void swap(ok_t<T>& a,
 
 } // namespace sumty
 
-#include "sumty/impl/result.hpp"
+#include "sumty/impl/result.hpp" // IWYU pragma: export
 
 #endif

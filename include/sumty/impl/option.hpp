@@ -13,8 +13,20 @@
  * limitations under the License.
  */
 
-#include "sumty/option.hpp"
-#include "sumty/result.hpp"
+#ifndef SUMTY_IMPL_OPTION_HPP
+#define SUMTY_IMPL_OPTION_HPP
+
+#include "sumty/exceptions.hpp"
+#include "sumty/utils.hpp"
+#include "sumty/variant.hpp"
+
+#include <compare>
+#include <cstddef>
+#include <functional>
+#include <initializer_list>
+#include <optional>
+#include <type_traits>
+#include <utility>
 
 namespace sumty {
 
@@ -31,10 +43,7 @@ constexpr option<T>::option([[maybe_unused]] std::nullptr_t null) noexcept
 
 template <typename T>
 template <typename U>
-    requires(std::is_lvalue_reference_v<T> &&
-             std::is_convertible_v<U*, typename option<T>::pointer>)
-explicit(!std::is_convertible_v<U*, typename option<T>::pointer>) constexpr option<
-    T>::option(U* ptr) noexcept {
+constexpr void option<T>::construct_pointer(U* ptr) noexcept {
     if (ptr != nullptr) { opt_.template emplace<1>(*ptr); }
 }
 
@@ -43,9 +52,7 @@ template <typename U>
     requires(std::is_constructible_v<variant<void, T>,
                                      std::in_place_index_t<1>,
                                      typename detail::traits<U>::const_reference>)
-explicit(!detail::traits<T>::template is_convertible_from<U>) constexpr option<T>::option(
-    const option<U>& other)
-    : option() {
+constexpr option<T>::option(const option<U>& other) : option() {
     if (other.has_value()) { opt_.emplace(*other); }
 }
 
@@ -54,17 +61,13 @@ template <typename U>
     requires(std::is_constructible_v<variant<void, T>,
                                      std::in_place_index_t<1>,
                                      typename detail::traits<U>::rvalue_reference>)
-explicit(!detail::traits<T>::template is_convertible_from<U>) constexpr option<T>::option(
-    option<U>&& other)
-    : option() {
+constexpr option<T>::option(option<U>&& other) : option() {
     if (other.has_value()) { opt_.emplace(*std::move(other)); }
 }
 
 template <typename T>
 template <typename... Args>
-explicit(sizeof...(Args) ==
-         0) constexpr option<T>::option([[maybe_unused]] std::in_place_t inplace,
-                                        Args&&... args)
+constexpr option<T>::option([[maybe_unused]] std::in_place_t inplace, Args&&... args)
     : opt_(std::in_place_index<1>, std::forward<Args>(args)...) {}
 
 template <typename T>
@@ -79,8 +82,7 @@ template <typename U>
     requires(std::is_constructible_v<variant<void, T>, std::in_place_index_t<1>, U &&> &&
              !std::is_same_v<std::remove_cvref_t<U>, std::in_place_t> &&
              (!std::is_same_v<std::remove_const_t<T>, bool> || !detail::is_option_v<U>))
-explicit(!detail::traits<T>::template is_convertible_from<U>) constexpr option<T>::option(
-    U&& value)
+constexpr option<T>::option(U&& value)
     : opt_(std::in_place_index<1>, std::forward<U>(value)) {}
 
 template <typename T>
@@ -107,23 +109,18 @@ constexpr option<T>& option<T>::operator=([[maybe_unused]] std::nullptr_t null) 
 
 template <typename T>
 template <typename U>
-    requires(!std::is_same_v<std::remove_cvref_t<U>, option<T>> &&
-             std::is_constructible_v<variant<void, T>, std::in_place_index_t<1>, U &&> &&
-             detail::traits<T>::template is_assignable<U &&> &&
-             (!std::is_scalar_v<typename option<T>::value_type> ||
-              !std::is_same_v<T, std::decay_t<U>>))
-constexpr option<T>& option<T>::operator=(U&& value) {
+constexpr void option<T>::assign_value(U&& value) {
     opt_.template emplace<1>(std::forward<U>(value));
-    return *this;
 }
 
 template <typename T>
 template <typename U>
-    requires(std::is_lvalue_reference_v<typename option<T>::value_type> &&
-             std::is_convertible_v<U*, typename option<T>::pointer>)
-constexpr option<T>& option<T>::operator=(U* ptr) noexcept {
-    opt_.set_ptr(ptr);
-    return *this;
+constexpr void option<T>::assign_pointer(U* ptr) noexcept {
+    if (ptr == nullptr) {
+        opt_.template emplace<0>();
+    } else {
+        opt_.template emplace<1>(*ptr);
+    }
 }
 
 template <typename T>
@@ -189,10 +186,7 @@ constexpr option<T>::operator bool() const noexcept {
 
 template <typename T>
 template <typename U>
-    requires(std::is_lvalue_reference_v<T> &&
-             std::is_assignable_v<typename option<T>::pointer&, U*>)
-explicit(!std::is_convertible_v<typename option<T>::pointer,
-                                U*>) constexpr option<T>::operator U*() const noexcept {
+constexpr U* option<T>::cast_pointer() const noexcept {
     if (opt_.index() == 0) {
         return nullptr;
     } else {
@@ -583,6 +577,7 @@ operator<=>(const option<T>& lhs, const option<U>& rhs) {
     if (lhs.has_value() && rhs.has_value()) {
         return *lhs <=> *rhs;
     } else {
+        // cppcheck-suppress comparisonOfTwoFuncsReturningBoolError
         return lhs.has_value() <=> rhs.has_value();
     }
 }
@@ -725,6 +720,7 @@ constexpr bool operator>=([[maybe_unused]] none_t lhs, const option<T>& rhs) {
 template <typename T>
 constexpr std::strong_ordering operator<=>(const option<T>& lhs,
                                            [[maybe_unused]] none_t rhs) {
+    // cppcheck-suppress comparisonOfFuncReturningBoolError
     return lhs.has_value() <=> false;
 }
 
@@ -795,6 +791,7 @@ constexpr bool operator>=([[maybe_unused]] std::nullopt_t lhs, const option<T>& 
 template <typename T>
 constexpr std::strong_ordering operator<=>(const option<T>& lhs,
                                            [[maybe_unused]] std::nullopt_t rhs) {
+    // cppcheck-suppress comparisonOfFuncReturningBoolError
     return lhs.has_value() <=> false;
 }
 
@@ -878,6 +875,7 @@ template <typename T>
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
 constexpr std::strong_ordering operator<=>(const option<T>& lhs,
                                            [[maybe_unused]] std::nullptr_t rhs) {
+    // cppcheck-suppress comparisonOfFuncReturningBoolError
     return lhs.has_value() <=> false;
 }
 
@@ -892,3 +890,5 @@ constexpr option<T> some(std::initializer_list<U> ilist, Args&&... args) {
 }
 
 } // namespace sumty
+
+#endif

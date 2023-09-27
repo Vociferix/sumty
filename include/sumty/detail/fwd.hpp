@@ -21,19 +21,19 @@
 namespace sumty {
 
 template <typename... T>
-class variant;
+class variant; // IWYU pragma: export
 
 template <typename T>
-class option;
+class option; // IWYU pragma: export
 
 template <typename T, typename E = std::error_code>
-class result;
+class result; // IWYU pragma: export
 
 template <typename T>
-class ok_t;
+class ok_t; // IWYU pragma: export
 
 template <typename E>
-class error_t;
+class error_t; // IWYU pragma: export
 
 } // namespace sumty
 
