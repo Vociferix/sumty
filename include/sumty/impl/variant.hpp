@@ -27,7 +27,7 @@ namespace detail {
 template <typename Enable, typename... T>
 class variant_impl {
   private:
-    using discrim_t = discriminant_t<static_cast<uint64_t>(sizeof...(T))>;
+    using discrim_t = discriminant_t<sizeof...(T)>;
 
     SUMTY_NO_UNIQ_ADDR auto_union<T...> data_;
     discrim_t discrim_{};
@@ -995,22 +995,22 @@ constexpr bool variant<T...>::holds_alt_impl() const noexcept {
 
 template <typename... T>
 template <size_t IDX, typename... Args>
-constexpr variant<T...>::variant(std::in_place_index_t<IDX> in_place,
+constexpr variant<T...>::variant(std::in_place_index_t<IDX> inplace,
                                  Args&&... args)
-    : data_(in_place, std::forward<Args>(args)...) {}
+    : data_(inplace, std::forward<Args>(args)...) {}
 
 template <typename... T>
 template <size_t IDX, typename U, typename... Args>
-constexpr variant<T...>::variant(std::in_place_index_t<IDX> in_place,
+constexpr variant<T...>::variant(std::in_place_index_t<IDX> inplace,
                                  std::initializer_list<U> init,
                                  Args&&... args)
-    : data_(in_place, init, std::forward<Args>(args)...) {}
+    : data_(inplace, init, std::forward<Args>(args)...) {}
 
 template <typename... T>
 template <typename U, typename... Args>
     requires(detail::is_unique_v<U, T...>)
 constexpr variant<T...>::variant(
-    [[maybe_unused]] std::in_place_type_t<U> in_place,
+    [[maybe_unused]] std::in_place_type_t<U> inplace,
     Args&&... args)
     : data_(std::in_place_index<detail::index_of_v<U, T...>>,
             std::forward<Args>(args)...) {}
@@ -1019,7 +1019,7 @@ template <typename... T>
 template <typename U, typename V, typename... Args>
     requires(detail::is_unique_v<U, T...>)
 constexpr variant<T...>::variant(
-    [[maybe_unused]] std::in_place_type_t<U> in_place,
+    [[maybe_unused]] std::in_place_type_t<U> inplace,
     std::initializer_list<V> init,
     Args&&... args)
     : data_(std::in_place_index<detail::index_of_v<U, T...>>,

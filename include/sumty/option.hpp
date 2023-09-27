@@ -55,11 +55,11 @@ class option {
     constexpr option(option&&) noexcept(
         detail::traits<T>::is_nothrow_move_constructible) = default;
 
-    constexpr option([[maybe_unused]] none_t none) noexcept;
+    constexpr option(none_t none) noexcept;
 
-    constexpr option([[maybe_unused]] std::nullopt_t null) noexcept;
+    constexpr option(std::nullopt_t null) noexcept;
 
-    constexpr option([[maybe_unused]] std::nullptr_t null) noexcept
+    constexpr option(std::nullptr_t null) noexcept
         requires(std::is_lvalue_reference_v<T>);
 
     template <typename U>
@@ -86,11 +86,11 @@ class option {
 
     template <typename... Args>
     explicit(sizeof...(Args) ==
-             0) constexpr option([[maybe_unused]] std::in_place_t in_place,
+             0) constexpr option(std::in_place_t in_place,
                                  Args&&... args);
 
     template <typename U, typename... Args>
-    constexpr option([[maybe_unused]] std::in_place_t in_place,
+    constexpr option(std::in_place_t in_place,
                      std::initializer_list<U> init,
                      Args&&... args);
 
@@ -117,13 +117,13 @@ class option {
             detail::traits<T>::is_nothrow_move_constructible&&
                 detail::traits<T>::is_nothrow_destructible) = default;
 
-    constexpr option& operator=([[maybe_unused]] none_t none) noexcept(
+    constexpr option& operator=(none_t null) noexcept(
         detail::traits<T>::is_nothrow_destructible);
 
-    constexpr option& operator=([[maybe_unused]] std::nullopt_t null) noexcept(
+    constexpr option& operator=(std::nullopt_t null) noexcept(
         detail::traits<T>::is_nothrow_destructible);
 
-    constexpr option& operator=([[maybe_unused]] std::nullptr_t null) noexcept
+    constexpr option& operator=(std::nullptr_t null) noexcept
         requires(std::is_lvalue_reference_v<T>);
 
     template <typename U>
@@ -335,165 +335,165 @@ constexpr std::compare_three_way_result_t<std::remove_cvref_t<T>,
 operator<=>(const option<T>& lhs, const U& rhs);
 
 template <typename T>
-constexpr bool operator==(const option<T>& lhs, [[maybe_unused]] none_t rhs);
+constexpr bool operator==(const option<T>& lhs, none_t rhs);
 
 template <typename T>
-constexpr bool operator==([[maybe_unused]] none_t lhs, const option<T>& rhs);
+constexpr bool operator==(none_t lhs, const option<T>& rhs);
 
 template <typename T>
-constexpr bool operator!=(const option<T>& lhs, [[maybe_unused]] none_t rhs);
+constexpr bool operator!=(const option<T>& lhs, none_t rhs);
 
 template <typename T>
-constexpr bool operator!=([[maybe_unused]] none_t lhs, const option<T>& rhs);
+constexpr bool operator!=(none_t lhs, const option<T>& rhs);
 
 template <typename T>
-constexpr bool operator<([[maybe_unused]] const option<T>& lhs,
-                         [[maybe_unused]] none_t rhs);
+constexpr bool operator<(const option<T>& lhs,
+                         none_t rhs);
 
 template <typename T>
-constexpr bool operator<([[maybe_unused]] none_t lhs, const option<T>& rhs);
+constexpr bool operator<(none_t lhs, const option<T>& rhs);
 
 template <typename T>
-constexpr bool operator>(const option<T>& lhs, [[maybe_unused]] none_t rhs);
+constexpr bool operator>(const option<T>& lhs, none_t rhs);
 
 template <typename T>
-constexpr bool operator>([[maybe_unused]] none_t lhs,
-                         [[maybe_unused]] const option<T>& rhs);
+constexpr bool operator>(none_t lhs,
+                         const option<T>& rhs);
 
 template <typename T>
-constexpr bool operator<=(const option<T>& lhs, [[maybe_unused]] none_t rhs);
+constexpr bool operator<=(const option<T>& lhs, none_t rhs);
 
 template <typename T>
-constexpr bool operator<=([[maybe_unused]] none_t lhs,
-                          [[maybe_unused]] const option<T>& rhs);
+constexpr bool operator<=(none_t lhs,
+                          const option<T>& rhs);
 
 template <typename T>
-constexpr bool operator>=([[maybe_unused]] const option<T>& lhs,
-                          [[maybe_unused]] none_t rhs);
+constexpr bool operator>=(const option<T>& lhs,
+                          none_t rhs);
 
 template <typename T>
-constexpr bool operator>=([[maybe_unused]] none_t lhs, const option<T>& rhs);
+constexpr bool operator>=(none_t lhs, const option<T>& rhs);
 
 template <typename T>
 constexpr std::strong_ordering operator<=>(const option<T>& lhs,
-                                           [[maybe_unused]] none_t rhs);
+                                           none_t rhs);
 
 template <typename T>
 constexpr bool operator==(const option<T>& lhs,
-                          [[maybe_unused]] std::nullopt_t rhs);
+                          std::nullopt_t rhs);
 
 template <typename T>
-constexpr bool operator==([[maybe_unused]] std::nullopt_t lhs,
+constexpr bool operator==(std::nullopt_t lhs,
                           const option<T>& rhs);
 
 template <typename T>
 constexpr bool operator!=(const option<T>& lhs,
-                          [[maybe_unused]] std::nullopt_t rhs);
+                          std::nullopt_t rhs);
 
 template <typename T>
-constexpr bool operator!=([[maybe_unused]] std::nullopt_t lhs,
+constexpr bool operator!=(std::nullopt_t lhs,
                           const option<T>& rhs);
 
 template <typename T>
-constexpr bool operator<([[maybe_unused]] const option<T>& lhs,
-                         [[maybe_unused]] std::nullopt_t rhs);
+constexpr bool operator<(const option<T>& lhs,
+                         std::nullopt_t rhs);
 
 template <typename T>
-constexpr bool operator<([[maybe_unused]] std::nullopt_t lhs,
+constexpr bool operator<(std::nullopt_t lhs,
                          const option<T>& rhs);
 
 template <typename T>
 constexpr bool operator>(const option<T>& lhs,
-                         [[maybe_unused]] std::nullopt_t rhs);
+                         std::nullopt_t rhs);
 
 template <typename T>
-constexpr bool operator>([[maybe_unused]] std::nullopt_t lhs,
-                         [[maybe_unused]] const option<T>& rhs);
+constexpr bool operator>(std::nullopt_t lhs,
+                         const option<T>& rhs);
 
 template <typename T>
 constexpr bool operator<=(const option<T>& lhs,
-                          [[maybe_unused]] std::nullopt_t rhs);
+                          std::nullopt_t rhs);
 
 template <typename T>
-constexpr bool operator<=([[maybe_unused]] std::nullopt_t lhs,
-                          [[maybe_unused]] const option<T>& rhs);
+constexpr bool operator<=(std::nullopt_t lhs,
+                          const option<T>& rhs);
 
 template <typename T>
-constexpr bool operator>=([[maybe_unused]] const option<T>& lhs,
-                          [[maybe_unused]] std::nullopt_t rhs);
+constexpr bool operator>=(const option<T>& lhs,
+                          std::nullopt_t rhs);
 
 template <typename T>
-constexpr bool operator>=([[maybe_unused]] std::nullopt_t lhs,
+constexpr bool operator>=(std::nullopt_t lhs,
                           const option<T>& rhs);
 
 template <typename T>
 constexpr std::strong_ordering operator<=>(const option<T>& lhs,
-                                           [[maybe_unused]] std::nullopt_t rhs);
+                                           std::nullopt_t rhs);
 
 template <typename T>
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
 constexpr bool operator==(const option<T>& lhs,
-                          [[maybe_unused]] std::nullptr_t rhs);
+                          std::nullptr_t rhs);
 
 template <typename T>
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
-constexpr bool operator==([[maybe_unused]] std::nullptr_t lhs,
+constexpr bool operator==(std::nullptr_t lhs,
                           const option<T>& rhs);
 
 template <typename T>
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
 constexpr bool operator!=(const option<T>& lhs,
-                          [[maybe_unused]] std::nullptr_t rhs);
+                          std::nullptr_t rhs);
 
 template <typename T>
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
-constexpr bool operator!=([[maybe_unused]] std::nullptr_t lhs,
+constexpr bool operator!=(std::nullptr_t lhs,
                           const option<T>& rhs);
 
 template <typename T>
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
-constexpr bool operator<([[maybe_unused]] const option<T>& lhs,
-                         [[maybe_unused]] std::nullptr_t rhs);
+constexpr bool operator<(const option<T>& lhs,
+                         std::nullptr_t rhs);
 
 template <typename T>
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
-constexpr bool operator<([[maybe_unused]] std::nullptr_t lhs,
+constexpr bool operator<(std::nullptr_t lhs,
                          const option<T>& rhs);
 
 template <typename T>
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
 constexpr bool operator>(const option<T>& lhs,
-                         [[maybe_unused]] std::nullptr_t rhs);
+                         std::nullptr_t rhs);
 
 template <typename T>
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
-constexpr bool operator>([[maybe_unused]] std::nullptr_t lhs,
-                         [[maybe_unused]] const option<T>& rhs);
+constexpr bool operator>(std::nullptr_t lhs,
+                         const option<T>& rhs);
 
 template <typename T>
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
 constexpr bool operator<=(const option<T>& lhs,
-                          [[maybe_unused]] std::nullptr_t rhs);
+                          std::nullptr_t rhs);
 
 template <typename T>
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
-constexpr bool operator<=([[maybe_unused]] std::nullptr_t lhs,
-                          [[maybe_unused]] const option<T>& rhs);
+constexpr bool operator<=(std::nullptr_t lhs,
+                          const option<T>& rhs);
 
 template <typename T>
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
-constexpr bool operator>=([[maybe_unused]] const option<T>& lhs,
-                          [[maybe_unused]] std::nullptr_t rhs);
+constexpr bool operator>=(const option<T>& lhs,
+                          std::nullptr_t rhs);
 
 template <typename T>
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
-constexpr bool operator>=([[maybe_unused]] std::nullptr_t lhs,
+constexpr bool operator>=(std::nullptr_t lhs,
                           const option<T>& rhs);
 
 template <typename T>
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
 constexpr std::strong_ordering operator<=>(const option<T>& lhs,
-                                           [[maybe_unused]] std::nullptr_t rhs);
+                                           std::nullptr_t rhs);
 
 template <typename T, typename... Args>
 constexpr option<T> some(Args&&... args);

@@ -19,7 +19,7 @@
 namespace sumty {
 
 template <typename T>
-constexpr option<T>::option([[maybe_unused]] none_t none) noexcept : option() {}
+constexpr option<T>::option([[maybe_unused]] none_t null) noexcept : option() {}
 
 template <typename T>
 constexpr option<T>::option([[maybe_unused]] std::nullopt_t null) noexcept
@@ -68,13 +68,13 @@ explicit(!detail::traits<T>::template is_convertible_from<U>) constexpr option<
 template <typename T>
 template <typename... Args>
 explicit(sizeof...(Args) == 0) constexpr option<T>::option(
-    [[maybe_unused]] std::in_place_t in_place,
+    [[maybe_unused]] std::in_place_t inplace,
     Args&&... args)
     : opt_(std::in_place_index<1>, std::forward<Args>(args)...) {}
 
 template <typename T>
 template <typename U, typename... Args>
-constexpr option<T>::option([[maybe_unused]] std::in_place_t in_place,
+constexpr option<T>::option([[maybe_unused]] std::in_place_t inplace,
                             std::initializer_list<U> init,
                             Args&&... args)
     : opt_(std::in_place_index<1>, init, std::forward<Args>(args)...) {}
@@ -93,7 +93,7 @@ explicit(!detail::traits<T>::template is_convertible_from<U>) constexpr option<
 
 template <typename T>
 constexpr option<T>&
-option<T>::operator=([[maybe_unused]] none_t none) noexcept(
+option<T>::operator=([[maybe_unused]] none_t null) noexcept(
     detail::traits<T>::is_nothrow_destructible) {
     opt_.template emplace<0>();
     return *this;

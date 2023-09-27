@@ -380,22 +380,22 @@ class error_t {
         detail::traits<E>::is_nothrow_move_constructible) = default;
 
     template <typename... Args>
-    constexpr error_t([[maybe_unused]] std::in_place_t in_place, Args&&... args)
+    constexpr error_t([[maybe_unused]] std::in_place_t inplace, Args&&... args)
         : err_(std::in_place_index<0>, std::forward<Args>(args)...) {}
 
     template <typename U, typename... Args>
-    constexpr error_t([[maybe_unused]] std::in_place_t in_place,
+    constexpr error_t([[maybe_unused]] std::in_place_t inplace,
                       std::initializer_list<U> init,
                       Args&&... args)
         : err_(std::in_place_index<0>, init, std::forward<Args>(args)...) {}
 
     template <typename... Args>
-    constexpr error_t([[maybe_unused]] in_place_error_t in_place,
+    constexpr error_t([[maybe_unused]] in_place_error_t inplace,
                       Args&&... args)
         : err_(std::in_place_index<0>, std::forward<Args>(args)...) {}
 
     template <typename U, typename... Args>
-    constexpr error_t([[maybe_unused]] in_place_error_t in_place,
+    constexpr error_t([[maybe_unused]] in_place_error_t inplace,
                       std::initializer_list<U> init,
                       Args&&... args)
         : err_(std::in_place_index<0>, init, std::forward<Args>(args)...) {}
@@ -516,11 +516,11 @@ class ok_t {
         detail::traits<T>::is_nothrow_move_constructible) = default;
 
     template <typename... Args>
-    constexpr ok_t([[maybe_unused]] std::in_place_t in_place, Args&&... args)
+    constexpr ok_t([[maybe_unused]] std::in_place_t inplace, Args&&... args)
         : ok_(std::in_place_index<0>, std::forward<Args>(args)...) {}
 
     template <typename U, typename... Args>
-    constexpr ok_t([[maybe_unused]] std::in_place_t in_place,
+    constexpr ok_t([[maybe_unused]] std::in_place_t inplace,
                    std::initializer_list<U> init,
                    Args&&... args)
         : ok_(std::in_place_index<0>, init, std::forward<Args>(args)...) {}

@@ -39,41 +39,41 @@ constexpr variant<U, V> result<T, E>::convert(R&& res) {
 
 template <typename T, typename E>
 template <typename... Args>
-constexpr result<T, E>::result([[maybe_unused]] std::in_place_t in_place,
+constexpr result<T, E>::result([[maybe_unused]] std::in_place_t inplace,
                                Args&&... args)
     : res_(std::in_place_index<0>, std::forward<Args>(args)...) {}
 
 template <typename T, typename E>
 template <typename U, typename... Args>
-constexpr result<T, E>::result([[maybe_unused]] std::in_place_t in_place,
+constexpr result<T, E>::result([[maybe_unused]] std::in_place_t inplace,
                                std::initializer_list<U> init,
                                Args&&... args)
     : res_(std::in_place_index<0>, init, std::forward<Args>(args)...) {}
 
 template <typename T, typename E>
 template <typename... Args>
-constexpr result<T, E>::result(std::in_place_index_t<0> in_place,
+constexpr result<T, E>::result(std::in_place_index_t<0> inplace,
                                Args&&... args)
-    : res_(in_place, std::forward<Args>(args)...) {}
+    : res_(inplace, std::forward<Args>(args)...) {}
 
 template <typename T, typename E>
 template <typename U, typename... Args>
-constexpr result<T, E>::result(std::in_place_index_t<0> in_place,
+constexpr result<T, E>::result(std::in_place_index_t<0> inplace,
                                std::initializer_list<U> init,
                                Args&&... args)
-    : res_(in_place, init, std::forward<Args>(args)...) {}
+    : res_(inplace, init, std::forward<Args>(args)...) {}
 
 template <typename T, typename E>
 template <typename... Args>
-constexpr result<T, E>::result(in_place_error_t in_place, Args&&... args)
-    : res_(in_place, std::forward<Args>(args)...) {}
+constexpr result<T, E>::result(in_place_error_t inplace, Args&&... args)
+    : res_(inplace, std::forward<Args>(args)...) {}
 
 template <typename T, typename E>
 template <typename U, typename... Args>
-constexpr result<T, E>::result(in_place_error_t in_place,
+constexpr result<T, E>::result(in_place_error_t inplace,
                                std::initializer_list<U> init,
                                Args&&... args)
-    : res_(in_place, init, std::forward<Args>(args)...) {}
+    : res_(inplace, init, std::forward<Args>(args)...) {}
 
 template <typename T, typename E>
 template <typename U>
