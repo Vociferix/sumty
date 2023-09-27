@@ -42,8 +42,7 @@ class option {
     using reference = typename detail::traits<T>::reference;
     using const_reference = typename detail::traits<T>::const_reference;
     using rvalue_reference = typename detail::traits<T>::rvalue_reference;
-    using const_rvalue_reference =
-        typename detail::traits<T>::const_rvalue_reference;
+    using const_rvalue_reference = typename detail::traits<T>::const_rvalue_reference;
     using pointer = typename detail::traits<T>::pointer;
     using const_pointer = typename detail::traits<T>::const_pointer;
 
@@ -52,8 +51,8 @@ class option {
     constexpr option(const option&) noexcept(
         detail::traits<T>::is_nothrow_copy_constructible) = default;
 
-    constexpr option(option&&) noexcept(
-        detail::traits<T>::is_nothrow_move_constructible) = default;
+    constexpr option(option&&) noexcept(detail::traits<T>::is_nothrow_move_constructible) =
+        default;
 
     constexpr option(none_t none) noexcept;
 
@@ -63,31 +62,26 @@ class option {
         requires(std::is_lvalue_reference_v<T>);
 
     template <typename U>
-        requires(std::is_lvalue_reference_v<T> &&
-                 std::is_convertible_v<U*, pointer>)
-    explicit(!std::is_convertible_v<U*, pointer>) constexpr option(
-        U* ptr) noexcept;
+        requires(std::is_lvalue_reference_v<T> && std::is_convertible_v<U*, pointer>)
+    explicit(!std::is_convertible_v<U*, pointer>) constexpr option(U* ptr) noexcept;
 
     template <typename U>
-        requires(std::is_constructible_v<
-                 variant<void, T>,
-                 std::in_place_index_t<1>,
-                 typename detail::traits<U>::const_reference>)
-    explicit(!detail::traits<T>::template is_convertible_from<
-             U>) constexpr option(const option<U>& other);
+        requires(std::is_constructible_v<variant<void, T>,
+                                         std::in_place_index_t<1>,
+                                         typename detail::traits<U>::const_reference>)
+    explicit(!detail::traits<T>::template is_convertible_from<U>) constexpr option(
+        const option<U>& other);
 
     template <typename U>
-        requires(std::is_constructible_v<
-                 variant<void, T>,
-                 std::in_place_index_t<1>,
-                 typename detail::traits<U>::rvalue_reference>)
-    explicit(!detail::traits<T>::template is_convertible_from<
-             U>) constexpr option(option<U>&& other);
+        requires(std::is_constructible_v<variant<void, T>,
+                                         std::in_place_index_t<1>,
+                                         typename detail::traits<U>::rvalue_reference>)
+    explicit(!detail::traits<T>::template is_convertible_from<U>) constexpr option(
+        option<U>&& other);
 
     template <typename... Args>
-    explicit(sizeof...(Args) ==
-             0) constexpr option(std::in_place_t in_place,
-                                 Args&&... args);
+    explicit(sizeof...(Args) == 0) constexpr option(std::in_place_t in_place,
+                                                    Args&&... args);
 
     template <typename U, typename... Args>
     constexpr option(std::in_place_t in_place,
@@ -95,17 +89,14 @@ class option {
                      Args&&... args);
 
     template <typename U>
-        requires(std::is_constructible_v<variant<void, T>,
-                                         std::in_place_index_t<1>,
-                                         U &&> &&
-                 !std::is_same_v<std::remove_cvref_t<U>, std::in_place_t> &&
-                 (!std::is_same_v<std::remove_const_t<T>, bool> ||
-                  !detail::is_option_v<U>))
-    explicit(!detail::traits<T>::template is_convertible_from<
-             U>) constexpr option(U&& value);
+        requires(
+            std::is_constructible_v<variant<void, T>, std::in_place_index_t<1>, U &&> &&
+            !std::is_same_v<std::remove_cvref_t<U>, std::in_place_t> &&
+            (!std::is_same_v<std::remove_const_t<T>, bool> || !detail::is_option_v<U>))
+    explicit(!detail::traits<T>::template is_convertible_from<U>) constexpr option(
+        U&& value);
 
-    constexpr ~option() noexcept(detail::traits<T>::is_nothrow_destructible) =
-        default;
+    constexpr ~option() noexcept(detail::traits<T>::is_nothrow_destructible) = default;
 
     constexpr option& operator=(const option&) noexcept(
         detail::traits<T>::is_nothrow_copy_assignable&&
@@ -127,13 +118,11 @@ class option {
         requires(std::is_lvalue_reference_v<T>);
 
     template <typename U>
-        requires(!std::is_same_v<std::remove_cvref_t<U>, option<T>> &&
-                 std::is_constructible_v<variant<void, T>,
-                                         std::in_place_index_t<1>,
-                                         U &&> &&
-                 detail::traits<T>::template is_assignable<U &&> &&
-                 (!std::is_scalar_v<value_type> ||
-                  !std::is_same_v<T, std::decay_t<U>>))
+        requires(
+            !std::is_same_v<std::remove_cvref_t<U>, option<T>> &&
+            std::is_constructible_v<variant<void, T>, std::in_place_index_t<1>, U &&> &&
+            detail::traits<T>::template is_assignable<U &&> &&
+            (!std::is_scalar_v<value_type> || !std::is_same_v<T, std::decay_t<U>>))
     constexpr option& operator=(U&& value);
 
     template <typename U>
@@ -142,58 +131,50 @@ class option {
     constexpr option& operator=(U* ptr) noexcept;
 
     template <typename U>
-        requires(
-            !detail::traits<T>::template is_constructible<option<U>&> &&
-            !detail::traits<T>::template is_constructible<const option<U>&> &&
-            !detail::traits<T>::template is_constructible<option<U> &&> &&
-            !detail::traits<T>::template is_constructible<const option<U> &&> &&
-            !detail::traits<T>::template is_convertible_from<option<U>&> &&
-            !detail::traits<T>::template is_convertible_from<
-                const option<U>&> &&
-            !detail::traits<T>::template is_convertible_from<option<U> &&> &&
-            !detail::traits<T>::template is_convertible_from<
-                const option<U> &&> &&
-            !detail::traits<T>::template is_assignable<option<U>&> &&
-            !detail::traits<T>::template is_assignable<const option<U>&> &&
-            !detail::traits<T>::template is_assignable<option<U> &&> &&
-            !detail::traits<T>::template is_assignable<const option<U> &&> &&
-            (std::is_lvalue_reference_v<T> ||
-             detail::traits<T>::template is_constructible<
-                 typename detail::traits<U>::const_reference>) &&
-            detail::traits<T>::template is_assignable<
-                typename detail::traits<U>::const_reference>)
+        requires(!detail::traits<T>::template is_constructible<option<U>&> &&
+                 !detail::traits<T>::template is_constructible<const option<U>&> &&
+                 !detail::traits<T>::template is_constructible<option<U> &&> &&
+                 !detail::traits<T>::template is_constructible<const option<U> &&> &&
+                 !detail::traits<T>::template is_convertible_from<option<U>&> &&
+                 !detail::traits<T>::template is_convertible_from<const option<U>&> &&
+                 !detail::traits<T>::template is_convertible_from<option<U> &&> &&
+                 !detail::traits<T>::template is_convertible_from<const option<U> &&> &&
+                 !detail::traits<T>::template is_assignable<option<U>&> &&
+                 !detail::traits<T>::template is_assignable<const option<U>&> &&
+                 !detail::traits<T>::template is_assignable<option<U> &&> &&
+                 !detail::traits<T>::template is_assignable<const option<U> &&> &&
+                 (std::is_lvalue_reference_v<T> ||
+                  detail::traits<T>::template is_constructible<
+                      typename detail::traits<U>::const_reference>) &&
+                 detail::traits<T>::template is_assignable<
+                     typename detail::traits<U>::const_reference>)
     constexpr option& operator=(const option<U>& value);
 
     template <typename U>
-        requires(
-            !detail::traits<T>::template is_constructible<option<U>&> &&
-            !detail::traits<T>::template is_constructible<const option<U>&> &&
-            !detail::traits<T>::template is_constructible<option<U> &&> &&
-            !detail::traits<T>::template is_constructible<const option<U> &&> &&
-            !detail::traits<T>::template is_convertible_from<option<U>&> &&
-            !detail::traits<T>::template is_convertible_from<
-                const option<U>&> &&
-            !detail::traits<T>::template is_convertible_from<option<U> &&> &&
-            !detail::traits<T>::template is_convertible_from<
-                const option<U> &&> &&
-            !detail::traits<T>::template is_assignable<option<U>&> &&
-            !detail::traits<T>::template is_assignable<const option<U>&> &&
-            !detail::traits<T>::template is_assignable<option<U> &&> &&
-            !detail::traits<T>::template is_assignable<const option<U> &&> &&
-            (std::is_lvalue_reference_v<T> ||
-             detail::traits<T>::template is_constructible<
-                 typename detail::traits<U>::rvalue_reference>) &&
-            detail::traits<T>::template is_assignable<
-                typename detail::traits<U>::rvalue_reference>)
+        requires(!detail::traits<T>::template is_constructible<option<U>&> &&
+                 !detail::traits<T>::template is_constructible<const option<U>&> &&
+                 !detail::traits<T>::template is_constructible<option<U> &&> &&
+                 !detail::traits<T>::template is_constructible<const option<U> &&> &&
+                 !detail::traits<T>::template is_convertible_from<option<U>&> &&
+                 !detail::traits<T>::template is_convertible_from<const option<U>&> &&
+                 !detail::traits<T>::template is_convertible_from<option<U> &&> &&
+                 !detail::traits<T>::template is_convertible_from<const option<U> &&> &&
+                 !detail::traits<T>::template is_assignable<option<U>&> &&
+                 !detail::traits<T>::template is_assignable<const option<U>&> &&
+                 !detail::traits<T>::template is_assignable<option<U> &&> &&
+                 !detail::traits<T>::template is_assignable<const option<U> &&> &&
+                 (std::is_lvalue_reference_v<T> ||
+                  detail::traits<T>::template is_constructible<
+                      typename detail::traits<U>::rvalue_reference>) &&
+                 detail::traits<T>::template is_assignable<
+                     typename detail::traits<U>::rvalue_reference>)
     constexpr option& operator=(option<U>&& value);
 
     constexpr operator bool() const noexcept;
 
     template <typename U>
-        requires(std::is_lvalue_reference_v<T> &&
-                 std::is_assignable_v<pointer&, U*>)
-    explicit(!std::is_convertible_v<pointer, U*>) constexpr operator U*()
-        const noexcept;
+        requires(std::is_lvalue_reference_v<T> && std::is_assignable_v<pointer&, U*>)
+    explicit(!std::is_convertible_v<pointer, U*>) constexpr operator U*() const noexcept;
 
     constexpr bool has_value() const noexcept;
 
@@ -257,8 +238,7 @@ class option {
     template <typename F>
     constexpr option or_else(F&& f) &&;
 
-    constexpr void swap(option& other) noexcept(
-        noexcept(opt_.swap(other.opt_)));
+    constexpr void swap(option& other) noexcept(noexcept(opt_.swap(other.opt_)));
 
     constexpr void reset() noexcept;
 
@@ -285,10 +265,8 @@ template <typename T, typename U>
 constexpr bool operator>=(const option<T>& lhs, const option<U>& rhs);
 
 template <typename T, typename U>
-    requires(std::three_way_comparable_with<std::remove_cvref_t<U>,
-                                            std::remove_cvref_t<T>>)
-constexpr std::compare_three_way_result_t<std::remove_cvref_t<T>,
-                                          std::remove_cvref_t<U>>
+    requires(std::three_way_comparable_with<std::remove_cvref_t<U>, std::remove_cvref_t<T>>)
+constexpr std::compare_three_way_result_t<std::remove_cvref_t<T>, std::remove_cvref_t<U>>
 operator<=>(const option<T>& lhs, const option<U>& rhs);
 
 template <typename T, typename U>
@@ -328,10 +306,8 @@ template <typename T, typename U>
 constexpr bool operator>=(const U& lhs, const option<T>& rhs);
 
 template <typename T, typename U>
-    requires(std::three_way_comparable_with<std::remove_cvref_t<U>,
-                                            std::remove_cvref_t<T>>)
-constexpr std::compare_three_way_result_t<std::remove_cvref_t<T>,
-                                          std::remove_cvref_t<U>>
+    requires(std::three_way_comparable_with<std::remove_cvref_t<U>, std::remove_cvref_t<T>>)
+constexpr std::compare_three_way_result_t<std::remove_cvref_t<T>, std::remove_cvref_t<U>>
 operator<=>(const option<T>& lhs, const U& rhs);
 
 template <typename T>
@@ -347,8 +323,7 @@ template <typename T>
 constexpr bool operator!=(none_t lhs, const option<T>& rhs);
 
 template <typename T>
-constexpr bool operator<(const option<T>& lhs,
-                         none_t rhs);
+constexpr bool operator<(const option<T>& lhs, none_t rhs);
 
 template <typename T>
 constexpr bool operator<(none_t lhs, const option<T>& rhs);
@@ -357,143 +332,113 @@ template <typename T>
 constexpr bool operator>(const option<T>& lhs, none_t rhs);
 
 template <typename T>
-constexpr bool operator>(none_t lhs,
-                         const option<T>& rhs);
+constexpr bool operator>(none_t lhs, const option<T>& rhs);
 
 template <typename T>
 constexpr bool operator<=(const option<T>& lhs, none_t rhs);
 
 template <typename T>
-constexpr bool operator<=(none_t lhs,
-                          const option<T>& rhs);
+constexpr bool operator<=(none_t lhs, const option<T>& rhs);
 
 template <typename T>
-constexpr bool operator>=(const option<T>& lhs,
-                          none_t rhs);
+constexpr bool operator>=(const option<T>& lhs, none_t rhs);
 
 template <typename T>
 constexpr bool operator>=(none_t lhs, const option<T>& rhs);
 
 template <typename T>
-constexpr std::strong_ordering operator<=>(const option<T>& lhs,
-                                           none_t rhs);
+constexpr std::strong_ordering operator<=>(const option<T>& lhs, none_t rhs);
 
 template <typename T>
-constexpr bool operator==(const option<T>& lhs,
-                          std::nullopt_t rhs);
+constexpr bool operator==(const option<T>& lhs, std::nullopt_t rhs);
 
 template <typename T>
-constexpr bool operator==(std::nullopt_t lhs,
-                          const option<T>& rhs);
+constexpr bool operator==(std::nullopt_t lhs, const option<T>& rhs);
 
 template <typename T>
-constexpr bool operator!=(const option<T>& lhs,
-                          std::nullopt_t rhs);
+constexpr bool operator!=(const option<T>& lhs, std::nullopt_t rhs);
 
 template <typename T>
-constexpr bool operator!=(std::nullopt_t lhs,
-                          const option<T>& rhs);
+constexpr bool operator!=(std::nullopt_t lhs, const option<T>& rhs);
 
 template <typename T>
-constexpr bool operator<(const option<T>& lhs,
-                         std::nullopt_t rhs);
+constexpr bool operator<(const option<T>& lhs, std::nullopt_t rhs);
 
 template <typename T>
-constexpr bool operator<(std::nullopt_t lhs,
-                         const option<T>& rhs);
+constexpr bool operator<(std::nullopt_t lhs, const option<T>& rhs);
 
 template <typename T>
-constexpr bool operator>(const option<T>& lhs,
-                         std::nullopt_t rhs);
+constexpr bool operator>(const option<T>& lhs, std::nullopt_t rhs);
 
 template <typename T>
-constexpr bool operator>(std::nullopt_t lhs,
-                         const option<T>& rhs);
+constexpr bool operator>(std::nullopt_t lhs, const option<T>& rhs);
 
 template <typename T>
-constexpr bool operator<=(const option<T>& lhs,
-                          std::nullopt_t rhs);
+constexpr bool operator<=(const option<T>& lhs, std::nullopt_t rhs);
 
 template <typename T>
-constexpr bool operator<=(std::nullopt_t lhs,
-                          const option<T>& rhs);
+constexpr bool operator<=(std::nullopt_t lhs, const option<T>& rhs);
 
 template <typename T>
-constexpr bool operator>=(const option<T>& lhs,
-                          std::nullopt_t rhs);
+constexpr bool operator>=(const option<T>& lhs, std::nullopt_t rhs);
 
 template <typename T>
-constexpr bool operator>=(std::nullopt_t lhs,
-                          const option<T>& rhs);
+constexpr bool operator>=(std::nullopt_t lhs, const option<T>& rhs);
 
 template <typename T>
-constexpr std::strong_ordering operator<=>(const option<T>& lhs,
-                                           std::nullopt_t rhs);
+constexpr std::strong_ordering operator<=>(const option<T>& lhs, std::nullopt_t rhs);
 
 template <typename T>
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
-constexpr bool operator==(const option<T>& lhs,
-                          std::nullptr_t rhs);
+constexpr bool operator==(const option<T>& lhs, std::nullptr_t rhs);
 
 template <typename T>
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
-constexpr bool operator==(std::nullptr_t lhs,
-                          const option<T>& rhs);
+constexpr bool operator==(std::nullptr_t lhs, const option<T>& rhs);
 
 template <typename T>
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
-constexpr bool operator!=(const option<T>& lhs,
-                          std::nullptr_t rhs);
+constexpr bool operator!=(const option<T>& lhs, std::nullptr_t rhs);
 
 template <typename T>
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
-constexpr bool operator!=(std::nullptr_t lhs,
-                          const option<T>& rhs);
+constexpr bool operator!=(std::nullptr_t lhs, const option<T>& rhs);
 
 template <typename T>
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
-constexpr bool operator<(const option<T>& lhs,
-                         std::nullptr_t rhs);
+constexpr bool operator<(const option<T>& lhs, std::nullptr_t rhs);
 
 template <typename T>
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
-constexpr bool operator<(std::nullptr_t lhs,
-                         const option<T>& rhs);
+constexpr bool operator<(std::nullptr_t lhs, const option<T>& rhs);
 
 template <typename T>
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
-constexpr bool operator>(const option<T>& lhs,
-                         std::nullptr_t rhs);
+constexpr bool operator>(const option<T>& lhs, std::nullptr_t rhs);
 
 template <typename T>
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
-constexpr bool operator>(std::nullptr_t lhs,
-                         const option<T>& rhs);
+constexpr bool operator>(std::nullptr_t lhs, const option<T>& rhs);
 
 template <typename T>
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
-constexpr bool operator<=(const option<T>& lhs,
-                          std::nullptr_t rhs);
+constexpr bool operator<=(const option<T>& lhs, std::nullptr_t rhs);
 
 template <typename T>
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
-constexpr bool operator<=(std::nullptr_t lhs,
-                          const option<T>& rhs);
+constexpr bool operator<=(std::nullptr_t lhs, const option<T>& rhs);
 
 template <typename T>
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
-constexpr bool operator>=(const option<T>& lhs,
-                          std::nullptr_t rhs);
+constexpr bool operator>=(const option<T>& lhs, std::nullptr_t rhs);
 
 template <typename T>
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
-constexpr bool operator>=(std::nullptr_t lhs,
-                          const option<T>& rhs);
+constexpr bool operator>=(std::nullptr_t lhs, const option<T>& rhs);
 
 template <typename T>
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
-constexpr std::strong_ordering operator<=>(const option<T>& lhs,
-                                           std::nullptr_t rhs);
+constexpr std::strong_ordering operator<=>(const option<T>& lhs, std::nullptr_t rhs);
 
 template <typename T, typename... Args>
 constexpr option<T> some(Args&&... args);

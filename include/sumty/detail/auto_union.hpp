@@ -34,13 +34,11 @@ union auto_union<> {
 
     constexpr ~auto_union() noexcept {}
 
-    constexpr auto_union& operator=(
-        [[maybe_unused]] const auto_union& rhs) noexcept {
+    constexpr auto_union& operator=([[maybe_unused]] const auto_union& rhs) noexcept {
         return *this;
     }
 
-    constexpr auto_union& operator=(
-        [[maybe_unused]] auto_union&& rhs) noexcept {
+    constexpr auto_union& operator=([[maybe_unused]] auto_union&& rhs) noexcept {
         return *this;
     }
 };
@@ -58,13 +56,11 @@ union auto_union<T0, TN...> {
 
     constexpr ~auto_union() noexcept {}
 
-    constexpr auto_union& operator=(
-        [[maybe_unused]] const auto_union& rhs) noexcept {
+    constexpr auto_union& operator=([[maybe_unused]] const auto_union& rhs) noexcept {
         return *this;
     }
 
-    constexpr auto_union& operator=(
-        [[maybe_unused]] auto_union&& rhs) noexcept {
+    constexpr auto_union& operator=([[maybe_unused]] auto_union&& rhs) noexcept {
         return *this;
     }
 
@@ -118,13 +114,11 @@ union auto_union<T0&&, TN...> {
 
     constexpr ~auto_union() noexcept {}
 
-    constexpr auto_union& operator=(
-        [[maybe_unused]] const auto_union& rhs) noexcept {
+    constexpr auto_union& operator=([[maybe_unused]] const auto_union& rhs) noexcept {
         return *this;
     }
 
-    constexpr auto_union& operator=(
-        [[maybe_unused]] auto_union&& rhs) noexcept {
+    constexpr auto_union& operator=([[maybe_unused]] auto_union&& rhs) noexcept {
         return *this;
     }
 
@@ -178,13 +172,11 @@ union auto_union<T0&, TN...> {
 
     constexpr ~auto_union() noexcept {}
 
-    constexpr auto_union& operator=(
-        [[maybe_unused]] const auto_union& rhs) noexcept {
+    constexpr auto_union& operator=([[maybe_unused]] const auto_union& rhs) noexcept {
         return *this;
     }
 
-    constexpr auto_union& operator=(
-        [[maybe_unused]] auto_union&& rhs) noexcept {
+    constexpr auto_union& operator=([[maybe_unused]] auto_union&& rhs) noexcept {
         return *this;
     }
 
@@ -224,13 +216,11 @@ union auto_union<void, TN...> {
 
     constexpr ~auto_union() noexcept {}
 
-    constexpr auto_union& operator=(
-        [[maybe_unused]] const auto_union& rhs) noexcept {
+    constexpr auto_union& operator=([[maybe_unused]] const auto_union& rhs) noexcept {
         return *this;
     }
 
-    constexpr auto_union& operator=(
-        [[maybe_unused]] auto_union&& rhs) noexcept {
+    constexpr auto_union& operator=([[maybe_unused]] auto_union&& rhs) noexcept {
         return *this;
     }
 

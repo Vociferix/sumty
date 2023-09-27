@@ -5,7 +5,8 @@ endif()
 
 include(FetchContent)
 
-FetchContent_Declare(doxygen_awesome_css
+FetchContent_Declare(
+    doxygen_awesome_css
     GIT_REPOSITORY "https://github.com/jothepro/doxygen-awesome-css.git"
     GIT_TAG v2.2.1)
 

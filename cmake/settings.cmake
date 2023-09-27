@@ -8,10 +8,6 @@ option(${PROJECT_NAME_CAPS}_BUILD_TESTS "Enable building ${PROJECT_NAME} tests"
 
 include(GNUInstallDirs)
 
-if(${PROJECT_NAME_CAPS}_DEVEL)
-    set(CMAKE_INSTALL_PREFIX "${PROJECT_BINARY_DIR}/install" CACHE PATH "Installation prefix path")
-endif()
-
 add_library(${PROJECT_NAME}-warnings INTERFACE)
 
 if("${PROJECT_SOURCE_DIR}" STREQUAL "${CMAKE_SOURCE_DIR}")

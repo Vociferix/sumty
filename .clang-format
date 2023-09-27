@@ -10,7 +10,7 @@ AlwaysBreakBeforeMultilineStrings: 'true'
 BinPackParameters: 'false'
 BreakBeforeBraces: Attach
 BreakBeforeTernaryOperators: 'false'
-ColumnLimit: '80'
+ColumnLimit: '92'
 ConstructorInitializerAllOnOneLineOrOnePerLine: 'true'
 ConstructorInitializerIndentWidth: '4'
 ContinuationIndentWidth: '4'

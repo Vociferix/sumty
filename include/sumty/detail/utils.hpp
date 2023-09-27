@@ -33,25 +33,22 @@ struct discriminant<COUNT, std::enable_if_t<(COUNT <= 1)>> {
 };
 
 template <uint64_t COUNT>
-struct discriminant<
-    COUNT,
-    std::enable_if_t<(COUNT <= static_cast<uint64_t>(~uint8_t{0}))>> {
+struct discriminant<COUNT,
+                    std::enable_if_t<(COUNT <= static_cast<uint64_t>(~uint8_t{0}))>> {
     using type = uint8_t;
 };
 
 template <uint64_t COUNT>
-struct discriminant<
-    COUNT,
-    std::enable_if_t<(COUNT <= static_cast<uint64_t>(~uint16_t{0}) &&
-                      COUNT > static_cast<uint64_t>(~uint8_t{0}))>> {
+struct discriminant<COUNT,
+                    std::enable_if_t<(COUNT <= static_cast<uint64_t>(~uint16_t{0}) &&
+                                      COUNT > static_cast<uint64_t>(~uint8_t{0}))>> {
     using type = uint16_t;
 };
 
 template <uint64_t COUNT>
-struct discriminant<
-    COUNT,
-    std::enable_if_t<(COUNT <= static_cast<uint64_t>(~uint32_t{0}) &&
-                      COUNT > static_cast<uint64_t>(~uint16_t{0}))>> {
+struct discriminant<COUNT,
+                    std::enable_if_t<(COUNT <= static_cast<uint64_t>(~uint32_t{0}) &&
+                                      COUNT > static_cast<uint64_t>(~uint16_t{0}))>> {
     using type = uint32_t;
 };
 

@@ -42,21 +42,17 @@ struct traits {
         std::is_move_constructible_v<value_type>;
     static inline constexpr bool is_nothrow_move_constructible =
         std::is_nothrow_move_constructible_v<value_type>;
-    static inline constexpr bool is_destructible =
-        std::is_destructible_v<value_type>;
+    static inline constexpr bool is_destructible = std::is_destructible_v<value_type>;
     static inline constexpr bool is_nothrow_destructible =
         std::is_nothrow_destructible_v<value_type>;
-    static inline constexpr bool is_copy_assignable =
-        std::is_copy_assignable_v<T>;
+    static inline constexpr bool is_copy_assignable = std::is_copy_assignable_v<T>;
     static inline constexpr bool is_nothrow_copy_assignable =
         std::is_nothrow_copy_assignable_v<T>;
-    static inline constexpr bool is_move_assignable =
-        std::is_move_assignable_v<T>;
+    static inline constexpr bool is_move_assignable = std::is_move_assignable_v<T>;
     static inline constexpr bool is_nothrow_move_assignable =
         std::is_nothrow_move_assignable_v<T>;
     static inline constexpr bool is_swappable = std::is_swappable_v<T>;
-    static inline constexpr bool is_nothrow_swappable =
-        std::is_nothrow_swappable_v<T>;
+    static inline constexpr bool is_nothrow_swappable = std::is_nothrow_swappable_v<T>;
 
     template <typename U>
     static inline constexpr bool is_convertible_from =
@@ -66,8 +62,7 @@ struct traits {
     template <typename... U>
     static inline constexpr bool is_constructible =
         std::is_constructible_v<value_type, U...> ||
-        ((sizeof...(U) == 1 && is_default_constructible) && ... &&
-         std::is_void_v<U>);
+        ((sizeof...(U) == 1 && is_default_constructible) && ... && std::is_void_v<U>);
 
     template <typename U>
     static inline constexpr bool is_assignable =
@@ -127,8 +122,7 @@ struct traits<T&> {
         : std::integral_constant<bool, std::is_convertible_v<U, pointer>> {};
 
     template <typename... U>
-    static inline constexpr bool is_constructible =
-        is_constructible_t<U...>::value;
+    static inline constexpr bool is_constructible = is_constructible_t<U...>::value;
 
     template <typename U>
     static inline constexpr bool is_assignable =
@@ -136,8 +130,7 @@ struct traits<T&> {
         std::is_convertible_v<typename traits<U>::pointer, pointer>;
 
     template <typename... U>
-    static inline constexpr bool is_nothrow_constructible =
-        is_constructible_t<U...>::value;
+    static inline constexpr bool is_nothrow_constructible = is_constructible_t<U...>::value;
 
     template <typename U>
     static inline constexpr bool is_nothrow_assignable = is_assignable<U>;

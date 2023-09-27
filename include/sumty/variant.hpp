@@ -56,8 +56,7 @@ class variant {
   public:
     constexpr variant() noexcept(
         detail::traits<detail::first_t<T...>>::is_nothrow_default_constructible)
-        requires(detail::traits<
-                    detail::first_t<T...>>::is_default_constructible)
+        requires(detail::traits<detail::first_t<T...>>::is_default_constructible)
     = default;
 
     constexpr variant(const variant&)
@@ -70,26 +69,25 @@ class variant {
     = default;
 
     template <size_t IDX, typename... Args>
-    constexpr variant(std::in_place_index_t<IDX> in_place, Args&&... args);
+    constexpr variant(std::in_place_index_t<IDX> inplace, Args&&... args);
 
     template <size_t IDX, typename U, typename... Args>
-    constexpr variant(std::in_place_index_t<IDX> in_place,
+    constexpr variant(std::in_place_index_t<IDX> inplace,
                       std::initializer_list<U> init,
                       Args&&... args);
 
     template <typename U, typename... Args>
         requires(detail::is_unique_v<U, T...>)
-    constexpr variant([[maybe_unused]] std::in_place_type_t<U> in_place,
-                      Args&&... args);
+    constexpr variant(std::in_place_type_t<U> inplace, Args&&... args);
 
     template <typename U, typename V, typename... Args>
         requires(detail::is_unique_v<U, T...>)
-    constexpr variant([[maybe_unused]] std::in_place_type_t<U> in_place,
+    constexpr variant(std::in_place_type_t<U> inplace,
                       std::initializer_list<V> init,
                       Args&&... args);
 
-    constexpr ~variant() noexcept(
-        (true && ... && detail::traits<T>::is_nothrow_destructible)) = default;
+    constexpr ~variant() noexcept((true && ... &&
+                                   detail::traits<T>::is_nothrow_destructible)) = default;
 
     constexpr variant& operator=(const variant& rhs)
         requires(true && ... && detail::traits<T>::is_copy_assignable)
@@ -109,8 +107,7 @@ class variant {
     constexpr decltype(auto) emplace(Args&&... args);
 
     template <size_t I, typename U, typename... Args>
-    constexpr decltype(auto) emplace(std::initializer_list<U> ilist,
-                                     Args&&... args);
+    constexpr decltype(auto) emplace(std::initializer_list<U> ilist, Args&&... args);
 
     template <typename U, typename... Args>
         requires(detail::is_unique_v<U, T...>)
@@ -118,8 +115,7 @@ class variant {
 
     template <typename U, typename V, typename... Args>
         requires(detail::is_unique_v<U, T...>)
-    constexpr decltype(auto) emplace(std::initializer_list<V> ilist,
-                                     Args&&... args);
+    constexpr decltype(auto) emplace(std::initializer_list<V> ilist, Args&&... args);
 
     template <size_t I>
     constexpr decltype(auto) operator[](index_t<I> index) & noexcept;
@@ -192,8 +188,7 @@ class variant {
     template <typename V>
     constexpr decltype(auto) visit(V&& visitor) const&&;
 
-    constexpr void swap(variant& other) noexcept(
-        noexcept(data_.swap(other.data_)));
+    constexpr void swap(variant& other) noexcept(noexcept(data_.swap(other.data_)));
 };
 
 template <typename T, typename... U>
@@ -221,8 +216,7 @@ template <typename T>
 struct variant_size;
 
 template <typename... T>
-struct variant_size<variant<T...>>
-    : std::integral_constant<size_t, sizeof...(T)> {};
+struct variant_size<variant<T...>> : std::integral_constant<size_t, sizeof...(T)> {};
 
 template <typename... T>
 struct variant_size<const variant<T...>> : variant_size<variant<T...>> {};
@@ -239,8 +233,8 @@ struct variant_alternative<I, variant<T...>> {
 };
 
 template <size_t I, typename... T>
-struct variant_alternative<I, const variant<T...>>
-    : variant_alternative<I, variant<T...>> {};
+struct variant_alternative<I, const variant<T...>> : variant_alternative<I, variant<T...>> {
+};
 
 template <size_t I, typename T>
 using variant_alternative_t = typename variant_alternative<I, T>::type;

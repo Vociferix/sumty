@@ -56,8 +56,7 @@ class variant_impl {
     }
 
     template <size_t I>
-    constexpr void destroy() noexcept((true && ... &&
-                                       traits<T>::is_nothrow_destructible)) {
+    constexpr void destroy() noexcept((true && ... && traits<T>::is_nothrow_destructible)) {
         if constexpr (I < sizeof...(T)) {
             if (discrim_ == static_cast<discrim_t>(I)) {
                 data_.template destroy<I>();
@@ -106,22 +105,19 @@ class variant_impl {
     }
 
     template <size_t I, size_t J>
-    constexpr void diff_swap_impl(variant_impl<T...>& other) noexcept(
-        (true && ... &&
-         (traits<T>::is_nothrow_move_constructible &&
-          traits<T>::is_nothrow_destructible))) {
+    constexpr void diff_swap_impl(variant_impl<T...>& other) noexcept((
+        true && ... &&
+        (traits<T>::is_nothrow_move_constructible && traits<T>::is_nothrow_destructible))) {
         std::swap(discrim_, other.discrim_);
         if constexpr (std::is_void_v<select_t<I, T...>>) {
             if constexpr (std::is_void_v<select_t<J, T...>>) {
                 return;
-            } else if constexpr (std::is_lvalue_reference_v<
-                                     select_t<J, T...>>) {
+            } else if constexpr (std::is_lvalue_reference_v<select_t<J, T...>>) {
                 data_.template construct<J>(other.data_.template get<J>());
                 other.data_.template destroy<J>();
                 other.data_.template construct<I>();
             } else {
-                data_.template construct<J>(
-                    std::move(other.data_.template get<J>()));
+                data_.template construct<J>(std::move(other.data_.template get<J>()));
                 other.data_.template destroy<J>();
                 other.data_.template construct<I>();
             }
@@ -130,36 +126,30 @@ class variant_impl {
                 other.data_.template construct<I>(data_.template get<I>());
                 data_.template destroy<I>();
                 data_.template construct<J>();
-            } else if constexpr (std::is_lvalue_reference_v<
-                                     select_t<J, T...>>) {
+            } else if constexpr (std::is_lvalue_reference_v<select_t<J, T...>>) {
                 auto& tmp = other.data_.template get<J>();
                 other.data_.template construct<I>(data_.template get<I>());
                 data_.template construct<J>(tmp);
             } else {
                 auto& tmp = data_.template get<I>();
-                data_.template construct<J>(
-                    std::move(other.data_.template get<J>()));
+                data_.template construct<J>(std::move(other.data_.template get<J>()));
                 other.data_.template destroy<J>();
                 other.data_.template construct<I>(tmp);
             }
         } else {
             if constexpr (std::is_void_v<select_t<J, T...>>) {
-                other.data_.template construct<I>(
-                    std::move(data_.template get<I>()));
+                other.data_.template construct<I>(std::move(data_.template get<I>()));
                 data_.template destroy<I>();
                 data_.template construct<J>();
-            } else if constexpr (std::is_lvalue_reference_v<
-                                     select_t<J, T...>>) {
+            } else if constexpr (std::is_lvalue_reference_v<select_t<J, T...>>) {
                 auto& tmp = other.data_.template get<J>();
-                other.data_.template construct<I>(
-                    std::move(data_.template get<I>()));
+                other.data_.template construct<I>(std::move(data_.template get<I>()));
                 data_.template destroy<I>();
                 data_.template construct<J>(tmp);
             } else {
                 auto&& tmp = std::move(other.data_.template get<J>());
                 other.data_.template destroy<J>();
-                other.data_.template construct<I>(
-                    std::move(data_.template get<I>()));
+                other.data_.template construct<I>(std::move(data_.template get<I>()));
                 data_.template destroy<I>();
                 data_.template construct<J>(std::move(tmp));
             }
@@ -167,10 +157,9 @@ class variant_impl {
     }
 
     template <size_t I, size_t J>
-    constexpr void diff_swap_nested(variant_impl<T...>& other) noexcept(
-        (true && ... &&
-         (traits<T>::is_nothrow_move_constructible &&
-          traits<T>::is_nothrow_destructible))) {
+    constexpr void diff_swap_nested(variant_impl<T...>& other) noexcept((
+        true && ... &&
+        (traits<T>::is_nothrow_move_constructible && traits<T>::is_nothrow_destructible))) {
         if constexpr (J < sizeof...(T)) {
             if (other.discrim_ == static_cast<discrim_t>(J)) {
                 diff_swap_impl<I, J>(other);
@@ -181,10 +170,9 @@ class variant_impl {
     }
 
     template <size_t I>
-    constexpr void diff_swap(variant<T...>& other) noexcept(
-        (true && ... &&
-         (traits<T>::is_nothrow_move_constructible &&
-          traits<T>::is_nothrow_destructible))) {
+    constexpr void diff_swap(variant<T...>& other) noexcept((
+        true && ... &&
+        (traits<T>::is_nothrow_move_constructible && traits<T>::is_nothrow_destructible))) {
         if constexpr (I < sizeof...(T)) {
             if (discrim_ == static_cast<discrim_t>(I)) {
                 diff_swap_nested<I, 0>(data_.template get<I>(), other);
@@ -199,8 +187,7 @@ class variant_impl {
         traits<first_t<T...>>::is_nothrow_default_constructible)
         : variant_impl(std::in_place_index<0>) {}
 
-    constexpr variant_impl(const variant_impl& other)
-        : discrim_(other.discrim_) {
+    constexpr variant_impl(const variant_impl& other) : discrim_(other.discrim_) {
         copy_construct<0>(other.data_);
     }
 
@@ -212,10 +199,9 @@ class variant_impl {
 
     template <size_t I, typename... Args>
     constexpr variant_impl(
-        [[maybe_unused]] std::in_place_index_t<I> in_place,
+        [[maybe_unused]] std::in_place_index_t<I> inplace,
         Args&&... args) noexcept(traits<select_t<I, T...>>::
-                                     template is_nothrow_constructible<
-                                         Args...>) {
+                                     template is_nothrow_constructible<Args...>) {
         data_.template construct<I>(std::forward<Args>(args)...);
     }
 
@@ -236,11 +222,10 @@ class variant_impl {
         return *this;
     }
 
-    constexpr variant_impl& operator=(variant_impl&& rhs) noexcept(
-        (true && ... &&
-         (traits<T>::is_nothrow_move_assignable &&
-          traits<T>::is_nothrow_move_constructible &&
-          traits<T>::is_nothrow_destructible))) {
+    constexpr variant_impl& operator=(variant_impl&& rhs) noexcept((
+        true && ... &&
+        (traits<T>::is_nothrow_move_assignable &&
+         traits<T>::is_nothrow_move_constructible && traits<T>::is_nothrow_destructible))) {
         if (discrim_ == rhs.discrim_) {
             move_assign<0>(rhs.data_);
         } else {
@@ -250,9 +235,7 @@ class variant_impl {
         return *this;
     }
 
-    constexpr size_t index() const noexcept {
-        return static_cast<size_t>(discrim_);
-    }
+    constexpr size_t index() const noexcept { return static_cast<size_t>(discrim_); }
 
     template <size_t I>
     constexpr typename traits<select_t<I, T...>>::reference get() & noexcept {
@@ -260,8 +243,7 @@ class variant_impl {
     }
 
     template <size_t I>
-    constexpr typename traits<select_t<I, T...>>::const_reference get()
-        const& noexcept {
+    constexpr typename traits<select_t<I, T...>>::const_reference get() const& noexcept {
         return data_.template get<I>();
     }
 
@@ -277,8 +259,7 @@ class variant_impl {
     }
 
     template <size_t I>
-    constexpr typename traits<select_t<I, T...>>::const_rvalue_reference get()
-        const&& {
+    constexpr typename traits<select_t<I, T...>>::const_rvalue_reference get() const&& {
         if constexpr (std::is_void_v<select_t<I, T...>>) {
             return;
         } else if constexpr (std::is_lvalue_reference_v<select_t<I, T...>>) {
@@ -296,8 +277,7 @@ class variant_impl {
     }
 
     template <size_t I>
-    constexpr typename traits<select_t<I, T...>>::const_pointer ptr()
-        const noexcept {
+    constexpr typename traits<select_t<I, T...>>::const_pointer ptr() const noexcept {
         if constexpr (!std::is_void_v<select_t<I, T...>>) {
             return &data_.template get<I>();
         }
@@ -312,8 +292,7 @@ class variant_impl {
 
     constexpr void swap(variant_impl& other) noexcept(
         (true && ... &&
-         (traits<T>::is_nothrow_swappable &&
-          traits<T>::is_nothrow_move_constructible &&
+         (traits<T>::is_nothrow_swappable && traits<T>::is_nothrow_move_constructible &&
           traits<T>::is_nothrow_destructible))) {
         if (discrim_ == other.discrim_) {
             same_swap<0>(other.data_);
@@ -332,8 +311,7 @@ class variant_impl<void, T> {
     SUMTY_NO_UNIQ_ADDR auto_union<T> data_;
 
   public:
-    constexpr variant_impl() noexcept(
-        traits<T>::is_nothrow_default_constructible) {
+    constexpr variant_impl() noexcept(traits<T>::is_nothrow_default_constructible) {
         data_.template construct<0>();
     }
 
@@ -347,7 +325,7 @@ class variant_impl<void, T> {
     }
 
     template <typename... Args>
-    constexpr variant_impl([[maybe_unused]] std::in_place_index_t<0> in_place,
+    constexpr variant_impl([[maybe_unused]] std::in_place_index_t<0> inplace,
                            Args&&... args) {
         data_.template construct<0>(std::forward<Args>(args)...);
     }
@@ -427,8 +405,7 @@ class variant_impl<void, T> {
         data_.template construct<0>(std::forward<Args>(args)...);
     }
 
-    constexpr void swap(variant_impl& other) noexcept(
-        traits<T>::is_nothrow_swappable) {
+    constexpr void swap(variant_impl& other) noexcept(traits<T>::is_nothrow_swappable) {
         if constexpr (std::is_void_v<T>) {
             return;
         } else if constexpr (std::is_lvalue_reference_v<T>) {
@@ -448,10 +425,10 @@ class variant_impl<void, void> {
     constexpr variant_impl() noexcept = default;
 
     explicit constexpr variant_impl(
-        [[maybe_unused]] std::in_place_index_t<0> in_place) noexcept {}
+        [[maybe_unused]] std::in_place_index_t<0> inplace) noexcept {}
 
     template <typename T>
-    constexpr variant_impl([[maybe_unused]] std::in_place_index_t<0> in_place,
+    constexpr variant_impl([[maybe_unused]] std::in_place_index_t<0> inplace,
                            [[maybe_unused]] T&& value) noexcept {}
 
     constexpr size_t index() const noexcept { return 0; }
@@ -475,18 +452,17 @@ class variant_impl<void, T&, void> {
 
     template <typename U>
         requires(std::is_convertible_v<U*, T*>)
-    constexpr variant_impl([[maybe_unused]] std::in_place_index_t<0> in_place,
+    constexpr variant_impl([[maybe_unused]] std::in_place_index_t<0> inplace,
                            U& value) noexcept
         : data_(&value) {}
 
     explicit constexpr variant_impl(
-        [[maybe_unused]] std::in_place_index_t<1> in_place) noexcept
+        [[maybe_unused]] std::in_place_index_t<1> inplace) noexcept
         : data_(nullptr) {}
 
     template <typename U>
-    explicit constexpr variant_impl(
-        [[maybe_unused]] std::in_place_index_t<1> in_place,
-        [[maybe_unused]] U&& value) noexcept
+    explicit constexpr variant_impl([[maybe_unused]] std::in_place_index_t<1> inplace,
+                                    [[maybe_unused]] U&& value) noexcept
         : data_(nullptr) {}
 
     constexpr size_t index() const noexcept {
@@ -494,14 +470,12 @@ class variant_impl<void, T&, void> {
     }
 
     template <size_t I>
-    constexpr typename traits<select_t<I, T&, void>>::const_reference get()
-        const noexcept {
+    constexpr typename traits<select_t<I, T&, void>>::const_reference get() const noexcept {
         if constexpr (I == 0) { return *data_; }
     }
 
     template <size_t I>
-    constexpr typename traits<select_t<I, T&, void>>::const_pointer ptr()
-        const noexcept {
+    constexpr typename traits<select_t<I, T&, void>>::const_pointer ptr() const noexcept {
         if constexpr (I == 0) { return data_; }
     }
 
@@ -522,9 +496,7 @@ class variant_impl<void, T&, void> {
         }
     }
 
-    constexpr void swap(variant_impl& other) noexcept {
-        std::swap(data_, other.data_);
-    }
+    constexpr void swap(variant_impl& other) noexcept { std::swap(data_, other.data_); }
 };
 
 template <typename T>
@@ -536,18 +508,17 @@ class variant_impl<void, void, T&> {
     constexpr variant_impl() noexcept = default;
 
     explicit constexpr variant_impl(
-        [[maybe_unused]] std::in_place_index_t<0> in_place) noexcept
+        [[maybe_unused]] std::in_place_index_t<0> inplace) noexcept
         : data_(nullptr) {}
 
     template <typename U>
-    explicit constexpr variant_impl(
-        [[maybe_unused]] std::in_place_index_t<0> in_place,
-        [[maybe_unused]] U&& value) noexcept
+    explicit constexpr variant_impl([[maybe_unused]] std::in_place_index_t<0> inplace,
+                                    [[maybe_unused]] U&& value) noexcept
         : data_(nullptr) {}
 
     template <typename U>
         requires(std::is_convertible_v<U*, T*>)
-    constexpr variant_impl([[maybe_unused]] std::in_place_index_t<1> in_place,
+    constexpr variant_impl([[maybe_unused]] std::in_place_index_t<1> inplace,
                            U& value) noexcept
         : data_(&value) {}
 
@@ -556,14 +527,12 @@ class variant_impl<void, void, T&> {
     }
 
     template <size_t I>
-    constexpr typename traits<select_t<I, void, T&>>::const_reference get()
-        const noexcept {
+    constexpr typename traits<select_t<I, void, T&>>::const_reference get() const noexcept {
         if constexpr (I == 1) { return *data_; }
     }
 
     template <size_t I>
-    constexpr typename traits<select_t<I, void, T&>>::const_pointer ptr()
-        const noexcept {
+    constexpr typename traits<select_t<I, void, T&>>::const_pointer ptr() const noexcept {
         if constexpr (I == 1) { return data_; }
     }
 
@@ -584,9 +553,7 @@ class variant_impl<void, void, T&> {
         }
     }
 
-    constexpr void swap(variant_impl& other) noexcept {
-        std::swap(data_, other.data_);
-    }
+    constexpr void swap(variant_impl& other) noexcept { std::swap(data_, other.data_); }
 };
 
 template <typename T, typename U>
@@ -607,21 +574,19 @@ class variant_impl<std::enable_if_t<(sizeof(U) <= sizeof(bool))>, T&, U> {
     constexpr variant_impl(variant_impl&& other) noexcept(
         std::is_nothrow_move_constructible_v<U>)
         : head_(other.head_) {
-        if (head_ == nullptr) {
-            std::construct_at(&tail_, std::move(other.tail_));
-        }
+        if (head_ == nullptr) { std::construct_at(&tail_, std::move(other.tail_)); }
     }
 
     template <typename V>
         requires(std::is_convertible_v<V*, T*>)
-    constexpr variant_impl([[maybe_unused]] std::in_place_index_t<0> in_place,
+    constexpr variant_impl([[maybe_unused]] std::in_place_index_t<0> inplace,
                            V& value) noexcept
         : head_(&value) {}
 
     template <typename... Args>
-    explicit(sizeof...(Args) == 0) constexpr variant_impl(
-        [[maybe_unused]] std::in_place_index_t<1> in_place,
-        Args&&... args)
+    explicit(sizeof...(Args) ==
+             0) constexpr variant_impl([[maybe_unused]] std::in_place_index_t<1> inplace,
+                                       Args&&... args)
         : head_(nullptr) {
         std::construct_at(&tail_, std::forward<Args>(args)...);
     }
@@ -648,9 +613,8 @@ class variant_impl<std::enable_if_t<(sizeof(U) <= sizeof(bool))>, T&, U> {
     }
 
     constexpr variant_impl& operator=(variant_impl&& rhs) noexcept(
-        std::is_nothrow_move_assignable_v<U>&&
-            std::is_nothrow_move_constructible_v<U>&&
-                std::is_nothrow_destructible_v<U>) {
+        std::is_nothrow_move_assignable_v<U>&& std::is_nothrow_move_constructible_v<U>&&
+            std::is_nothrow_destructible_v<U>) {
         if (head_ == nullptr) {
             head_ = rhs.head_;
             if (head_ == nullptr) {
@@ -660,9 +624,7 @@ class variant_impl<std::enable_if_t<(sizeof(U) <= sizeof(bool))>, T&, U> {
             }
         } else {
             head_ == rhs.head_;
-            if (head_ == nullptr) {
-                std::construct_at(&tail_, std::move(rhs.tail_));
-            }
+            if (head_ == nullptr) { std::construct_at(&tail_, std::move(rhs.tail_)); }
         }
         return *this;
     }
@@ -681,8 +643,7 @@ class variant_impl<std::enable_if_t<(sizeof(U) <= sizeof(bool))>, T&, U> {
     }
 
     template <size_t I>
-    constexpr typename traits<select_t<I, T&, U>>::const_reference get()
-        const& noexcept {
+    constexpr typename traits<select_t<I, T&, U>>::const_reference get() const& noexcept {
         if constexpr (I == 0) {
             return *head_;
         } else {
@@ -700,8 +661,7 @@ class variant_impl<std::enable_if_t<(sizeof(U) <= sizeof(bool))>, T&, U> {
     }
 
     template <size_t I>
-    constexpr typename traits<select_t<I, T&, U>>::const_rvalue_reference get()
-        const&& {
+    constexpr typename traits<select_t<I, T&, U>>::const_rvalue_reference get() const&& {
         if constexpr (I == 0) {
             return *head_;
         } else {
@@ -719,8 +679,7 @@ class variant_impl<std::enable_if_t<(sizeof(U) <= sizeof(bool))>, T&, U> {
     }
 
     template <size_t I>
-    constexpr typename traits<select_t<I, T&, U>>::const_pointer ptr()
-        const noexcept {
+    constexpr typename traits<select_t<I, T&, U>>::const_pointer ptr() const noexcept {
         if constexpr (I == 0) {
             return head_;
         } else {
@@ -732,8 +691,7 @@ class variant_impl<std::enable_if_t<(sizeof(U) <= sizeof(bool))>, T&, U> {
     constexpr void emplace(Args&&... args) noexcept {
         if constexpr (I == 0) {
             static_assert(
-                (true && ... &&
-                 std::is_lvalue_reference_v<Args>)&&sizeof...(Args) == 1,
+                (true && ... && std::is_lvalue_reference_v<Args>)&&sizeof...(Args) == 1,
                 "no matching constructor for reference");
             if (head_ != nullptr) { std::destroy_at(&tail_); }
             head_ = std::addressof(std::forward<Args>(args)...);
@@ -748,8 +706,8 @@ class variant_impl<std::enable_if_t<(sizeof(U) <= sizeof(bool))>, T&, U> {
     }
 
     constexpr void swap(variant_impl& other) noexcept(
-        std::is_nothrow_swappable_v<U>&& std::is_nothrow_move_constructible_v<
-            U>&& std::is_nothrow_destructible_v<U>) {
+        std::is_nothrow_swappable_v<U>&& std::is_nothrow_move_constructible_v<U>&&
+            std::is_nothrow_destructible_v<U>) {
         if (head_ == nullptr) {
             if (other.head_ == nullptr) {
                 using std::swap;
@@ -782,8 +740,7 @@ class variant_impl<std::enable_if_t<(sizeof(T) <= sizeof(bool))>, T, U&> {
     };
 
   public:
-    constexpr variant_impl() noexcept(
-        std::is_nothrow_default_constructible_v<T>) {
+    constexpr variant_impl() noexcept(std::is_nothrow_default_constructible_v<T>) {
         std::construct_at(&head_);
     }
 
@@ -794,21 +751,19 @@ class variant_impl<std::enable_if_t<(sizeof(T) <= sizeof(bool))>, T, U&> {
     constexpr variant_impl(variant_impl&& other) noexcept(
         std::is_nothrow_move_constructible_v<T>)
         : tail_(other.tail_) {
-        if (tail_ == nullptr) {
-            std::construct_at(&head_, std::move(other.head_));
-        }
+        if (tail_ == nullptr) { std::construct_at(&head_, std::move(other.head_)); }
     }
 
     template <typename... Args>
-    explicit(sizeof...(Args) == 0) constexpr variant_impl(
-        [[maybe_unused]] std::in_place_index_t<0> in_place,
-        Args&&... args) {
+    explicit(sizeof...(Args) ==
+             0) constexpr variant_impl([[maybe_unused]] std::in_place_index_t<0> inplace,
+                                       Args&&... args) {
         std::construct_at(&head_, std::forward<Args>(args)...);
     }
 
     template <typename V>
         requires(std::is_convertible_v<V*, U*>)
-    constexpr variant_impl([[maybe_unused]] std::in_place_index_t<1> in_place,
+    constexpr variant_impl([[maybe_unused]] std::in_place_index_t<1> inplace,
                            V& value) noexcept
         : tail_(&value) {}
 
@@ -834,9 +789,8 @@ class variant_impl<std::enable_if_t<(sizeof(T) <= sizeof(bool))>, T, U&> {
     }
 
     constexpr variant_impl& operator=(variant_impl&& rhs) noexcept(
-        std::is_nothrow_move_assignable_v<T>&&
-            std::is_nothrow_move_constructible_v<T>&&
-                std::is_nothrow_destructible_v<T>) {
+        std::is_nothrow_move_assignable_v<T>&& std::is_nothrow_move_constructible_v<T>&&
+            std::is_nothrow_destructible_v<T>) {
         if (tail_ == nullptr) {
             tail_ = rhs.tail_;
             if (tail_ == nullptr) {
@@ -846,9 +800,7 @@ class variant_impl<std::enable_if_t<(sizeof(T) <= sizeof(bool))>, T, U&> {
             }
         } else {
             tail_ == rhs.tail_;
-            if (head_ == nullptr) {
-                std::construct_at(&head_, std::move(rhs.head_));
-            }
+            if (head_ == nullptr) { std::construct_at(&head_, std::move(rhs.head_)); }
         }
         return *this;
     }
@@ -867,8 +819,7 @@ class variant_impl<std::enable_if_t<(sizeof(T) <= sizeof(bool))>, T, U&> {
     }
 
     template <size_t I>
-    constexpr typename traits<select_t<I, T, U&>>::const_reference get()
-        const& noexcept {
+    constexpr typename traits<select_t<I, T, U&>>::const_reference get() const& noexcept {
         if constexpr (I == 0) {
             return head_;
         } else {
@@ -886,8 +837,7 @@ class variant_impl<std::enable_if_t<(sizeof(T) <= sizeof(bool))>, T, U&> {
     }
 
     template <size_t I>
-    constexpr typename traits<select_t<I, T, U&>>::const_rvalue_reference get()
-        const&& {
+    constexpr typename traits<select_t<I, T, U&>>::const_rvalue_reference get() const&& {
         if constexpr (I == 0) {
             return std::move(head_);
         } else {
@@ -905,8 +855,7 @@ class variant_impl<std::enable_if_t<(sizeof(T) <= sizeof(bool))>, T, U&> {
     }
 
     template <size_t I>
-    constexpr typename traits<select_t<I, T, U&>>::const_pointer ptr()
-        const noexcept {
+    constexpr typename traits<select_t<I, T, U&>>::const_pointer ptr() const noexcept {
         if constexpr (I == 0) {
             return &head_;
         } else {
@@ -918,8 +867,7 @@ class variant_impl<std::enable_if_t<(sizeof(T) <= sizeof(bool))>, T, U&> {
     constexpr void emplace(Args&&... args) noexcept {
         if constexpr (I == 1) {
             static_assert(
-                (true && ... &&
-                 std::is_lvalue_reference_v<Args>)&&sizeof...(Args) == 1,
+                (true && ... && std::is_lvalue_reference_v<Args>)&&sizeof...(Args) == 1,
                 "no matching constructor for reference");
             if (tail_ != nullptr) { std::destroy_at(&head_); }
             tail_ = std::addressof(std::forward<Args>(args)...);
@@ -934,8 +882,8 @@ class variant_impl<std::enable_if_t<(sizeof(T) <= sizeof(bool))>, T, U&> {
     }
 
     constexpr void swap(variant_impl& other) noexcept(
-        std::is_nothrow_swappable_v<T>&& std::is_nothrow_move_constructible_v<
-            T>&& std::is_nothrow_destructible_v<T>) {
+        std::is_nothrow_swappable_v<T>&& std::is_nothrow_move_constructible_v<T>&&
+            std::is_nothrow_destructible_v<T>) {
         if (tail_ == nullptr) {
             if (other.tail_ == nullptr) {
                 using std::swap;
@@ -972,8 +920,7 @@ constexpr decltype(auto) variant<T...>::visit_impl(V&& visitor, U&& var) {
                                std::forward<U>(var).template get<IDX>());
         }
     } else {
-        return visit_impl<IDX + 1>(std::forward<V>(visitor),
-                                   std::forward<U>(var));
+        return visit_impl<IDX + 1>(std::forward<V>(visitor), std::forward<U>(var));
     }
 }
 
@@ -995,8 +942,7 @@ constexpr bool variant<T...>::holds_alt_impl() const noexcept {
 
 template <typename... T>
 template <size_t IDX, typename... Args>
-constexpr variant<T...>::variant(std::in_place_index_t<IDX> inplace,
-                                 Args&&... args)
+constexpr variant<T...>::variant(std::in_place_index_t<IDX> inplace, Args&&... args)
     : data_(inplace, std::forward<Args>(args)...) {}
 
 template <typename... T>
@@ -1009,19 +955,17 @@ constexpr variant<T...>::variant(std::in_place_index_t<IDX> inplace,
 template <typename... T>
 template <typename U, typename... Args>
     requires(detail::is_unique_v<U, T...>)
-constexpr variant<T...>::variant(
-    [[maybe_unused]] std::in_place_type_t<U> inplace,
-    Args&&... args)
-    : data_(std::in_place_index<detail::index_of_v<U, T...>>,
-            std::forward<Args>(args)...) {}
+constexpr variant<T...>::variant([[maybe_unused]] std::in_place_type_t<U> inplace,
+                                 Args&&... args)
+    : data_(std::in_place_index<detail::index_of_v<U, T...>>, std::forward<Args>(args)...) {
+}
 
 template <typename... T>
 template <typename U, typename V, typename... Args>
     requires(detail::is_unique_v<U, T...>)
-constexpr variant<T...>::variant(
-    [[maybe_unused]] std::in_place_type_t<U> inplace,
-    std::initializer_list<V> init,
-    Args&&... args)
+constexpr variant<T...>::variant([[maybe_unused]] std::in_place_type_t<U> inplace,
+                                 std::initializer_list<V> init,
+                                 Args&&... args)
     : data_(std::in_place_index<detail::index_of_v<U, T...>>,
             init,
             std::forward<Args>(args)...) {}
@@ -1045,8 +989,7 @@ template <typename... T>
 template <typename U, typename... Args>
     requires(detail::is_unique_v<U, T...>)
 constexpr decltype(auto) variant<T...>::emplace(Args&&... args) {
-    data_.template emplace<detail::index_of_v<U, T...>>(
-        std::forward<Args>(args)...);
+    data_.template emplace<detail::index_of_v<U, T...>>(std::forward<Args>(args)...);
     return data_.template get<detail::index_of_v<U, T...>>();
 }
 
@@ -1055,22 +998,19 @@ template <typename U, typename V, typename... Args>
     requires(detail::is_unique_v<U, T...>)
 constexpr decltype(auto) variant<T...>::emplace(std::initializer_list<V> ilist,
                                                 Args&&... args) {
-    data_.template emplace<detail::index_of_v<U, T...>>(
-        ilist, std::forward<Args>(args)...);
+    data_.template emplace<detail::index_of_v<U, T...>>(ilist, std::forward<Args>(args)...);
     return data_.template get<detail::index_of_v<U, T...>>();
 }
 
 template <typename... T>
 template <size_t I>
-constexpr decltype(auto) variant<T...>::operator[](
-    index_t<I> index) & noexcept {
+constexpr decltype(auto) variant<T...>::operator[](index_t<I> index) & noexcept {
     return data_.template get<I>();
 }
 
 template <typename... T>
 template <size_t I>
-constexpr decltype(auto) variant<T...>::operator[](
-    index_t<I> index) const& noexcept {
+constexpr decltype(auto) variant<T...>::operator[](index_t<I> index) const& noexcept {
     return data_.template get<I>();
 }
 
@@ -1096,8 +1036,7 @@ constexpr decltype(auto) variant<T...>::operator[](type_t<U> type) & noexcept {
 template <typename... T>
 template <typename U>
     requires(detail::is_unique_v<U, T...>)
-constexpr decltype(auto) variant<T...>::operator[](
-    type_t<U> type) const& noexcept {
+constexpr decltype(auto) variant<T...>::operator[](type_t<U> type) const& noexcept {
     return data_.template get<detail::index_of_v<U, T...>>();
 }
 
