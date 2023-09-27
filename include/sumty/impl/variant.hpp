@@ -20,6 +20,7 @@
 #include "sumty/exceptions.hpp"
 #include "sumty/utils.hpp"
 
+#include <array>
 #include <cstddef>
 #include <functional>
 #include <initializer_list>
@@ -29,17 +30,34 @@ namespace sumty {
 
 template <typename... T>
 template <size_t IDX, typename V, typename U>
-constexpr decltype(auto) variant<T...>::visit_impl(V&& visitor, U&& var) {
-    if (var.index() == IDX || IDX + 1 == sizeof...(T)) {
-        if constexpr (std::is_void_v<detail::select_t<IDX, T...>>) {
-            return std::invoke(std::forward<V>(visitor));
-        } else {
-            return std::invoke(std::forward<V>(visitor),
-                               std::forward<U>(var).template get<IDX>());
-        }
+constexpr decltype(auto) variant<T...>::jump_table_entry(V&& visitor, U&& var) {
+    if constexpr (std::is_void_v<detail::select_t<IDX, T...>>) {
+        return std::invoke(std::forward<V>(visitor));
     } else {
-        return visit_impl<IDX + 1>(std::forward<V>(visitor), std::forward<U>(var));
+        return std::invoke(std::forward<V>(visitor),
+                           std::forward<U>(var)[sumty::index<IDX>]);
     }
+}
+
+template <typename... T>
+template <typename V, typename U, size_t... IDX>
+consteval auto variant<T...>::jump_table([[maybe_unused]] std::index_sequence<IDX...> seq) {
+    using ret_t = decltype(jump_table_entry<0>(std::declval<V&&>(), std::declval<U&&>()));
+    return std::array<ret_t (*)(V&&, U&&), sizeof...(IDX)>{
+        {&jump_table_entry<IDX, V, U>...}};
+}
+
+template <typename... T>
+template <typename V, typename U>
+consteval auto variant<T...>::jump_table() noexcept {
+    return jump_table<V, U>(std::make_index_sequence<sizeof...(T)>{});
+}
+
+template <typename... T>
+template <typename V, typename U>
+constexpr decltype(auto) variant<T...>::visit_impl(V&& visitor, U&& var) {
+    const auto JUMP_TABLE = jump_table<V, U>();
+    return jump_table<U>()[var.index()](std::forward<V>(visitor), std::forward<U>(var));
 }
 
 template <typename... T>
@@ -239,6 +257,54 @@ constexpr decltype(auto) variant<T...>::get() const&& {
 }
 
 template <typename... T>
+template <size_t I>
+constexpr auto variant<T...>::get_if() noexcept {
+    using ptr_t = typename detail::traits<detail::select_t<I, T...>>::pointer;
+    if constexpr (!std::is_void_v<ptr_t>) {
+        ptr_t ret;
+        if (index() == I) {
+            ret = &data_.template get<I>();
+        } else {
+            ret = nullptr;
+        }
+        return ret;
+    } else {
+        return;
+    }
+}
+
+template <typename... T>
+template <size_t I>
+constexpr auto variant<T...>::get_if() const noexcept {
+    using ptr_t = typename detail::traits<detail::select_t<I, T...>>::const_pointer;
+    if constexpr (!std::is_void_v<ptr_t>) {
+        ptr_t ret;
+        if (index() == I) {
+            ret = &data_.template get<I>();
+        } else {
+            ret = nullptr;
+        }
+        return ret;
+    } else {
+        return;
+    }
+}
+
+template <typename... T>
+template <typename U>
+    requires detail::is_unique_v<U, T...>
+constexpr auto variant<T...>::get_if() noexcept {
+    return get_if<detail::index_of_v<U, T...>>();
+}
+
+template <typename... T>
+template <typename U>
+    requires detail::is_unique_v<U, T...>
+constexpr auto variant<T...>::get_if() const noexcept {
+    return get_if<detail::index_of_v<U, T...>>();
+}
+
+template <typename... T>
 template <typename U>
 constexpr bool variant<T...>::holds_alternative() const noexcept {
     if constexpr (detail::is_unique_v<U, T...>) {
@@ -251,25 +317,25 @@ constexpr bool variant<T...>::holds_alternative() const noexcept {
 template <typename... T>
 template <typename V>
 constexpr decltype(auto) variant<T...>::visit(V&& visitor) & {
-    return visit_impl(std::forward<V>(visitor), *this);
+    return visit_impl<V, variant&>(std::forward<V>(visitor), *this);
 }
 
 template <typename... T>
 template <typename V>
 constexpr decltype(auto) variant<T...>::visit(V&& visitor) const& {
-    return visit_impl(std::forward<V>(visitor), *this);
+    return visit_impl<V, const variant&>(std::forward<V>(visitor), *this);
 }
 
 template <typename... T>
 template <typename V>
 constexpr decltype(auto) variant<T...>::visit(V&& visitor) && {
-    return visit_impl(std::forward<V>(visitor), std::move(*this));
+    return visit_impl<V, variant&&>(std::forward<V>(visitor), std::move(*this));
 }
 
 template <typename... T>
 template <typename V>
 constexpr decltype(auto) variant<T...>::visit(V&& visitor) const&& {
-    return visit_impl(std::forward<V>(visitor), std::move(*this));
+    return visit_impl<V, const variant&&>(std::forward<V>(visitor), std::move(*this));
 }
 
 template <typename... T>
@@ -281,6 +347,26 @@ constexpr void variant<T...>::swap(variant& other) noexcept(
 template <typename T, typename... U>
 constexpr bool holds_alternative(const variant<U...>& v) noexcept {
     return v.template holds_alternative<T>();
+}
+
+template <size_t I, typename... T>
+constexpr decltype(auto) get(variant<T...>& v) {
+    return v.template get<I>();
+}
+
+template <size_t I, typename... T>
+constexpr decltype(auto) get(const variant<T...>& v) {
+    return v.template get<I>();
+}
+
+template <size_t I, typename... T>
+constexpr decltype(auto) get(variant<T...>&& v) {
+    return std::move(v).template get<I>();
+}
+
+template <size_t I, typename... T>
+constexpr decltype(auto) get(const variant<T...>&& v) {
+    return std::move(v).template get<I>();
 }
 
 template <typename T, typename... U>
@@ -301,6 +387,28 @@ constexpr decltype(auto) get(variant<U...>&& v) {
 template <typename T, typename... U>
 constexpr decltype(auto) get(const variant<U...>&& v) {
     return std::move(v).template get<T>();
+}
+
+template <size_t I, typename... T>
+constexpr auto get_if(variant<T...>& v) noexcept {
+    return v.template get_if<I>();
+}
+
+template <size_t I, typename... T>
+constexpr auto get_if(const variant<T...>& v) noexcept {
+    return v.template get_if<I>();
+}
+
+template <typename T, typename... U>
+    requires detail::is_unique_v<T, U...>
+constexpr auto get_if(variant<U...>& v) noexcept {
+    return v.template get_if<T>();
+}
+
+template <typename T, typename... U>
+    requires detail::is_unique_v<T, U...>
+constexpr auto get_if(const variant<U...>& v) noexcept {
+    return v.template get_if<T>();
 }
 
 template <typename V>

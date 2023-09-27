@@ -35,6 +35,15 @@ class variant {
     SUMTY_NO_UNIQ_ADDR detail::variant_impl<void, T...> data_;
 
     template <size_t IDX, typename V, typename U>
+    static constexpr decltype(auto) jump_table_entry(V&& visitor, U&& var);
+
+    template <typename V, typename U, size_t... IDX>
+    static consteval auto jump_table(std::index_sequence<IDX...> seq);
+
+    template <typename V, typename U>
+    static consteval auto jump_table() noexcept;
+
+    template <typename V, typename U>
     static constexpr decltype(auto) visit_impl(V&& visitor, U&& var);
 
     template <size_t IDX, typename U>
@@ -121,19 +130,19 @@ class variant {
     [[nodiscard]] constexpr decltype(auto) operator[](index_t<I> index) const&&;
 
     template <typename U>
-        requires(detail::is_unique_v<U, T...>)
+        requires detail::is_unique_v<U, T...>
     [[nodiscard]] constexpr decltype(auto) operator[](type_t<U> type) & noexcept;
 
     template <typename U>
-        requires(detail::is_unique_v<U, T...>)
+        requires detail::is_unique_v<U, T...>
     [[nodiscard]] constexpr decltype(auto) operator[](type_t<U> type) const& noexcept;
 
     template <typename U>
-        requires(detail::is_unique_v<U, T...>)
+        requires detail::is_unique_v<U, T...>
     [[nodiscard]] constexpr decltype(auto) operator[](type_t<U> type) &&;
 
     template <typename U>
-        requires(detail::is_unique_v<U, T...>)
+        requires detail::is_unique_v<U, T...>
     [[nodiscard]] constexpr decltype(auto) operator[](type_t<U> type) const&&;
 
     template <size_t I>
@@ -149,20 +158,34 @@ class variant {
     [[nodiscard]] constexpr decltype(auto) get() const&&;
 
     template <typename U>
-        requires(detail::is_unique_v<U, T...>)
+        requires detail::is_unique_v<U, T...>
     [[nodiscard]] constexpr decltype(auto) get() &;
 
     template <typename U>
-        requires(detail::is_unique_v<U, T...>)
+        requires detail::is_unique_v<U, T...>
     [[nodiscard]] constexpr decltype(auto) get() const&;
 
     template <typename U>
-        requires(detail::is_unique_v<U, T...>)
+        requires detail::is_unique_v<U, T...>
     [[nodiscard]] constexpr decltype(auto) get() &&;
 
     template <typename U>
-        requires(detail::is_unique_v<U, T...>)
+        requires detail::is_unique_v<U, T...>
     [[nodiscard]] constexpr decltype(auto) get() const&&;
+
+    template <size_t I>
+    [[nodiscard]] constexpr auto get_if() noexcept;
+
+    template <size_t I>
+    [[nodiscard]] constexpr auto get_if() const noexcept;
+
+    template <typename U>
+        requires detail::is_unique_v<U, T...>
+    [[nodiscard]] constexpr auto get_if() noexcept;
+
+    template <typename U>
+        requires detail::is_unique_v<U, T...>
+    [[nodiscard]] constexpr auto get_if() const noexcept;
 
     template <typename U>
     [[nodiscard]] constexpr bool holds_alternative() const noexcept;
@@ -185,17 +208,47 @@ class variant {
 template <typename T, typename... U>
 constexpr bool holds_alternative(const variant<U...>& v) noexcept;
 
+template <size_t I, typename... T>
+constexpr decltype(auto) get(variant<T...>& v);
+
+template <size_t I, typename... T>
+constexpr decltype(auto) get(const variant<T...>& v);
+
+template <size_t I, typename... T>
+constexpr decltype(auto) get(variant<T...>&& v);
+
+template <size_t I, typename... T>
+constexpr decltype(auto) get(const variant<T...>&& v);
+
 template <typename T, typename... U>
+    requires detail::is_unique_v<T, U...>
 constexpr decltype(auto) get(variant<U...>& v);
 
 template <typename T, typename... U>
+    requires detail::is_unique_v<T, U...>
 constexpr decltype(auto) get(const variant<U...>& v);
 
 template <typename T, typename... U>
+    requires detail::is_unique_v<T, U...>
 constexpr decltype(auto) get(variant<U...>&& v);
 
 template <typename T, typename... U>
+    requires detail::is_unique_v<T, U...>
 constexpr decltype(auto) get(const variant<U...>&& v);
+
+template <size_t I, typename... T>
+constexpr auto get_if(variant<T...>& v) noexcept;
+
+template <size_t I, typename... T>
+constexpr auto get_if(const variant<T...>& v) noexcept;
+
+template <typename T, typename... U>
+    requires detail::is_unique_v<T, U...>
+constexpr auto get_if(variant<U...>& v) noexcept;
+
+template <typename T, typename... U>
+    requires detail::is_unique_v<T, U...>
+constexpr auto get_if(const variant<U...>& v) noexcept;
 
 template <typename V>
 constexpr decltype(auto) visit(V&& visitor);
