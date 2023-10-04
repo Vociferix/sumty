@@ -34,18 +34,6 @@ class variant {
   private:
     SUMTY_NO_UNIQ_ADDR detail::variant_impl<void, T...> data_;
 
-    template <size_t IDX, typename V, typename U>
-    static constexpr decltype(auto) jump_table_entry(V&& visitor, U&& var);
-
-    template <typename V, typename U, size_t... IDX>
-    static consteval auto jump_table(std::index_sequence<IDX...> seq);
-
-    template <typename V, typename U>
-    static consteval auto jump_table() noexcept;
-
-    template <typename V, typename U>
-    static constexpr decltype(auto) visit_impl(V&& visitor, U&& var);
-
     template <size_t IDX, typename U>
     [[nodiscard]] constexpr bool holds_alt_impl() const noexcept;
 
@@ -104,103 +92,157 @@ class variant {
     [[nodiscard]] constexpr size_t index() const noexcept;
 
     template <size_t I, typename... Args>
-    constexpr decltype(auto) emplace(Args&&... args);
+    constexpr typename detail::traits<detail::select_t<I, T...>>::reference emplace(
+        Args&&... args);
 
     template <size_t I, typename U, typename... Args>
-    constexpr decltype(auto) emplace(std::initializer_list<U> ilist, Args&&... args);
+    constexpr typename detail::traits<detail::select_t<I, T...>>::reference emplace(
+        std::initializer_list<U> ilist,
+        Args&&... args);
 
     template <typename U, typename... Args>
         requires(detail::is_unique_v<U, T...>)
-    constexpr decltype(auto) emplace(Args&&... args);
+    constexpr typename detail::traits<U>::reference emplace(Args&&... args);
 
     template <typename U, typename V, typename... Args>
         requires(detail::is_unique_v<U, T...>)
-    constexpr decltype(auto) emplace(std::initializer_list<V> ilist, Args&&... args);
+    constexpr typename detail::traits<U>::reference emplace(std::initializer_list<V> ilist,
+                                                            Args&&... args);
 
     template <size_t I>
-    [[nodiscard]] constexpr decltype(auto) operator[](index_t<I> index) & noexcept;
+    [[nodiscard]] constexpr typename detail::traits<detail::select_t<I, T...>>::reference
+    operator[](index_t<I> index) & noexcept;
 
     template <size_t I>
-    [[nodiscard]] constexpr decltype(auto) operator[](index_t<I> index) const& noexcept;
+    [[nodiscard]] constexpr
+        typename detail::traits<detail::select_t<I, T...>>::const_reference
+        operator[](index_t<I> index) const& noexcept;
 
     template <size_t I>
-    [[nodiscard]] constexpr decltype(auto) operator[](index_t<I> index) &&;
+    [[nodiscard]] constexpr
+        typename detail::traits<detail::select_t<I, T...>>::rvalue_reference
+        operator[](index_t<I> index) &&;
 
     template <size_t I>
-    [[nodiscard]] constexpr decltype(auto) operator[](index_t<I> index) const&&;
+    [[nodiscard]] constexpr
+        typename detail::traits<detail::select_t<I, T...>>::const_rvalue_reference
+        operator[](index_t<I> index) const&&;
 
     template <typename U>
         requires detail::is_unique_v<U, T...>
-    [[nodiscard]] constexpr decltype(auto) operator[](type_t<U> type) & noexcept;
+    [[nodiscard]] constexpr typename detail::traits<U>::reference operator[](
+        [[maybe_unused]] type_t<U> type) & noexcept {
+        return this->operator[](sumty::index<detail::index_of_v<U, T...>>);
+    }
 
     template <typename U>
         requires detail::is_unique_v<U, T...>
-    [[nodiscard]] constexpr decltype(auto) operator[](type_t<U> type) const& noexcept;
+    [[nodiscard]] constexpr typename detail::traits<U>::const_reference operator[](
+        [[maybe_unused]] type_t<U> type) const& noexcept {
+        return this->operator[](sumty::index<detail::index_of_v<U, T...>>);
+    }
 
     template <typename U>
         requires detail::is_unique_v<U, T...>
-    [[nodiscard]] constexpr decltype(auto) operator[](type_t<U> type) &&;
+    [[nodiscard]] constexpr typename detail::traits<U>::rvalue_reference operator[](
+        [[maybe_unused]] type_t<U> type) && {
+        return std::move(*this).operator[](sumty::index<detail::index_of_v<U, T...>>);
+    }
 
     template <typename U>
         requires detail::is_unique_v<U, T...>
-    [[nodiscard]] constexpr decltype(auto) operator[](type_t<U> type) const&&;
+    [[nodiscard]] constexpr typename detail::traits<U>::const_rvalue_reference operator[](
+        [[maybe_unused]] type_t<U> type) const&& {
+        return std::move(*this).operator[](sumty::index<detail::index_of_v<U, T...>>);
+    }
 
     template <size_t I>
-    [[nodiscard]] constexpr decltype(auto) get() &;
+    [[nodiscard]] constexpr typename detail::traits<detail::select_t<I, T...>>::reference
+    get() &;
 
     template <size_t I>
-    [[nodiscard]] constexpr decltype(auto) get() const&;
+    [[nodiscard]] constexpr
+        typename detail::traits<detail::select_t<I, T...>>::const_reference
+        get() const&;
 
     template <size_t I>
-    [[nodiscard]] constexpr decltype(auto) get() &&;
+    [[nodiscard]] constexpr
+        typename detail::traits<detail::select_t<I, T...>>::rvalue_reference
+        get() &&;
 
     template <size_t I>
-    [[nodiscard]] constexpr decltype(auto) get() const&&;
+    [[nodiscard]] constexpr
+        typename detail::traits<detail::select_t<I, T...>>::const_rvalue_reference
+        get() const&&;
 
     template <typename U>
         requires detail::is_unique_v<U, T...>
-    [[nodiscard]] constexpr decltype(auto) get() &;
+    [[nodiscard]] constexpr typename detail::traits<U>::reference get() & {
+        return this->template get<detail::index_of_v<U, T...>>();
+    }
 
     template <typename U>
         requires detail::is_unique_v<U, T...>
-    [[nodiscard]] constexpr decltype(auto) get() const&;
+    [[nodiscard]] constexpr typename detail::traits<U>::const_reference get() const& {
+        return this->template get<detail::index_of_v<U, T...>>();
+    }
 
     template <typename U>
         requires detail::is_unique_v<U, T...>
-    [[nodiscard]] constexpr decltype(auto) get() &&;
+    [[nodiscard]] constexpr typename detail::traits<U>::rvalue_reference get() && {
+        return std::move(*this).template get<detail::index_of_v<U, T...>>();
+    }
 
     template <typename U>
         requires detail::is_unique_v<U, T...>
-    [[nodiscard]] constexpr decltype(auto) get() const&&;
+    [[nodiscard]] constexpr typename detail::traits<U>::const_rvalue_reference get()
+        const&& {
+        return std::move(*this).template get<detail::index_of_v<U, T...>>();
+    }
 
     template <size_t I>
-    [[nodiscard]] constexpr auto get_if() noexcept;
+    [[nodiscard]] constexpr typename detail::traits<detail::select_t<I, T...>>::pointer
+    get_if() noexcept;
 
     template <size_t I>
-    [[nodiscard]] constexpr auto get_if() const noexcept;
+    [[nodiscard]] constexpr
+        typename detail::traits<detail::select_t<I, T...>>::const_pointer
+        get_if() const noexcept;
 
     template <typename U>
         requires detail::is_unique_v<U, T...>
-    [[nodiscard]] constexpr auto get_if() noexcept;
+    [[nodiscard]] constexpr typename detail::traits<U>::pointer get_if() noexcept;
 
     template <typename U>
         requires detail::is_unique_v<U, T...>
-    [[nodiscard]] constexpr auto get_if() const noexcept;
+    [[nodiscard]] constexpr typename detail::traits<U>::const_pointer get_if()
+        const noexcept;
 
     template <typename U>
     [[nodiscard]] constexpr bool holds_alternative() const noexcept;
 
     template <typename V>
-    constexpr decltype(auto) visit(V&& visitor) &;
+    constexpr detail::
+        invoke_result_t<V&&, typename detail::traits<detail::select_t<0, T...>>::reference>
+        visit(V&& visitor) &;
 
     template <typename V>
-    constexpr decltype(auto) visit(V&& visitor) const&;
+    constexpr detail::invoke_result_t<
+        V&&,
+        typename detail::traits<detail::select_t<0, T...>>::const_reference>
+    visit(V&& visitor) const&;
 
     template <typename V>
-    constexpr decltype(auto) visit(V&& visitor) &&;
+    constexpr detail::invoke_result_t<
+        V&&,
+        typename detail::traits<detail::select_t<0, T...>>::rvalue_reference>
+    visit(V&& visitor) &&;
 
     template <typename V>
-    constexpr decltype(auto) visit(V&& visitor) const&&;
+    constexpr detail::invoke_result_t<
+        V&&,
+        typename detail::traits<detail::select_t<0, T...>>::const_rvalue_reference>
+    visit(V&& visitor) const&&;
 
     constexpr void swap(variant& other) noexcept(noexcept(data_.swap(other.data_)));
 };
@@ -209,52 +251,61 @@ template <typename T, typename... U>
 constexpr bool holds_alternative(const variant<U...>& v) noexcept;
 
 template <size_t I, typename... T>
-constexpr decltype(auto) get(variant<T...>& v);
+constexpr typename detail::traits<detail::select_t<I, T...>>::reference get(
+    variant<T...>& v);
 
 template <size_t I, typename... T>
-constexpr decltype(auto) get(const variant<T...>& v);
+constexpr typename detail::traits<detail::select_t<I, T...>>::const_reference get(
+    const variant<T...>& v);
 
 template <size_t I, typename... T>
-constexpr decltype(auto) get(variant<T...>&& v);
+constexpr typename detail::traits<detail::select_t<I, T...>>::rvalue_reference get(
+    variant<T...>&& v);
 
 template <size_t I, typename... T>
-constexpr decltype(auto) get(const variant<T...>&& v);
+constexpr typename detail::traits<detail::select_t<I, T...>>::const_rvalue_reference get(
+    const variant<T...>&& v);
 
 template <typename T, typename... U>
     requires detail::is_unique_v<T, U...>
-constexpr decltype(auto) get(variant<U...>& v);
+constexpr typename detail::traits<T>::reference get(variant<U...>& v);
 
 template <typename T, typename... U>
     requires detail::is_unique_v<T, U...>
-constexpr decltype(auto) get(const variant<U...>& v);
+constexpr typename detail::traits<T>::const_reference get(const variant<U...>& v);
 
 template <typename T, typename... U>
     requires detail::is_unique_v<T, U...>
-constexpr decltype(auto) get(variant<U...>&& v);
+constexpr typename detail::traits<T>::rvalue_reference get(variant<U...>&& v);
 
 template <typename T, typename... U>
     requires detail::is_unique_v<T, U...>
-constexpr decltype(auto) get(const variant<U...>&& v);
+constexpr typename detail::traits<T>::const_rvalue_reference get(const variant<U...>&& v);
 
 template <size_t I, typename... T>
-constexpr auto get_if(variant<T...>& v) noexcept;
+constexpr typename detail::traits<detail::select_t<I, T...>>::pointer get_if(
+    variant<T...>& v) noexcept;
 
 template <size_t I, typename... T>
-constexpr auto get_if(const variant<T...>& v) noexcept;
+constexpr typename detail::traits<detail::select_t<I, T...>>::const_pointer get_if(
+    const variant<T...>& v) noexcept;
 
 template <typename T, typename... U>
     requires detail::is_unique_v<T, U...>
-constexpr auto get_if(variant<U...>& v) noexcept;
+constexpr typename detail::traits<T>::pointer get_if(variant<U...>& v) noexcept;
 
 template <typename T, typename... U>
     requires detail::is_unique_v<T, U...>
-constexpr auto get_if(const variant<U...>& v) noexcept;
+constexpr typename detail::traits<T>::const_pointer get_if(const variant<U...>& v) noexcept;
 
 template <typename V>
-constexpr decltype(auto) visit(V&& visitor);
+constexpr std::invoke_result_t<V&&> visit(V&& visitor);
 
 template <typename V, typename T0, typename... TN>
-constexpr decltype(auto) visit(V&& visitor, T0&& var0, TN&&... varn);
+constexpr detail::invoke_result_t<V&&,
+                                  decltype(get<0>(std::declval<T0&&>())),
+                                  decltype(get<0>(std::declval<TN&&>()))...>
+visit(V&& visitor, T0&& var0, TN&&... varn);
 
 template <typename T>
 struct variant_size;

@@ -246,17 +246,18 @@ class variant_impl {
     }
 
     template <size_t I>
-    constexpr typename traits<select_t<I, T...>>::reference get() & noexcept {
+    [[nodiscard]] constexpr typename traits<select_t<I, T...>>::reference get() & noexcept {
         return data_.template get<I>();
     }
 
     template <size_t I>
-    constexpr typename traits<select_t<I, T...>>::const_reference get() const& noexcept {
+    [[nodiscard]] constexpr typename traits<select_t<I, T...>>::const_reference get()
+        const& noexcept {
         return data_.template get<I>();
     }
 
     template <size_t I>
-    constexpr typename traits<select_t<I, T...>>::rvalue_reference get() && {
+    [[nodiscard]] constexpr typename traits<select_t<I, T...>>::rvalue_reference get() && {
         if constexpr (std::is_void_v<select_t<I, T...>>) {
             return;
         } else if constexpr (std::is_lvalue_reference_v<select_t<I, T...>>) {
@@ -268,7 +269,8 @@ class variant_impl {
     }
 
     template <size_t I>
-    constexpr typename traits<select_t<I, T...>>::const_rvalue_reference get() const&& {
+    [[nodiscard]] constexpr typename traits<select_t<I, T...>>::const_rvalue_reference get()
+        const&& {
         if constexpr (std::is_void_v<select_t<I, T...>>) {
             return;
         } else if constexpr (std::is_lvalue_reference_v<select_t<I, T...>>) {
@@ -280,7 +282,7 @@ class variant_impl {
     }
 
     template <size_t I>
-    constexpr typename traits<select_t<I, T...>>::pointer ptr() noexcept {
+    [[nodiscard]] constexpr typename traits<select_t<I, T...>>::pointer ptr() noexcept {
         if constexpr (!std::is_void_v<select_t<I, T...>>) {
             return &data_.template get<I>();
         } else {
@@ -289,7 +291,8 @@ class variant_impl {
     }
 
     template <size_t I>
-    constexpr typename traits<select_t<I, T...>>::const_pointer ptr() const noexcept {
+    [[nodiscard]] constexpr typename traits<select_t<I, T...>>::const_pointer ptr()
+        const noexcept {
         if constexpr (!std::is_void_v<select_t<I, T...>>) {
             return &data_.template get<I>();
         } else {

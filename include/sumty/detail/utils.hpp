@@ -83,6 +83,40 @@ using select_t = typename select<IDX, T...>::type;
 template <typename... T>
 using first_t = select_t<0, T...>;
 
+template <typename... T>
+struct type_list {
+    template <size_t I>
+    using nth = select_t<I, T...>;
+
+    template <typename U>
+    using push_back = type_list<T..., U>;
+
+    template <typename U>
+    using push_front = type_list<U, T...>;
+};
+
+template <typename F, typename RealArgs, typename... Args>
+struct invoke_result_impl;
+
+template <typename F, typename... Args>
+struct invoke_result_impl<F, type_list<Args...>> {
+    using type = std::invoke_result_t<F, Args...>;
+};
+
+template <typename F, typename RealArgs, typename... Args>
+struct invoke_result_impl<F, RealArgs, void, Args...>
+    : invoke_result_impl<F, RealArgs, Args...> {};
+
+template <typename F, typename RealArgs, typename FirstArg, typename... Args>
+struct invoke_result_impl<F, RealArgs, FirstArg, Args...>
+    : invoke_result_impl<F, typename RealArgs::template push_back<FirstArg>, Args...> {};
+
+template <typename F, typename... Args>
+struct invoke_result : invoke_result_impl<F, type_list<>, Args...> {};
+
+template <typename F, typename... Args>
+using invoke_result_t = typename invoke_result<F, Args...>::type;
+
 template <size_t N, typename T, typename... U>
 struct type_count_impl;
 
@@ -107,17 +141,17 @@ struct is_unique : std::integral_constant<bool, type_count_v<T, U...> == 1> {};
 template <typename T, typename... U>
 static inline constexpr bool is_unique_v = is_unique<T, U...>::value;
 
-template <size_t IDX, typename T, typename... U>
-struct index_of_impl;
-
-template <size_t IDX, typename T, typename U0, typename... UN>
-struct index_of_impl<IDX, T, U0, UN...> : index_of_impl<IDX + 1, T, UN...> {};
-
-template <size_t IDX, typename T, typename... UN>
-struct index_of_impl<IDX, T, T, UN...> : std::integral_constant<size_t, IDX> {};
+template <typename T, typename U0, typename... UN>
+constexpr size_t index_of_impl() noexcept {
+    if constexpr (std::is_same_v<T, U0>) {
+        return 0;
+    } else {
+        return 1 + index_of_impl<T, UN...>();
+    }
+}
 
 template <typename T, typename... U>
-struct index_of : index_of_impl<0, T, U...> {};
+struct index_of : std::integral_constant<size_t, index_of_impl<T, U...>()> {};
 
 template <typename T, typename... U>
 static inline constexpr size_t index_of_v = index_of<T, U...>::value;

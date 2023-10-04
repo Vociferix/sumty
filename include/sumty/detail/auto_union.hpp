@@ -16,6 +16,8 @@
 #ifndef SUMTY_DETAIL_AUTO_UNION_HPP
 #define SUMTY_DETAIL_AUTO_UNION_HPP
 
+#include "sumty/detail/traits.hpp"
+#include "sumty/detail/utils.hpp"
 #include "sumty/utils.hpp" // IWYU pragma: keep
 
 #include <cstddef>
@@ -72,7 +74,8 @@ union auto_union<T0, TN...> {
     }
 
     template <size_t IDX>
-    [[nodiscard]] constexpr decltype(auto) get() noexcept {
+    [[nodiscard]] constexpr typename traits<select_t<IDX, T0, TN...>>::reference
+    get() noexcept {
         if constexpr (IDX == 0) {
             return head_;
         } else {
@@ -81,7 +84,8 @@ union auto_union<T0, TN...> {
     }
 
     template <size_t IDX>
-    [[nodiscard]] constexpr decltype(auto) get() const noexcept {
+    [[nodiscard]] constexpr typename traits<select_t<IDX, T0, TN...>>::const_reference get()
+        const noexcept {
         if constexpr (IDX == 0) {
             return head_;
         } else {
@@ -130,7 +134,8 @@ union auto_union<T0&&, TN...> {
     }
 
     template <size_t IDX>
-    [[nodiscard]] constexpr decltype(auto) get() noexcept {
+    [[nodiscard]] constexpr typename traits<select_t<IDX, T0, TN...>>::reference
+    get() noexcept {
         if constexpr (IDX == 0) {
             return head_;
         } else {
@@ -139,7 +144,8 @@ union auto_union<T0&&, TN...> {
     }
 
     template <size_t IDX>
-    [[nodiscard]] constexpr decltype(auto) get() const noexcept {
+    [[nodiscard]] constexpr typename traits<select_t<IDX, T0, TN...>>::const_reference get()
+        const noexcept {
         if constexpr (IDX == 0) {
             return head_;
         } else {
@@ -188,7 +194,18 @@ union auto_union<T0&, TN...> {
     }
 
     template <size_t IDX>
-    [[nodiscard]] constexpr decltype(auto) get() const noexcept {
+    [[nodiscard]] constexpr typename traits<select_t<IDX, T0, TN...>>::reference
+    get() noexcept {
+        if constexpr (IDX == 0) {
+            return *head_;
+        } else {
+            return tail_.template get<IDX - 1>();
+        }
+    }
+
+    template <size_t IDX>
+    [[nodiscard]] constexpr typename traits<select_t<IDX, T0, TN...>>::const_reference get()
+        const noexcept {
         if constexpr (IDX == 0) {
             return *head_;
         } else {
@@ -232,7 +249,18 @@ union auto_union<void, TN...> {
     }
 
     template <size_t IDX>
-    [[nodiscard]] constexpr decltype(auto) get() const noexcept {
+    [[nodiscard]] constexpr typename traits<select_t<IDX, void, TN...>>::reference
+    get() noexcept {
+        if constexpr (IDX != 0) {
+            return tail_.template get<IDX - 1>();
+        } else {
+            return;
+        }
+    }
+
+    template <size_t IDX>
+    [[nodiscard]] constexpr typename traits<select_t<IDX, void, TN...>>::const_reference
+    get() const noexcept {
         if constexpr (IDX != 0) {
             return tail_.template get<IDX - 1>();
         } else {
