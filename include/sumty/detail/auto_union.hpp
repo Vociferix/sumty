@@ -194,7 +194,7 @@ union auto_union<T0&, TN...> {
     }
 
     template <size_t IDX>
-    [[nodiscard]] constexpr typename traits<select_t<IDX, T0, TN...>>::reference
+    [[nodiscard]] constexpr typename traits<select_t<IDX, T0&, TN...>>::reference
     get() noexcept {
         if constexpr (IDX == 0) {
             return *head_;
@@ -204,8 +204,8 @@ union auto_union<T0&, TN...> {
     }
 
     template <size_t IDX>
-    [[nodiscard]] constexpr typename traits<select_t<IDX, T0, TN...>>::const_reference get()
-        const noexcept {
+    [[nodiscard]] constexpr typename traits<select_t<IDX, T0&, TN...>>::const_reference
+    get() const noexcept {
         if constexpr (IDX == 0) {
             return *head_;
         } else {

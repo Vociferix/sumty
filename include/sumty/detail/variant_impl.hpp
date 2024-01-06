@@ -26,6 +26,7 @@
 #include <utility>
 
 // IWYU pragma: no_include <string>
+// IWYU pragma: no_include <variant>
 
 namespace sumty::detail {
 
@@ -41,7 +42,11 @@ class variant_impl {
     constexpr void copy_construct(const auto_union<T...>& data) {
         if constexpr (I < sizeof...(T)) {
             if (discrim_ == static_cast<discrim_t>(I)) {
-                data_.template construct<I>(data.template get<I>());
+                if constexpr (std::is_void_v<select_t<I, T...>>) {
+                    data_.template construct<I>();
+                } else {
+                    data_.template construct<I>(data.template get<I>());
+                }
             } else {
                 copy_construct<I + 1>(data);
             }
@@ -53,7 +58,13 @@ class variant_impl {
         (true && ... && traits<T>::is_nothrow_move_constructible)) {
         if constexpr (I < sizeof...(T)) {
             if (discrim_ == static_cast<discrim_t>(I)) {
-                data_.template construct<I>(std::move(data.template get<I>()));
+                if constexpr (std::is_void_v<select_t<I, T...>>) {
+                    data_.template construct<I>();
+                } else if constexpr (std::is_lvalue_reference_v<select_t<I, T...>>) {
+                    data_.template construct<I>(data.template get<I>());
+                } else {
+                    data_.template construct<I>(std::move(data.template get<I>()));
+                }
             } else {
                 move_construct<I + 1>(data);
             }
@@ -75,7 +86,13 @@ class variant_impl {
     constexpr void copy_assign(const auto_union<T...>& data) {
         if constexpr (I < sizeof...(T)) {
             if (discrim_ == static_cast<discrim_t>(I)) {
-                data_.template get<I>() = data.template get<I>();
+                if constexpr (std::is_void_v<select_t<I, T...>>) {
+                    data_.template construct<I>();
+                } else if constexpr (std::is_lvalue_reference_v<select_t<I, T...>>) {
+                    data_.template construct<I>(data.template get<I>());
+                } else {
+                    data_.template get<I>() = data.template get<I>();
+                }
             } else {
                 copy_assign<I + 1>(data);
             }
@@ -87,7 +104,13 @@ class variant_impl {
         (true && ... && traits<T>::is_nothrow_move_assignable)) {
         if constexpr (I < sizeof...(T)) {
             if (discrim_ == static_cast<discrim_t>(I)) {
-                data_.template get<I>() = std::move(data.template get<I>());
+                if constexpr (std::is_void_v<select_t<I, T...>>) {
+                    data_.template construct<I>();
+                } else if constexpr (std::is_lvalue_reference_v<select_t<I, T...>>) {
+                    data_.template construct<I>(data.template get<I>());
+                } else {
+                    data_.template get<I>() = std::move(data.template get<I>());
+                }
             } else {
                 move_assign<I + 1>(data);
             }
@@ -99,7 +122,11 @@ class variant_impl {
         (true && ... && traits<T>::is_nothrow_swappable)) {
         if constexpr (I < sizeof...(T)) {
             if (discrim_ == static_cast<discrim_t>(I)) {
-                if constexpr (!std::is_void_v<select_t<I, T...>>) {
+                if constexpr (std::is_lvalue_reference_v<select_t<I, T...>>) {
+                    auto* tmp = &data.template get<I>();
+                    data.template construct<I>(data_.template get<I>());
+                    data_.template construct<I>(*tmp);
+                } else if constexpr (!std::is_void_v<select_t<I, T...>>) {
                     using std::swap;
                     swap(data_.template get<I>(), data.template get<I>());
                 }
@@ -110,7 +137,7 @@ class variant_impl {
     }
 
     template <size_t I, size_t J>
-    constexpr void diff_swap_impl(variant_impl<T...>& other) noexcept((
+    constexpr void diff_swap_impl(variant_impl& other) noexcept((
         true && ... &&
         (traits<T>::is_nothrow_move_constructible && traits<T>::is_nothrow_destructible))) {
         std::swap(discrim_, other.discrim_);
@@ -162,7 +189,7 @@ class variant_impl {
     }
 
     template <size_t I, size_t J>
-    constexpr void diff_swap_nested(variant_impl<T...>& other) noexcept((
+    constexpr void diff_swap_nested(variant_impl& other) noexcept((
         true && ... &&
         (traits<T>::is_nothrow_move_constructible && traits<T>::is_nothrow_destructible))) {
         if constexpr (J < sizeof...(T)) {
@@ -175,12 +202,12 @@ class variant_impl {
     }
 
     template <size_t I>
-    constexpr void diff_swap(variant_impl<T...>& other) noexcept((
+    constexpr void diff_swap(variant_impl& other) noexcept((
         true && ... &&
         (traits<T>::is_nothrow_move_constructible && traits<T>::is_nothrow_destructible))) {
         if constexpr (I < sizeof...(T)) {
             if (discrim_ == static_cast<discrim_t>(I)) {
-                diff_swap_nested<I, 0>(data_.template get<I>(), other);
+                diff_swap_nested<I, 0>(other);
             } else {
                 diff_swap<I + 1>(other);
             }
@@ -222,6 +249,7 @@ class variant_impl {
                 copy_assign<0>(rhs.data_);
             } else {
                 destroy<0>();
+                discrim_ = rhs.discrim_;
                 copy_construct<0>(rhs.data_);
             }
         }
@@ -236,6 +264,7 @@ class variant_impl {
             move_assign<0>(rhs.data_);
         } else {
             destroy<0>();
+            discrim_ = rhs.discrim_;
             move_construct<0>(rhs.data_);
         }
         return *this;

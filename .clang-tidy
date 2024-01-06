@@ -14,8 +14,10 @@ Checks: "*,
          -readability-identifier-length,
          -cppcoreguidelines-non-private-member-variables-in-classes,
          -cppcoreguidelines-pro-type-union-access,
+         -cppcoreguidelines-pro-bounds-constant-array-index,
          -misc-non-private-member-variables-in-classes,
          -bugprone-forwarding-reference-overload,
+         -hicpp-move-const-arg,
 "
 HeaderFilterRegex: '.*/sumty/.*'
 FormatStyle: file

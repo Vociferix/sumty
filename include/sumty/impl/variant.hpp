@@ -59,9 +59,8 @@ static constexpr auto jump_table = make_jump_table<V, U, T...>();
 
 template <typename V, typename U, typename... T>
 constexpr decltype(auto) visit_impl(V&& visitor, U&& var) {
-    const auto JUMP_TABLE = jump_table<V, U, T...>();
-    return detail::jump_table<V, U>[var.index()](std::forward<V>(visitor),
-                                                 std::forward<U>(var));
+    return jump_table<V, U, T...>[var.index()](std::forward<V>(visitor),
+                                               std::forward<U>(var));
 }
 
 } // namespace detail
@@ -398,23 +397,32 @@ constexpr std::invoke_result_t<V&&> visit(V&& visitor) {
 }
 
 template <typename V, typename T0, typename... TN>
-constexpr auto visit(V&& visitor, T0&& var0, TN&&... varn)
-    -> detail::invoke_result_t<V&&,
-                               decltype(get<0>(std::forward<T0>(var0))),
-                               decltype(get<0>(std::forward<TN>(varn)))...> {
-    return std::forward<T0>(var0).visit(
-        [visitor = std::forward<V>(visitor),
-         ... varn = std::forward<TN>(varn)](auto&& value) -> decltype(auto) {
-            return visit(
-                [visitor = std::forward<V>(visitor),
-                 value = std::forward<decltype(value)>(value)](
-                    auto&&... args) -> decltype(auto) {
-                    return std::invoke(std::forward<V>(visitor),
-                                       std::forward<decltype(value)>(value),
-                                       std::forward<decltype(args)>(args)...);
-                },
-                std::forward<TN>(varn)...);
-        });
+constexpr detail::invoke_result_t<V&&,
+                                  decltype(get<0>(std::declval<T0&&>())),
+                                  decltype(get<0>(std::declval<TN&&>()))...>
+visit(V&& visitor, T0&& var0, TN&&... varn) {
+    if constexpr (sizeof...(TN) == 0) {
+        return std::forward<T0>(var0).visit(std::forward<V>(visitor));
+    } else {
+        return std::forward<T0>(var0).visit(
+            [visitor = std::forward<V>(visitor),
+             ... varn = std::forward<TN>(varn)](auto&&... value) mutable {
+                return visit(
+                    [visitor = std::forward<V>(visitor),
+                     ... value = std::forward<decltype(value)>(value)](
+                        auto&&... args) mutable -> decltype(auto) {
+                        return std::invoke(std::forward<V>(visitor),
+                                           std::forward<decltype(value)>(value)...,
+                                           std::forward<decltype(args)>(args)...);
+                    },
+                    std::forward<TN>(varn)...);
+            });
+    }
+}
+
+template <typename... T>
+constexpr void swap(variant<T...>& a, variant<T...>& b) {
+    a.swap(b);
 }
 
 } // namespace sumty

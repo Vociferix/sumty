@@ -50,6 +50,9 @@ struct index_t {
 template <size_t N>
 static inline constexpr index_t<N> index{};
 
+template <size_t N>
+static inline constexpr index_t<N> index_v{};
+
 template <typename T>
 struct type_t {
     template <typename S>
@@ -63,9 +66,24 @@ struct type_t {
 template <typename T>
 static inline constexpr type_t<T> type{};
 
+template <typename T>
+static inline constexpr type_t<T> type_v{};
+
 struct none_t {};
 
 static inline constexpr none_t none{};
+
+static inline constexpr none_t none_v{};
+
+template <typename... T>
+struct overload_t : T... {
+    using T::operator()...;
+};
+
+template <typename... T>
+constexpr overload_t<T...> overload(T&&... funcs) {
+    return overload_t<T...>{std::forward<T>(funcs)...};
+}
 
 } // namespace sumty
 

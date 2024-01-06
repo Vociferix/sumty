@@ -307,6 +307,9 @@ constexpr detail::invoke_result_t<V&&,
                                   decltype(get<0>(std::declval<TN&&>()))...>
 visit(V&& visitor, T0&& var0, TN&&... varn);
 
+template <typename... T>
+constexpr void swap(variant<T...>& a, variant<T...>& b);
+
 template <typename T>
 struct variant_size;
 
