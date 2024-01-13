@@ -234,7 +234,8 @@ class variant_impl {
     constexpr explicit(sizeof...(Args) == 0) variant_impl(
         [[maybe_unused]] std::in_place_index_t<I> inplace,
         Args&&... args) noexcept(traits<select_t<I, T...>>::
-                                     template is_nothrow_constructible<Args...>) {
+                                     template is_nothrow_constructible<Args...>)
+        : discrim_(static_cast<discrim_t>(I)) {
         data_.template construct<I>(std::forward<Args>(args)...);
     }
 
@@ -637,21 +638,22 @@ template <typename T, typename U>
 class variant_impl<std::enable_if_t<(sizeof(U) <= sizeof(bool))>, T&, U> {
   private:
     T* head_;
-    union {
-        SUMTY_NO_UNIQ_ADDR U tail_;
+    union Tail {
+        SUMTY_NO_UNIQ_ADDR U tail;
     };
+    SUMTY_NO_UNIQ_ADDR Tail tail_;
 
   public:
     variant_impl() = delete;
 
     constexpr variant_impl(const variant_impl& other) : head_(other.head_) {
-        if (head_ == nullptr) { std::construct_at(&tail_, other.tail_); }
+        if (head_ == nullptr) { std::construct_at(&tail_.tail, other.tail_.tail); }
     }
 
     constexpr variant_impl(variant_impl&& other) noexcept(
         std::is_nothrow_move_constructible_v<U>)
         : head_(other.head_) {
-        if (head_ == nullptr) { std::construct_at(&tail_, std::move(other.tail_)); }
+        if (head_ == nullptr) { std::construct_at(&tail_.tail, std::move(other.tail_.tail)); }
     }
 
     template <typename V>
@@ -666,11 +668,11 @@ class variant_impl<std::enable_if_t<(sizeof(U) <= sizeof(bool))>, T&, U> {
         constexpr variant_impl([[maybe_unused]] std::in_place_index_t<1> inplace,
                                Args&&... args)
         : head_(nullptr) {
-        std::construct_at(&tail_, std::forward<Args>(args)...);
+        std::construct_at(&tail_.tail, std::forward<Args>(args)...);
     }
 
     constexpr ~variant_impl() noexcept(std::is_nothrow_destructible_v<U>) {
-        if (head_ == nullptr) { std::destroy_at(&tail_); }
+        if (head_ == nullptr) { std::destroy_at(&tail_.tail); }
     }
 
     constexpr variant_impl& operator=(const variant_impl& rhs) {
@@ -678,13 +680,13 @@ class variant_impl<std::enable_if_t<(sizeof(U) <= sizeof(bool))>, T&, U> {
             if (head_ == nullptr) {
                 head_ = rhs.head_;
                 if (head_ == nullptr) {
-                    tail_ = rhs.tail_;
+                    tail_.tail = rhs.tail_.tail;
                 } else {
-                    std::destroy_at(&tail_);
+                    std::destroy_at(&tail_.tail);
                 }
             } else {
                 head_ = rhs.head_;
-                if (head_ == nullptr) { std::construct_at(&tail_, rhs.tail_); }
+                if (head_ == nullptr) { std::construct_at(&tail_.tail, rhs.tail_.tail); }
             }
         }
         return *this;
@@ -696,13 +698,13 @@ class variant_impl<std::enable_if_t<(sizeof(U) <= sizeof(bool))>, T&, U> {
         if (head_ == nullptr) {
             head_ = rhs.head_;
             if (head_ == nullptr) {
-                tail_ = std::move(rhs.tail_);
+                tail_.tail = std::move(rhs.tail_.tail);
             } else {
-                std::destroy_at(&tail_);
+                std::destroy_at(&tail_.tail);
             }
         } else {
             head_ = rhs.head_;
-            if (head_ == nullptr) { std::construct_at(&tail_, std::move(rhs.tail_)); }
+            if (head_ == nullptr) { std::construct_at(&tail_.tail, std::move(rhs.tail_.tail)); }
         }
         return *this;
     }
@@ -717,7 +719,7 @@ class variant_impl<std::enable_if_t<(sizeof(U) <= sizeof(bool))>, T&, U> {
         if constexpr (I == 0) {
             return *head_;
         } else {
-            return tail_;
+            return tail_.tail;
         }
     }
 
@@ -727,7 +729,7 @@ class variant_impl<std::enable_if_t<(sizeof(U) <= sizeof(bool))>, T&, U> {
         if constexpr (I == 0) {
             return *head_;
         } else {
-            return tail_;
+            return tail_.tail;
         }
     }
 
@@ -736,7 +738,7 @@ class variant_impl<std::enable_if_t<(sizeof(U) <= sizeof(bool))>, T&, U> {
         if constexpr (I == 0) {
             return *head_;
         } else {
-            return std::move(tail_);
+            return std::move(tail_.tail);
         }
     }
 
@@ -746,7 +748,7 @@ class variant_impl<std::enable_if_t<(sizeof(U) <= sizeof(bool))>, T&, U> {
         if constexpr (I == 0) {
             return *head_;
         } else {
-            return std::move(tail_);
+            return std::move(tail_.tail);
         }
     }
 
@@ -755,7 +757,7 @@ class variant_impl<std::enable_if_t<(sizeof(U) <= sizeof(bool))>, T&, U> {
         if constexpr (I == 0) {
             return head_;
         } else {
-            return &tail_;
+            return &tail_.tail;
         }
     }
 
@@ -765,7 +767,7 @@ class variant_impl<std::enable_if_t<(sizeof(U) <= sizeof(bool))>, T&, U> {
         if constexpr (I == 0) {
             return head_;
         } else {
-            return &tail_;
+            return &tail_.tail;
         }
     }
 
@@ -775,15 +777,15 @@ class variant_impl<std::enable_if_t<(sizeof(U) <= sizeof(bool))>, T&, U> {
             static_assert(
                 (true && ... && std::is_lvalue_reference_v<Args>)&&sizeof...(Args) == 1,
                 "no matching constructor for reference");
-            if (head_ != nullptr) { std::destroy_at(&tail_); }
+            if (head_ != nullptr) { std::destroy_at(&tail_.tail); }
             head_ = std::addressof(std::forward<Args>(args)...);
         } else {
             if (head_ == nullptr) {
-                std::destroy_at(&tail_);
+                std::destroy_at(&tail_.tail);
             } else {
                 head_ = nullptr;
             }
-            std::construct_at(&tail_, std::forward<Args>(args)...);
+            std::construct_at(&tail_.tail, std::forward<Args>(args)...);
         }
     }
 
@@ -793,19 +795,19 @@ class variant_impl<std::enable_if_t<(sizeof(U) <= sizeof(bool))>, T&, U> {
         if (head_ == nullptr) {
             if (other.head_ == nullptr) {
                 using std::swap;
-                swap(tail_, other.tail_);
+                swap(tail_.tail, other.tail_.tail);
             } else {
                 head_ = other.head_;
                 other.head_ = nullptr;
-                std::construct_at(&other.tail_, std::move(tail_));
-                std::destroy_at(&tail_);
+                std::construct_at(&other.tail_.tail, std::move(tail_.tail));
+                std::destroy_at(&tail_.tail);
             }
         } else {
             if (other.head_ == nullptr) {
                 other.head_ = head_;
                 head_ = nullptr;
-                std::construct_at(&tail_, std::move(other.tail_));
-                std::destroy_at(&other.tail_);
+                std::construct_at(&tail_.tail, std::move(other.tail_.tail));
+                std::destroy_at(&other.tail_.tail);
             } else {
                 std::swap(head_, other.head_);
             }
@@ -817,23 +819,24 @@ template <typename T, typename U>
 class variant_impl<std::enable_if_t<(sizeof(T) <= sizeof(bool))>, T, U&> {
   private:
     U* tail_{nullptr};
-    union {
-        SUMTY_NO_UNIQ_ADDR T head_;
+    union Head {
+        SUMTY_NO_UNIQ_ADDR T head;
     };
+    SUMTY_NO_UNIQ_ADDR Head head_;
 
   public:
     constexpr variant_impl() noexcept(std::is_nothrow_default_constructible_v<T>) {
-        std::construct_at(&head_);
+        std::construct_at(&head_.head);
     }
 
     constexpr variant_impl(const variant_impl& other) : tail_(other.tail_) {
-        if (tail_ == nullptr) { std::construct_at(&head_, other.head_); }
+        if (tail_ == nullptr) { std::construct_at(&head_.head, other.head_.head); }
     }
 
     constexpr variant_impl(variant_impl&& other) noexcept(
         std::is_nothrow_move_constructible_v<T>)
         : tail_(other.tail_) {
-        if (tail_ == nullptr) { std::construct_at(&head_, std::move(other.head_)); }
+        if (tail_ == nullptr) { std::construct_at(&head_.head, std::move(other.head_.head)); }
     }
 
     template <typename... Args>
@@ -841,7 +844,7 @@ class variant_impl<std::enable_if_t<(sizeof(T) <= sizeof(bool))>, T, U&> {
         // NOLINTNEXTLINE(hicpp-explicit-conversions)
         constexpr variant_impl([[maybe_unused]] std::in_place_index_t<0> inplace,
                                Args&&... args) {
-        std::construct_at(&head_, std::forward<Args>(args)...);
+        std::construct_at(&head_.head, std::forward<Args>(args)...);
     }
 
     template <typename V>
@@ -851,7 +854,7 @@ class variant_impl<std::enable_if_t<(sizeof(T) <= sizeof(bool))>, T, U&> {
         : tail_(&value) {}
 
     constexpr ~variant_impl() noexcept(std::is_nothrow_destructible_v<T>) {
-        if (tail_ == nullptr) { std::destroy_at(&head_); }
+        if (tail_ == nullptr) { std::destroy_at(&head_.head); }
     }
 
     constexpr variant_impl& operator=(const variant_impl& rhs) {
@@ -859,13 +862,13 @@ class variant_impl<std::enable_if_t<(sizeof(T) <= sizeof(bool))>, T, U&> {
             if (tail_ == nullptr) {
                 tail_ = rhs.tail_;
                 if (tail_ == nullptr) {
-                    head_ = rhs.head_;
+                    head_.head = rhs.head_.head;
                 } else {
-                    std::destroy_at(&head_);
+                    std::destroy_at(&head_.head);
                 }
             } else {
                 tail_ = rhs.tail_;
-                if (head_ == nullptr) { std::construct_at(&head_, rhs.head_); }
+                if (tail_ == nullptr) { std::construct_at(&head_.head, rhs.head_.head); }
             }
         }
         return *this;
@@ -877,13 +880,13 @@ class variant_impl<std::enable_if_t<(sizeof(T) <= sizeof(bool))>, T, U&> {
         if (tail_ == nullptr) {
             tail_ = rhs.tail_;
             if (tail_ == nullptr) {
-                head_ = std::move(rhs.head_);
+                head_.head = std::move(rhs.head_.head);
             } else {
-                std::destroy_at(&head_);
+                std::destroy_at(&head_.head);
             }
         } else {
             tail_ = rhs.tail_;
-            if (head_ == nullptr) { std::construct_at(&head_, std::move(rhs.head_)); }
+            if (tail_ == nullptr) { std::construct_at(&head_.head, std::move(rhs.head_.head)); }
         }
         return *this;
     }
@@ -896,7 +899,7 @@ class variant_impl<std::enable_if_t<(sizeof(T) <= sizeof(bool))>, T, U&> {
     [[nodiscard]] constexpr typename traits<select_t<I, T, U&>>::reference
     get() & noexcept {
         if constexpr (I == 0) {
-            return head_;
+            return head_.head;
         } else {
             return *tail_;
         }
@@ -906,7 +909,7 @@ class variant_impl<std::enable_if_t<(sizeof(T) <= sizeof(bool))>, T, U&> {
     [[nodiscard]] constexpr typename traits<select_t<I, T, U&>>::const_reference get()
         const& noexcept {
         if constexpr (I == 0) {
-            return head_;
+            return head_.head;
         } else {
             return *tail_;
         }
@@ -915,7 +918,7 @@ class variant_impl<std::enable_if_t<(sizeof(T) <= sizeof(bool))>, T, U&> {
     template <size_t I>
     [[nodiscard]] constexpr typename traits<select_t<I, T, U&>>::rvalue_reference get() && {
         if constexpr (I == 0) {
-            return std::move(head_);
+            return std::move(head_.head);
         } else {
             return *tail_;
         }
@@ -925,7 +928,7 @@ class variant_impl<std::enable_if_t<(sizeof(T) <= sizeof(bool))>, T, U&> {
     [[nodiscard]] constexpr typename traits<select_t<I, T, U&>>::const_rvalue_reference
     get() const&& {
         if constexpr (I == 0) {
-            return std::move(head_);
+            return std::move(head_.head);
         } else {
             return *tail_;
         }
@@ -934,7 +937,7 @@ class variant_impl<std::enable_if_t<(sizeof(T) <= sizeof(bool))>, T, U&> {
     template <size_t I>
     [[nodiscard]] constexpr typename traits<select_t<I, T, U&>>::pointer ptr() noexcept {
         if constexpr (I == 0) {
-            return &head_;
+            return &head_.head;
         } else {
             return tail_;
         }
@@ -944,7 +947,7 @@ class variant_impl<std::enable_if_t<(sizeof(T) <= sizeof(bool))>, T, U&> {
     [[nodiscard]] constexpr typename traits<select_t<I, T, U&>>::const_pointer ptr()
         const noexcept {
         if constexpr (I == 0) {
-            return &head_;
+            return &head_.head;
         } else {
             return tail_;
         }
@@ -956,15 +959,15 @@ class variant_impl<std::enable_if_t<(sizeof(T) <= sizeof(bool))>, T, U&> {
             static_assert(
                 (true && ... && std::is_lvalue_reference_v<Args>)&&sizeof...(Args) == 1,
                 "no matching constructor for reference");
-            if (tail_ != nullptr) { std::destroy_at(&head_); }
+            if (tail_ != nullptr) { std::destroy_at(&head_.head); }
             tail_ = std::addressof(std::forward<Args>(args)...);
         } else {
             if (tail_ == nullptr) {
-                std::destroy_at(&head_);
+                std::destroy_at(&head_.head);
             } else {
                 tail_ = nullptr;
             }
-            std::construct_at(&head_, std::forward<Args>(args)...);
+            std::construct_at(&head_.head, std::forward<Args>(args)...);
         }
     }
 
@@ -974,19 +977,19 @@ class variant_impl<std::enable_if_t<(sizeof(T) <= sizeof(bool))>, T, U&> {
         if (tail_ == nullptr) {
             if (other.tail_ == nullptr) {
                 using std::swap;
-                swap(head_, other.head_);
+                swap(head_.head, other.head_.head);
             } else {
                 tail_ = other.tail_;
                 other.tail_ = nullptr;
-                std::construct_at(&other.head_, std::move(head_));
-                std::destroy_at(&head_);
+                std::construct_at(&other.head_.head, std::move(head_.head));
+                std::destroy_at(&head_.head);
             }
         } else {
             if (other.tail_ == nullptr) {
                 other.tail_ = tail_;
                 tail_ = nullptr;
-                std::construct_at(&head_, std::move(other.head_));
-                std::destroy_at(&other.head_);
+                std::construct_at(&head_.head, std::move(other.head_.head));
+                std::destroy_at(&other.head_.head);
             } else {
                 std::swap(tail_, other.tail_);
             }

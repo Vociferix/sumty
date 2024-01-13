@@ -53,7 +53,7 @@ template <typename U>
                                      std::in_place_index_t<1>,
                                      typename detail::traits<U>::const_reference>)
 constexpr option<T>::option(const option<U>& other) : option() {
-    if (other.has_value()) { opt_.emplace(*other); }
+    if (other.has_value()) { opt_.template emplace<1>(*other); }
 }
 
 template <typename T>
@@ -62,7 +62,7 @@ template <typename U>
                                      std::in_place_index_t<1>,
                                      typename detail::traits<U>::rvalue_reference>)
 constexpr option<T>::option(option<U>&& other) : option() {
-    if (other.has_value()) { opt_.emplace(*std::move(other)); }
+    if (other.has_value()) { opt_.template emplace<1>(*std::move(other)); }
 }
 
 template <typename T>
@@ -81,7 +81,8 @@ template <typename T>
 template <typename U>
     requires(std::is_constructible_v<variant<void, T>, std::in_place_index_t<1>, U &&> &&
              !std::is_same_v<std::remove_cvref_t<U>, std::in_place_t> &&
-             (!std::is_same_v<std::remove_const_t<T>, bool> || !detail::is_option_v<U>))
+             !std::is_same_v<std::remove_const_t<T>, bool> &&
+             !detail::is_option_v<std::remove_cvref_t<U>>)
 constexpr option<T>::option(U&& value)
     : opt_(std::in_place_index<1>, std::forward<U>(value)) {}
 
@@ -532,6 +533,118 @@ constexpr typename option<T>::reference option<T>::emplace(Args&&... args) {
     return opt_[index<1>];
 }
 
+template <size_t IDX, typename T>
+constexpr typename detail::traits<detail::select_t<IDX, void, T>>::reference get(
+    option<T>& opt) {
+    if constexpr (IDX == 0) {
+        if (opt.has_value()) { throw bad_option_access(); }
+    } else {
+        static_assert(IDX == 1, "Invalid get index for sumty::option");
+        return opt.value();
+    }
+}
+
+template <size_t IDX, typename T>
+constexpr typename detail::traits<detail::select_t<IDX, void, T>>::const_reference get(
+    const option<T>& opt) {
+    if constexpr (IDX == 0) {
+        if (opt.has_value()) { throw bad_option_access(); }
+    } else {
+        static_assert(IDX == 1, "Invalid get index for sumty::option");
+        return opt.value();
+    }
+}
+
+template <size_t IDX, typename T>
+constexpr typename detail::traits<detail::select_t<IDX, void, T>>::rvalue_reference get(
+    option<T>&& opt) {
+    if constexpr (IDX == 0) {
+        if (opt.has_value()) { throw bad_option_access(); }
+    } else {
+        static_assert(IDX == 1, "Invalid get index for sumty::option");
+        return std::move(opt).value();
+    }
+}
+
+template <size_t IDX, typename T>
+constexpr typename detail::traits<detail::select_t<IDX, void, T>>::const_rvalue_reference
+get(const option<T>&& opt) {
+    if constexpr (IDX == 0) {
+        if (opt.has_value()) { throw bad_option_access(); }
+    } else {
+        static_assert(IDX == 1, "Invalid get index for sumty::option");
+        return std::move(opt).value();
+    }
+}
+
+template <typename T, typename U>
+    requires(!std::is_void_v<U>)
+constexpr typename detail::traits<T>::reference get(option<U>& opt) {
+    if constexpr (std::is_void_v<T>) {
+        if (opt.has_value()) { throw bad_option_access(); }
+    } else {
+        static_assert(std::is_same_v<T, U>, "Invalid get type for sumty::option");
+        return opt.value();
+    }
+}
+
+template <typename T, typename U>
+    requires(!std::is_void_v<U>)
+constexpr typename detail::traits<T>::const_reference get(const option<U>& opt) {
+    if constexpr (std::is_void_v<T>) {
+        if (opt.has_value()) { throw bad_option_access(); }
+    } else {
+        static_assert(std::is_same_v<T, U>, "Invalid get type for sumty::option");
+        return opt.value();
+    }
+}
+
+template <typename T, typename U>
+    requires(!std::is_void_v<U>)
+constexpr typename detail::traits<T>::rvalue_reference get(option<U>&& opt) {
+    if constexpr (std::is_void_v<T>) {
+        if (opt.has_value()) { throw bad_option_access(); }
+    } else {
+        static_assert(std::is_same_v<T, U>, "Invalid get type for sumty::option");
+        return std::move(opt).value();
+    }
+}
+
+template <typename T, typename U>
+    requires(!std::is_void_v<U>)
+constexpr typename detail::traits<T>::const_rvalue_reference get(const option<U>&& opt) {
+    if constexpr (std::is_void_v<T>) {
+        if (opt.has_value()) { throw bad_option_access(); }
+    } else {
+        static_assert(std::is_same_v<T, U>, "Invalid get type for sumty::option");
+        return std::move(opt).value();
+    }
+}
+
+template <typename T>
+template <typename V>
+constexpr decltype(auto) option<T>::visit(V&& visitor) & {
+    return opt_.visit(std::forward<V>(visitor));
+}
+
+template <typename T>
+template <typename V>
+constexpr decltype(auto) option<T>::visit(V&& visitor) const& {
+    return opt_.visit(std::forward<V>(visitor));
+}
+
+template <typename T>
+template <typename V>
+constexpr decltype(auto) option<T>::visit(V&& visitor) && {
+    return std::move(opt_).visit(std::forward<V>(visitor));
+}
+
+template <typename T>
+template <typename V>
+constexpr decltype(auto) option<T>::visit(V&& visitor) const&& {
+    return std::move(opt_).visit(std::forward<V>(visitor));
+}
+
 template <typename T, typename U>
 constexpr bool operator==(const option<T>& lhs, const option<U>& rhs) {
     if (lhs.has_value()) {
@@ -643,9 +756,9 @@ constexpr bool operator>=(const U& lhs, const option<T>& rhs) {
 }
 
 template <typename T, typename U>
-    requires(std::three_way_comparable_with<std::remove_cvref_t<U>, std::remove_cvref_t<T>>)
+    requires(!detail::is_option_v<U>)
 constexpr std::compare_three_way_result_t<std::remove_cvref_t<T>, std::remove_cvref_t<U>>
-operator<=>(const option<T>& lhs, const U& rhs) {
+operator<=>(const option<T>& lhs, const U& rhs) requires(std::three_way_comparable_with<std::remove_cvref_t<U>, std::remove_cvref_t<T>>) {
     if (lhs.has_value()) {
         return *lhs <=> rhs;
     } else {

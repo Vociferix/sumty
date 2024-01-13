@@ -25,6 +25,8 @@ constexpr T0 max(T0 value0, T0 value1, TN... valuen) {
 TEST_CASE("special variant sizes", "[variant]") {
     STATIC_CHECK(std::is_empty_v<variant<void>>);
     STATIC_CHECK(std::is_empty_v<variant<empty_t>>);
+    STATIC_CHECK(sizeof(variant<empty_t, int&>) == sizeof(void*));
+    STATIC_CHECK(sizeof(variant<int&, empty_t>) == sizeof(void*));
     STATIC_CHECK(sizeof(variant<int>) == sizeof(int));
     STATIC_CHECK(sizeof(variant<int&>) == sizeof(void*));
     STATIC_CHECK(sizeof(variant<void, int&>) == sizeof(void*));
@@ -40,6 +42,17 @@ TEST_CASE("variant default construct", "[variant]") {
     REQUIRE(get<int>(v) == 0);
     REQUIRE(v[sumty::index<0>] == 0);
     REQUIRE(v[sumty::type<int>] == 0);
+    REQUIRE(holds_alternative<int>(v) == true);
+}
+
+TEST_CASE("variant construct in place", "[variant]") {
+    static constexpr int INIT_VAL = 42;
+    variant<float, int, bool> v{in_place_index<1>, INIT_VAL};
+    REQUIRE(v.index() == 1);
+    REQUIRE(get<1>(v) == INIT_VAL);
+    REQUIRE(get<int>(v) == INIT_VAL);
+    REQUIRE(v[index_v<1>] == INIT_VAL);
+    REQUIRE(v[type<int>] == INIT_VAL);
     REQUIRE(holds_alternative<int>(v) == true);
 }
 

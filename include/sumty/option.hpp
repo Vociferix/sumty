@@ -108,7 +108,8 @@ class option {
         requires(
             std::is_constructible_v<variant<void, T>, std::in_place_index_t<1>, U &&> &&
             !std::is_same_v<std::remove_cvref_t<U>, std::in_place_t> &&
-            (!std::is_same_v<std::remove_const_t<T>, bool> || !detail::is_option_v<U>))
+            !std::is_same_v<std::remove_const_t<T>, bool> &&
+            !detail::is_option_v<std::remove_cvref_t<U>>)
     // NOLINTNEXTLINE(hicpp-explicit-conversions)
     explicit(!detail::traits<T>::template is_convertible_from<U>) constexpr option(
         U&& value);
@@ -137,7 +138,7 @@ class option {
   private:
     template <typename U>
     static inline constexpr bool assign_value_req =
-        !std::is_same_v<std::remove_cvref_t<U>, option<T>> &&
+        !detail::is_option_v<std::remove_cvref_t<U>> &&
         std::is_constructible_v<variant<void, T>, std::in_place_index_t<1>, U&&> &&
         detail::traits<T>::template is_assignable<U&&> &&
         (!std::is_scalar_v<value_type> || !std::is_same_v<T, std::decay_t<U>>);
@@ -292,6 +293,18 @@ class option {
     template <typename F>
     constexpr option or_else(F&& f) &&;
 
+    template <typename V>
+    constexpr decltype(auto) visit(V&& visitor) &;
+
+    template <typename V>
+    constexpr decltype(auto) visit(V&& visitor) const&;
+
+    template <typename V>
+    constexpr decltype(auto) visit(V&& visitor) &&;
+
+    template <typename V>
+    constexpr decltype(auto) visit(V&& visitor) const&&;
+
     constexpr void swap(option& other) noexcept(noexcept(opt_.swap(other.opt_)));
 
     constexpr void reset() noexcept;
@@ -299,6 +312,38 @@ class option {
     template <typename... Args>
     constexpr reference emplace(Args&&... args);
 };
+
+template <size_t IDX, typename T>
+constexpr typename detail::traits<detail::select_t<IDX, void, T>>::reference get(
+    option<T>& opt);
+
+template <size_t IDX, typename T>
+constexpr typename detail::traits<detail::select_t<IDX, void, T>>::const_reference get(
+    const option<T>& opt);
+
+template <size_t IDX, typename T>
+constexpr typename detail::traits<detail::select_t<IDX, void, T>>::rvalue_reference get(
+    option<T>&& opt);
+
+template <size_t IDX, typename T>
+constexpr typename detail::traits<detail::select_t<IDX, void, T>>::const_rvalue_reference
+get(const option<T>&& opt);
+
+template <typename T, typename U>
+    requires(!std::is_void_v<U>)
+constexpr typename detail::traits<T>::reference get(option<U>& opt);
+
+template <typename T, typename U>
+    requires(!std::is_void_v<U>)
+constexpr typename detail::traits<T>::const_reference get(const option<U>& opt);
+
+template <typename T, typename U>
+    requires(!std::is_void_v<U>)
+constexpr typename detail::traits<T>::rvalue_reference get(option<U>&& opt);
+
+template <typename T, typename U>
+    requires(!std::is_void_v<U>)
+constexpr typename detail::traits<T>::const_rvalue_reference get(const option<U>&& opt);
 
 template <typename T, typename U>
 constexpr bool operator==(const option<T>& lhs, const option<U>& rhs);
@@ -360,9 +405,9 @@ template <typename T, typename U>
 constexpr bool operator>=(const U& lhs, const option<T>& rhs);
 
 template <typename T, typename U>
-    requires(std::three_way_comparable_with<std::remove_cvref_t<U>, std::remove_cvref_t<T>>)
+    requires(!detail::is_option_v<std::remove_cvref_t<U>>)
 constexpr std::compare_three_way_result_t<std::remove_cvref_t<T>, std::remove_cvref_t<U>>
-operator<=>(const option<T>& lhs, const U& rhs);
+operator<=>(const option<T>& lhs, const U& rhs) requires(std::three_way_comparable_with<std::remove_cvref_t<U>, std::remove_cvref_t<T>>);
 
 template <typename T>
 constexpr bool operator==(const option<T>& lhs, none_t rhs);
@@ -493,6 +538,11 @@ constexpr bool operator>=(std::nullptr_t lhs, const option<T>& rhs);
 template <typename T>
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
 constexpr std::strong_ordering operator<=>(const option<T>& lhs, std::nullptr_t rhs);
+
+template <typename T>
+constexpr void swap(option<T>& a, option<T>& b) {
+    a.swap(b);
+}
 
 template <typename T, typename... Args>
 constexpr option<T> some(Args&&... args);
