@@ -260,11 +260,10 @@ TEST_CASE("multi option visit func", "[option]") {
     option<int> opt1{};
     option<float> opt2{};
 
-    auto visitor = overload(
-                []() -> int { return 0; },
-                [](int val) { return val; },
-                [](float val) { return static_cast<int>(val); },
-                [](int ival, float fval) { return ival + static_cast<int>(fval); });
+    auto visitor =
+        overload([]() -> int { return 0; }, [](int val) { return val; },
+                 [](float val) { return static_cast<int>(val); },
+                 [](int ival, float fval) { return ival + static_cast<int>(fval); });
     auto r1 = visit(visitor, opt1, opt2);
     REQUIRE(r1 == 0);
     opt1.emplace(INT_VAL);

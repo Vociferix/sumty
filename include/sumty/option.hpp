@@ -407,7 +407,9 @@ constexpr bool operator>=(const U& lhs, const option<T>& rhs);
 template <typename T, typename U>
     requires(!detail::is_option_v<std::remove_cvref_t<U>>)
 constexpr std::compare_three_way_result_t<std::remove_cvref_t<T>, std::remove_cvref_t<U>>
-operator<=>(const option<T>& lhs, const U& rhs) requires(std::three_way_comparable_with<std::remove_cvref_t<U>, std::remove_cvref_t<T>>);
+operator<=>(const option<T>& lhs, const U& rhs)
+    requires(std::three_way_comparable_with<std::remove_cvref_t<U>, std::remove_cvref_t<T>>)
+;
 
 template <typename T>
 constexpr bool operator==(const option<T>& lhs, none_t rhs);

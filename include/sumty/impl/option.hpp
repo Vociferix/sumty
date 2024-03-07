@@ -16,10 +16,10 @@
 #ifndef SUMTY_IMPL_OPTION_HPP
 #define SUMTY_IMPL_OPTION_HPP
 
+#include "sumty/detail/utils.hpp"
 #include "sumty/exceptions.hpp"
 #include "sumty/utils.hpp"
 #include "sumty/variant.hpp"
-#include "sumty/detail/utils.hpp"
 
 #include <compare>
 #include <cstddef>
@@ -759,7 +759,9 @@ constexpr bool operator>=(const U& lhs, const option<T>& rhs) {
 template <typename T, typename U>
     requires(!detail::is_option_v<U>)
 constexpr std::compare_three_way_result_t<std::remove_cvref_t<T>, std::remove_cvref_t<U>>
-operator<=>(const option<T>& lhs, const U& rhs) requires(std::three_way_comparable_with<std::remove_cvref_t<U>, std::remove_cvref_t<T>>) {
+operator<=>(const option<T>& lhs, const U& rhs)
+    requires(std::three_way_comparable_with<std::remove_cvref_t<U>, std::remove_cvref_t<T>>)
+{
     if (lhs.has_value()) {
         return *lhs <=> rhs;
     } else {

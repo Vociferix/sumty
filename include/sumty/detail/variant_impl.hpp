@@ -651,7 +651,9 @@ class variant_impl<std::enable_if_t<(sizeof(U) <= sizeof(bool))>, T&, U> {
     constexpr variant_impl(variant_impl&& other) noexcept(
         std::is_nothrow_move_constructible_v<U>)
         : head_(other.head_) {
-        if (head_ == nullptr) { std::construct_at(&tail_.tail, std::move(other.tail_.tail)); }
+        if (head_ == nullptr) {
+            std::construct_at(&tail_.tail, std::move(other.tail_.tail));
+        }
     }
 
     template <typename V>
@@ -702,7 +704,9 @@ class variant_impl<std::enable_if_t<(sizeof(U) <= sizeof(bool))>, T&, U> {
             }
         } else {
             head_ = rhs.head_;
-            if (head_ == nullptr) { std::construct_at(&tail_.tail, std::move(rhs.tail_.tail)); }
+            if (head_ == nullptr) {
+                std::construct_at(&tail_.tail, std::move(rhs.tail_.tail));
+            }
         }
         return *this;
     }
@@ -834,7 +838,9 @@ class variant_impl<std::enable_if_t<(sizeof(T) <= sizeof(bool))>, T, U&> {
     constexpr variant_impl(variant_impl&& other) noexcept(
         std::is_nothrow_move_constructible_v<T>)
         : tail_(other.tail_) {
-        if (tail_ == nullptr) { std::construct_at(&head_.head, std::move(other.head_.head)); }
+        if (tail_ == nullptr) {
+            std::construct_at(&head_.head, std::move(other.head_.head));
+        }
     }
 
     template <typename... Args>
@@ -884,7 +890,9 @@ class variant_impl<std::enable_if_t<(sizeof(T) <= sizeof(bool))>, T, U&> {
             }
         } else {
             tail_ = rhs.tail_;
-            if (tail_ == nullptr) { std::construct_at(&head_.head, std::move(rhs.head_.head)); }
+            if (tail_ == nullptr) {
+                std::construct_at(&head_.head, std::move(rhs.head_.head));
+            }
         }
         return *this;
     }

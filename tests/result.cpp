@@ -142,7 +142,7 @@ TEST_CASE("result converting construct from error", "[result]") {
 TEST_CASE("result and_then", "[result]") {
     static constexpr int VALUE = 42;
     const result<int> res1{VALUE};
-    const auto res2 = res1.and_then([value=VALUE](auto val) -> result<unsigned> {
+    const auto res2 = res1.and_then([value = VALUE](auto val) -> result<unsigned> {
         REQUIRE(val == value);
         return static_cast<unsigned>(val) * 2;
     });
@@ -151,9 +151,7 @@ TEST_CASE("result and_then", "[result]") {
     REQUIRE(*res2 == static_cast<unsigned>(VALUE) * 2);
 
     const result<void> res3{};
-    const auto res4 = res3.and_then([value=VALUE]() -> result<int> {
-        return value;
-    });
+    const auto res4 = res3.and_then([value = VALUE]() -> result<int> { return value; });
     STATIC_REQUIRE(std::is_same_v<std::remove_cvref_t<decltype(res4)>, result<int>>);
     REQUIRE(res4.has_value());
 
@@ -175,7 +173,7 @@ TEST_CASE("result and_then", "[result]") {
 TEST_CASE("result transform", "[result]") {
     static constexpr int VALUE = 42;
     const result<int> res1{VALUE};
-    const auto res2 = res1.transform([value=VALUE](auto val) {
+    const auto res2 = res1.transform([value = VALUE](auto val) {
         REQUIRE(val == value);
         return static_cast<unsigned>(val) * 2;
     });
@@ -184,31 +182,23 @@ TEST_CASE("result transform", "[result]") {
     REQUIRE(*res2 == static_cast<unsigned>(VALUE) * 2);
 
     const result<void> res3{};
-    const auto res4 = res3.transform([value=VALUE]() {
-        return value;
-    });
+    const auto res4 = res3.transform([value = VALUE]() { return value; });
     STATIC_REQUIRE(std::is_same_v<std::remove_cvref_t<decltype(res4)>, result<int>>);
     REQUIRE(res4.has_value());
 
     const result<void, int> res5{error<int>(VALUE)};
-    const auto res6 = res5.transform([]() {
-        REQUIRE(false);
-    });
+    const auto res6 = res5.transform([]() { REQUIRE(false); });
     REQUIRE(!res6.has_value());
 
     const result<void, void> res7{error<void>()};
-    const auto res8 = res7.transform([]() {
-        REQUIRE(false);
-    });
+    const auto res8 = res7.transform([]() { REQUIRE(false); });
     REQUIRE(!res8.has_value());
 }
 
 TEST_CASE("result or_else") {
     static constexpr int VALUE = 42;
     const result<int, void> res1{error<void>()};
-    auto res2 = res1.or_else([]() -> result<int, void> {
-        return 0;
-    });
+    auto res2 = res1.or_else([]() -> result<int, void> { return 0; });
     REQUIRE(res2.has_value() == true);
     REQUIRE(*res2 == 0);
 
@@ -228,7 +218,7 @@ TEST_CASE("result or_else") {
     REQUIRE(res6.has_value() == true);
 
     const result<int, int> res7{error<int>(VALUE)};
-    const auto res8 = res7.or_else([value=VALUE](auto err) -> result<int, int> {
+    const auto res8 = res7.or_else([value = VALUE](auto err) -> result<int, int> {
         REQUIRE(err == value);
         return value;
     });
@@ -239,32 +229,27 @@ TEST_CASE("result or_else") {
 TEST_CASE("result transform_error") {
     static constexpr int VALUE = 42;
     const result<void, int> res1{error<int>(VALUE)};
-    const auto res2 = res1.transform_error([value=VALUE](auto val) {
+    const auto res2 = res1.transform_error([value = VALUE](auto val) {
         REQUIRE(val == value);
         return static_cast<unsigned>(val) * 2;
     });
-    STATIC_REQUIRE(std::is_same_v<std::remove_cvref_t<decltype(res2)>, result<void, unsigned>>);
+    STATIC_REQUIRE(
+        std::is_same_v<std::remove_cvref_t<decltype(res2)>, result<void, unsigned>>);
     REQUIRE(!res2.has_value());
     REQUIRE(res2.error() == static_cast<unsigned>(VALUE) * 2);
 
     const result<int, void> res3{error<void>()};
-    const auto res4 = res3.transform_error([value=VALUE]() {
-        return value;
-    });
+    const auto res4 = res3.transform_error([value = VALUE]() { return value; });
     STATIC_REQUIRE(std::is_same_v<std::remove_cvref_t<decltype(res4)>, result<int, int>>);
     REQUIRE(!res4.has_value());
 
     const result<int, void> res5{VALUE};
-    const auto res6 = res5.transform_error([]() {
-        REQUIRE(false);
-    });
+    const auto res6 = res5.transform_error([]() { REQUIRE(false); });
     REQUIRE(res6.has_value());
     REQUIRE(*res6 == VALUE);
 
     const result<void, void> res7{};
-    const auto res8 = res7.transform_error([]() {
-        REQUIRE(false);
-    });
+    const auto res8 = res7.transform_error([]() { REQUIRE(false); });
     REQUIRE(res8.has_value());
 }
 
@@ -330,13 +315,15 @@ TEST_CASE("result ref", "[result]") {
     static constexpr int VALUE = 42;
     const result<int, int> res1{VALUE};
     const auto res2 = res1.ref();
-    STATIC_REQUIRE(std::is_same_v<std::remove_cvref_t<decltype(res2)>, result<const int&, const int&>>);
+    STATIC_REQUIRE(std::is_same_v<std::remove_cvref_t<decltype(res2)>,
+                                  result<const int&, const int&>>);
     REQUIRE(res2.has_value());
     REQUIRE(&*res2 == &*res1);
 
     const result<int, int> res3{error<int>(VALUE)};
     const auto res4 = res3.ref();
-    STATIC_REQUIRE(std::is_same_v<std::remove_cvref_t<decltype(res4)>, result<const int&, const int&>>);
+    STATIC_REQUIRE(std::is_same_v<std::remove_cvref_t<decltype(res4)>,
+                                  result<const int&, const int&>>);
     REQUIRE(!res4.has_value());
     REQUIRE(&res4.error() == &res3.error());
 }
@@ -344,7 +331,7 @@ TEST_CASE("result ref", "[result]") {
 TEST_CASE("result visit", "[result]") {
     static constexpr int VALUE = 42;
     const result<int, bool> res1{VALUE};
-    auto val1 = res1.visit([value=VALUE](auto val) -> int {
+    auto val1 = res1.visit([value = VALUE](auto val) -> int {
         if constexpr (std::is_same_v<std::remove_cvref_t<decltype(val)>, int>) {
             REQUIRE(val == value);
             return val;
@@ -356,7 +343,7 @@ TEST_CASE("result visit", "[result]") {
     REQUIRE(val1 == VALUE);
 
     const result<bool, int> res2{error<int>(VALUE)};
-    auto val2 = res2.visit([value=VALUE](auto val) -> int {
+    auto val2 = res2.visit([value = VALUE](auto val) -> int {
         if constexpr (std::is_same_v<std::remove_cvref_t<decltype(val)>, int>) {
             REQUIRE(val == value);
             return val;

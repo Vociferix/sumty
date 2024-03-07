@@ -362,16 +362,20 @@ class result {
 };
 
 template <size_t IDX, typename T, typename E>
-constexpr typename detail::traits<detail::select_t<IDX, T, E>>::reference get(result<T, E>& res);
+constexpr typename detail::traits<detail::select_t<IDX, T, E>>::reference get(
+    result<T, E>& res);
 
 template <size_t IDX, typename T, typename E>
-constexpr typename detail::traits<detail::select_t<IDX, T, E>>::const_reference get(const result<T, E>& res);
+constexpr typename detail::traits<detail::select_t<IDX, T, E>>::const_reference get(
+    const result<T, E>& res);
 
 template <size_t IDX, typename T, typename E>
-constexpr typename detail::traits<detail::select_t<IDX, T, E>>::rvalue_reference get(result<T, E>&& res);
+constexpr typename detail::traits<detail::select_t<IDX, T, E>>::rvalue_reference get(
+    result<T, E>&& res);
 
 template <size_t IDX, typename T, typename E>
-constexpr typename detail::traits<detail::select_t<IDX, T, E>>::const_rvalue_reference get(const result<T, E>&& res);
+constexpr typename detail::traits<detail::select_t<IDX, T, E>>::const_rvalue_reference get(
+    const result<T, E>&& res);
 
 template <typename U, typename T, typename E>
     requires(std::is_same_v<U, T> || std::is_same_v<U, E>)
@@ -485,11 +489,13 @@ class error_t {
 
     [[nodiscard]] constexpr typename detail::traits<E>::reference operator*() & noexcept;
 
-    [[nodiscard]] constexpr typename detail::traits<E>::const_reference operator*() const& noexcept;
+    [[nodiscard]] constexpr typename detail::traits<E>::const_reference operator*()
+        const& noexcept;
 
     [[nodiscard]] constexpr typename detail::traits<E>::rvalue_reference operator*() &&;
 
-    [[nodiscard]] constexpr typename detail::traits<E>::const_rvalue_reference operator*() const&&;
+    [[nodiscard]] constexpr typename detail::traits<E>::const_rvalue_reference operator*()
+        const&&;
 
     // cppcheck-suppress functionConst
     constexpr typename detail::traits<E>::pointer operator->() noexcept;
@@ -499,11 +505,13 @@ class error_t {
     // cppcheck-suppress functionConst
     [[nodiscard]] constexpr typename detail::traits<E>::reference error() & noexcept;
 
-    [[nodiscard]] constexpr typename detail::traits<E>::const_reference error() const& noexcept;
+    [[nodiscard]] constexpr typename detail::traits<E>::const_reference error()
+        const& noexcept;
 
     [[nodiscard]] constexpr typename detail::traits<E>::rvalue_reference error() &&;
 
-    [[nodiscard]] constexpr typename detail::traits<E>::const_rvalue_reference error() const&&;
+    [[nodiscard]] constexpr typename detail::traits<E>::const_rvalue_reference error()
+        const&&;
 
     constexpr void swap(error_t& other) noexcept(std::is_nothrow_swappable_v<variant<E>>);
 };
@@ -581,11 +589,13 @@ class ok_t {
 
     [[nodiscard]] constexpr typename detail::traits<T>::reference operator*() & noexcept;
 
-    [[nodiscard]] constexpr typename detail::traits<T>::const_reference operator*() const& noexcept;
+    [[nodiscard]] constexpr typename detail::traits<T>::const_reference operator*()
+        const& noexcept;
 
     [[nodiscard]] constexpr typename detail::traits<T>::rvalue_reference operator*() &&;
 
-    [[nodiscard]] constexpr typename detail::traits<T>::const_rvalue_reference operator*() const&&;
+    [[nodiscard]] constexpr typename detail::traits<T>::const_rvalue_reference operator*()
+        const&&;
 
     // cppcheck-suppress functionConst
     constexpr typename detail::traits<T>::pointer operator->() noexcept;
@@ -595,11 +605,13 @@ class ok_t {
     // cppcheck-suppress functionConst
     [[nodiscard]] constexpr typename detail::traits<T>::reference value() & noexcept;
 
-    [[nodiscard]] constexpr typename detail::traits<T>::const_reference value() const& noexcept;
+    [[nodiscard]] constexpr typename detail::traits<T>::const_reference value()
+        const& noexcept;
 
     [[nodiscard]] constexpr typename detail::traits<T>::rvalue_reference value() &&;
 
-    [[nodiscard]] constexpr typename detail::traits<T>::const_rvalue_reference value() const&&;
+    [[nodiscard]] constexpr typename detail::traits<T>::const_rvalue_reference value()
+        const&&;
 
     constexpr void swap(ok_t& other) noexcept(std::is_nothrow_swappable_v<variant<T>>);
 };

@@ -16,10 +16,10 @@
 #ifndef SUMTY_IMPL_RESULT_HPP
 #define SUMTY_IMPL_RESULT_HPP
 
+#include "sumty/detail/utils.hpp"
 #include "sumty/exceptions.hpp"
 #include "sumty/option.hpp"
 #include "sumty/variant.hpp"
-#include "sumty/detail/utils.hpp"
 
 #include <cstddef>
 #include <functional>
@@ -438,7 +438,8 @@ constexpr auto result<T, E>::and_then(F&& f) & {
             if constexpr (std::is_void_v<E>) {
                 return std::remove_cvref_t<std::invoke_result_t<F>>{in_place_error};
             } else {
-                return std::remove_cvref_t<std::invoke_result_t<F>>{in_place_error, res_[index<1>]};
+                return std::remove_cvref_t<std::invoke_result_t<F>>{in_place_error,
+                                                                    res_[index<1>]};
             }
         }
     } else {
@@ -446,9 +447,11 @@ constexpr auto result<T, E>::and_then(F&& f) & {
             return std::invoke(std::forward<F>(f), res_[index<0>]);
         } else {
             if constexpr (std::is_void_v<E>) {
-                return std::remove_cvref_t<std::invoke_result_t<F, reference>>{in_place_error};
+                return std::remove_cvref_t<std::invoke_result_t<F, reference>>{
+                    in_place_error};
             } else {
-                return std::remove_cvref_t<std::invoke_result_t<F, reference>>{in_place_error, res_[index<1>]};
+                return std::remove_cvref_t<std::invoke_result_t<F, reference>>{
+                    in_place_error, res_[index<1>]};
             }
         }
     }
@@ -464,7 +467,8 @@ constexpr auto result<T, E>::and_then(F&& f) const& {
             if constexpr (std::is_void_v<E>) {
                 return std::remove_cvref_t<std::invoke_result_t<F>>{in_place_error};
             } else {
-                return std::remove_cvref_t<std::invoke_result_t<F>>{in_place_error, res_[index<1>]};
+                return std::remove_cvref_t<std::invoke_result_t<F>>{in_place_error,
+                                                                    res_[index<1>]};
             }
         }
     } else {
@@ -472,9 +476,11 @@ constexpr auto result<T, E>::and_then(F&& f) const& {
             return std::invoke(std::forward<F>(f), res_[index<0>]);
         } else {
             if constexpr (std::is_void_v<E>) {
-                return std::remove_cvref_t<std::invoke_result_t<F, const_reference>>{in_place_error};
+                return std::remove_cvref_t<std::invoke_result_t<F, const_reference>>{
+                    in_place_error};
             } else {
-                return std::remove_cvref_t<std::invoke_result_t<F, const_reference>>{in_place_error, res_[index<1>]};
+                return std::remove_cvref_t<std::invoke_result_t<F, const_reference>>{
+                    in_place_error, res_[index<1>]};
             }
         }
     }
@@ -490,7 +496,8 @@ constexpr auto result<T, E>::and_then(F&& f) && {
             if constexpr (std::is_void_v<E>) {
                 return std::remove_cvref_t<std::invoke_result_t<F>>{in_place_error};
             } else {
-                return std::remove_cvref_t<std::invoke_result_t<F>>{in_place_error, std::move(res_)[index<1>]};
+                return std::remove_cvref_t<std::invoke_result_t<F>>{
+                    in_place_error, std::move(res_)[index<1>]};
             }
         }
     } else {
@@ -498,9 +505,11 @@ constexpr auto result<T, E>::and_then(F&& f) && {
             return std::invoke(std::forward<F>(f), std::move(res_)[index<0>]);
         } else {
             if constexpr (std::is_void_v<E>) {
-                return std::remove_cvref_t<std::invoke_result_t<F, rvalue_reference>>{in_place_error};
+                return std::remove_cvref_t<std::invoke_result_t<F, rvalue_reference>>{
+                    in_place_error};
             } else {
-                return std::remove_cvref_t<std::invoke_result_t<F, rvalue_reference>>{in_place_error, std::move(res_)[index<1>]};
+                return std::remove_cvref_t<std::invoke_result_t<F, rvalue_reference>>{
+                    in_place_error, std::move(res_)[index<1>]};
             }
         }
     }
@@ -516,7 +525,8 @@ constexpr auto result<T, E>::and_then(F&& f) const&& {
             if constexpr (std::is_void_v<E>) {
                 return std::remove_cvref_t<std::invoke_result_t<F>>{in_place_error};
             } else {
-                return std::remove_cvref_t<std::invoke_result_t<F>>{in_place_error, std::move(res_)[index<1>]};
+                return std::remove_cvref_t<std::invoke_result_t<F>>{
+                    in_place_error, std::move(res_)[index<1>]};
             }
         }
     } else {
@@ -524,9 +534,11 @@ constexpr auto result<T, E>::and_then(F&& f) const&& {
             return std::invoke(std::forward<F>(f), std::move(res_)[index<0>]);
         } else {
             if constexpr (std::is_void_v<E>) {
-                return std::remove_cvref_t<std::invoke_result_t<F, const_rvalue_reference>>{in_place_error};
+                return std::remove_cvref_t<std::invoke_result_t<F, const_rvalue_reference>>{
+                    in_place_error};
             } else {
-                return std::remove_cvref_t<std::invoke_result_t<F, const_rvalue_reference>>{in_place_error, std::move(res_)[index<1>]};
+                return std::remove_cvref_t<std::invoke_result_t<F, const_rvalue_reference>>{
+                    in_place_error, std::move(res_)[index<1>]};
             }
         }
     }
@@ -1045,22 +1057,26 @@ constexpr decltype(auto) result<T, E>::visit(V&& visitor) const&& {
 }
 
 template <size_t IDX, typename T, typename E>
-constexpr typename detail::traits<detail::select_t<IDX, T, E>>::reference get(result<T, E>& res) {
+constexpr typename detail::traits<detail::select_t<IDX, T, E>>::reference get(
+    result<T, E>& res) {
     return get<IDX>(res.res_);
 }
 
 template <size_t IDX, typename T, typename E>
-constexpr typename detail::traits<detail::select_t<IDX, T, E>>::const_reference get(const result<T, E>& res) {
+constexpr typename detail::traits<detail::select_t<IDX, T, E>>::const_reference get(
+    const result<T, E>& res) {
     return get<IDX>(res.res_);
 }
 
 template <size_t IDX, typename T, typename E>
-constexpr typename detail::traits<detail::select_t<IDX, T, E>>::rvalue_reference get(result<T, E>&& res) {
+constexpr typename detail::traits<detail::select_t<IDX, T, E>>::rvalue_reference get(
+    result<T, E>&& res) {
     return get<IDX>(std::move(res.res_));
 }
 
 template <size_t IDX, typename T, typename E>
-constexpr typename detail::traits<detail::select_t<IDX, T, E>>::const_rvalue_reference get(const result<T, E>&& res) {
+constexpr typename detail::traits<detail::select_t<IDX, T, E>>::const_rvalue_reference get(
+    const result<T, E>&& res) {
     return get<IDX>(std::move(res.res_));
 }
 
