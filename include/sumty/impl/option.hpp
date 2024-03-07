@@ -19,6 +19,7 @@
 #include "sumty/exceptions.hpp"
 #include "sumty/utils.hpp"
 #include "sumty/variant.hpp"
+#include "sumty/detail/utils.hpp"
 
 #include <compare>
 #include <cstddef>
@@ -187,7 +188,7 @@ constexpr option<T>::operator bool() const noexcept {
 
 template <typename T>
 template <typename U>
-constexpr U* option<T>::cast_pointer() const noexcept {
+[[nodiscard]] constexpr U* option<T>::cast_pointer() const noexcept {
     if (opt_.index() == 0) {
         return nullptr;
     } else {

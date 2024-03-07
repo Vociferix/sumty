@@ -422,8 +422,7 @@ class variant_impl<void, T> {
         } else if constexpr (std::is_lvalue_reference_v<T>) {
             return data_.template get<I>();
         } else {
-            auto ret = std::move(data_.template get<I>());
-            return ret;
+            return std::move(data_.template get<I>());
         }
     }
 
@@ -434,8 +433,7 @@ class variant_impl<void, T> {
         } else if constexpr (std::is_lvalue_reference_v<T>) {
             return data_.template get<I>();
         } else {
-            auto ret = std::move(data_.template get<I>());
-            return ret;
+            return std::move(data_.template get<I>());
         }
     }
 

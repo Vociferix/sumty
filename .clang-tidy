@@ -18,6 +18,7 @@ Checks: "*,
          -misc-non-private-member-variables-in-classes,
          -bugprone-forwarding-reference-overload,
          -hicpp-move-const-arg,
+         -readability-function-cognitive-complexity,
 "
 HeaderFilterRegex: '.*/sumty/.*'
 FormatStyle: file

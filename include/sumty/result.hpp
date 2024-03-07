@@ -121,19 +121,25 @@ class result {
                  !detail::is_ok_v<std::remove_cvref_t<U>> &&
                  (!std::is_same_v<std::remove_cvref_t<T>, bool> ||
                   !detail::is_result_v<std::remove_cvref_t<U>>))
-    explicit(!detail::traits<T>::template is_convertible_from<U&&>)
+    explicit(!detail::traits<T>::template is_convertible_from<U>)
         // NOLINTNEXTLINE(hicpp-explicit-conversions)
         constexpr result(U&& value);
 
     template <typename U>
-    explicit(!detail::traits<T>::template is_convertible_from<U&&>)
+    explicit(!detail::traits<T>::template is_convertible_from<U>)
         // NOLINTNEXTLINE(hicpp-explicit-conversions)
         constexpr result(ok_t<U> ok);
 
+    // NOLINTNEXTLINE(hicpp-explicit-conversions)
+    constexpr result(ok_t<void> ok);
+
     template <typename U>
-    explicit(!detail::traits<E>::template is_convertible_from<U&&>)
+    explicit(!detail::traits<E>::template is_convertible_from<U>)
         // NOLINTNEXTLINE(hicpp-explicit-conversions)
         constexpr result(error_t<U> err);
+
+    // NOLINTNEXTLINE(hicpp-explicit-conversions)
+    constexpr result(error_t<void> err);
 
     template <typename U, typename V>
         requires(((std::is_void_v<U> && detail::traits<T>::is_default_constructible) ||
@@ -340,8 +346,48 @@ class result {
     template <typename U, typename... Args>
     constexpr reference emplace(std::initializer_list<U> ilist, Args&&... args);
 
+    template <typename V>
+    constexpr decltype(auto) visit(V&& visitor) &;
+
+    template <typename V>
+    constexpr decltype(auto) visit(V&& visitor) const&;
+
+    template <typename V>
+    constexpr decltype(auto) visit(V&& visitor) &&;
+
+    template <typename V>
+    constexpr decltype(auto) visit(V&& visitor) const&&;
+
     constexpr void swap(result& other) noexcept(std::is_nothrow_swappable_v<variant<T, E>>);
 };
+
+template <size_t IDX, typename T, typename E>
+constexpr typename detail::traits<detail::select_t<IDX, T, E>>::reference get(result<T, E>& res);
+
+template <size_t IDX, typename T, typename E>
+constexpr typename detail::traits<detail::select_t<IDX, T, E>>::const_reference get(const result<T, E>& res);
+
+template <size_t IDX, typename T, typename E>
+constexpr typename detail::traits<detail::select_t<IDX, T, E>>::rvalue_reference get(result<T, E>&& res);
+
+template <size_t IDX, typename T, typename E>
+constexpr typename detail::traits<detail::select_t<IDX, T, E>>::const_rvalue_reference get(const result<T, E>&& res);
+
+template <typename U, typename T, typename E>
+    requires(std::is_same_v<U, T> || std::is_same_v<U, E>)
+constexpr typename detail::traits<U>::reference get(result<T, E>& res);
+
+template <typename U, typename T, typename E>
+    requires(std::is_same_v<U, T> || std::is_same_v<U, E>)
+constexpr typename detail::traits<U>::const_reference get(const result<T, E>& res);
+
+template <typename U, typename T, typename E>
+    requires(std::is_same_v<U, T> || std::is_same_v<U, E>)
+constexpr typename detail::traits<U>::rvalue_reference get(result<T, E>&& res);
+
+template <typename U, typename T, typename E>
+    requires(std::is_same_v<U, T> || std::is_same_v<U, E>)
+constexpr typename detail::traits<U>::const_rvalue_reference get(const result<T, E>&& res);
 
 template <typename T, typename E, typename U, typename V>
     requires(std::is_void_v<T> == std::is_void_v<U> &&
@@ -409,7 +455,7 @@ class error_t {
                  !std::is_same_v<std::remove_cvref_t<V>, std::in_place_index_t<1>> &&
                  (!std::is_same_v<std::remove_cvref_t<E>, bool> ||
                   !detail::is_result_v<std::remove_cvref_t<V>>))
-    explicit(detail::traits<E>::template convertible_from<V&&>)
+    explicit(detail::traits<E>::template is_convertible_from<V&&>)
         // NOLINTNEXTLINE(hicpp-explicit-conversions)
         constexpr error_t(V&& err);
 
@@ -437,13 +483,13 @@ class error_t {
         assign_value(std::forward<V>(error));
     }
 
-    constexpr typename detail::traits<E>::reference operator*() & noexcept;
+    [[nodiscard]] constexpr typename detail::traits<E>::reference operator*() & noexcept;
 
-    constexpr typename detail::traits<E>::const_reference operator*() const& noexcept;
+    [[nodiscard]] constexpr typename detail::traits<E>::const_reference operator*() const& noexcept;
 
-    constexpr typename detail::traits<E>::rvalue_reference operator*() &&;
+    [[nodiscard]] constexpr typename detail::traits<E>::rvalue_reference operator*() &&;
 
-    constexpr typename detail::traits<E>::const_rvalue_reference operator*() const&&;
+    [[nodiscard]] constexpr typename detail::traits<E>::const_rvalue_reference operator*() const&&;
 
     // cppcheck-suppress functionConst
     constexpr typename detail::traits<E>::pointer operator->() noexcept;
@@ -451,13 +497,13 @@ class error_t {
     constexpr typename detail::traits<E>::const_pointer operator->() const noexcept;
 
     // cppcheck-suppress functionConst
-    constexpr typename detail::traits<E>::reference error() & noexcept;
+    [[nodiscard]] constexpr typename detail::traits<E>::reference error() & noexcept;
 
-    constexpr typename detail::traits<E>::const_reference error() const& noexcept;
+    [[nodiscard]] constexpr typename detail::traits<E>::const_reference error() const& noexcept;
 
-    constexpr typename detail::traits<E>::rvalue_reference error() &&;
+    [[nodiscard]] constexpr typename detail::traits<E>::rvalue_reference error() &&;
 
-    constexpr typename detail::traits<E>::const_rvalue_reference error() const&&;
+    [[nodiscard]] constexpr typename detail::traits<E>::const_rvalue_reference error() const&&;
 
     constexpr void swap(error_t& other) noexcept(std::is_nothrow_swappable_v<variant<E>>);
 };
@@ -504,7 +550,7 @@ class ok_t {
                  !std::is_same_v<std::remove_cvref_t<U>, std::in_place_t> &&
                  (!std::is_same_v<std::remove_cvref_t<T>, bool> ||
                   !detail::is_result_v<std::remove_cvref_t<U>>))
-    explicit(detail::traits<T>::template convertible_from<U&&>)
+    explicit(detail::traits<T>::template is_convertible_from<U&&>)
         // NOLINTNEXTLINE(hicpp-explicit-conversions)
         constexpr ok_t(U&& value);
 
@@ -533,13 +579,13 @@ class ok_t {
         return *this;
     }
 
-    constexpr typename detail::traits<T>::reference operator*() & noexcept;
+    [[nodiscard]] constexpr typename detail::traits<T>::reference operator*() & noexcept;
 
-    constexpr typename detail::traits<T>::const_reference operator*() const& noexcept;
+    [[nodiscard]] constexpr typename detail::traits<T>::const_reference operator*() const& noexcept;
 
-    constexpr typename detail::traits<T>::rvalue_reference operator*() &&;
+    [[nodiscard]] constexpr typename detail::traits<T>::rvalue_reference operator*() &&;
 
-    constexpr typename detail::traits<T>::const_rvalue_reference operator*() const&&;
+    [[nodiscard]] constexpr typename detail::traits<T>::const_rvalue_reference operator*() const&&;
 
     // cppcheck-suppress functionConst
     constexpr typename detail::traits<T>::pointer operator->() noexcept;
@@ -547,13 +593,13 @@ class ok_t {
     constexpr typename detail::traits<T>::const_pointer operator->() const noexcept;
 
     // cppcheck-suppress functionConst
-    constexpr typename detail::traits<T>::reference value() & noexcept;
+    [[nodiscard]] constexpr typename detail::traits<T>::reference value() & noexcept;
 
-    constexpr typename detail::traits<T>::const_reference value() const& noexcept;
+    [[nodiscard]] constexpr typename detail::traits<T>::const_reference value() const& noexcept;
 
-    constexpr typename detail::traits<T>::rvalue_reference value() &&;
+    [[nodiscard]] constexpr typename detail::traits<T>::rvalue_reference value() &&;
 
-    constexpr typename detail::traits<T>::const_rvalue_reference value() const&&;
+    [[nodiscard]] constexpr typename detail::traits<T>::const_rvalue_reference value() const&&;
 
     constexpr void swap(ok_t& other) noexcept(std::is_nothrow_swappable_v<variant<T>>);
 };

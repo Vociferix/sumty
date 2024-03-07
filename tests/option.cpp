@@ -12,8 +12,12 @@ TEST_CASE("special option sizes", "[option]") {
 }
 
 TEST_CASE("option default construct", "[option]") {
-    option<int> opt;
-    REQUIRE(opt.has_value() == false);
+    const option<int> opt1;
+    REQUIRE(opt1.has_value() == false);
+    const option<void> opt2;
+    REQUIRE(opt2.has_value() == false);
+    const option<int&> opt3;
+    REQUIRE(opt3.has_value() == false);
 }
 
 TEST_CASE("option construct from value", "[option]") {
@@ -42,7 +46,7 @@ TEST_CASE("option construct from ptr", "[option]") {
     int* i_ptr = &i;
     int* null_ptr = nullptr;
     option<int&> opt1{i_ptr};
-    option<int&> opt2{null_ptr};
+    const option<int&> opt2{null_ptr};
     REQUIRE(opt1.has_value() == true);
     REQUIRE(*opt1 == VALUE);
     REQUIRE(&*opt1 == &i);
@@ -68,23 +72,23 @@ TEST_CASE("option assign from ptr", "[option]") {
 
 TEST_CASE("option converting construct", "[option]") {
     static constexpr int VALUE = 42;
-    option<int> opt1{VALUE};
+    const option<int> opt1{VALUE};
     option<long long> opt2{opt1};
     REQUIRE(opt2.has_value() == true);
     REQUIRE(*opt2 == static_cast<long long>(VALUE));
-    option<int> opt3{};
-    option<long long> opt4{opt3};
+    const option<int> opt3{};
+    const option<long long> opt4{opt3};
     REQUIRE(opt4.has_value() == false);
 }
 
 TEST_CASE("option converting assignment", "[option]") {
     static constexpr int VALUE = 42;
-    option<int> opt1{VALUE};
+    const option<int> opt1{VALUE};
     option<long long> opt2{};
     opt2 = opt1;
     REQUIRE(opt2.has_value() == true);
     REQUIRE(*opt2 == static_cast<long long>(VALUE));
-    option<int> opt3{};
+    const option<int> opt3{};
     option<long long> opt4{};
     opt4 = opt3;
     REQUIRE(opt4.has_value() == false);
@@ -123,8 +127,8 @@ TEST_CASE("option in condition", "[option]") {
 
 TEST_CASE("option value_or", "[option]") {
     static constexpr int VALUE = 42;
-    option<int> opt1{};
-    option<int> opt2{VALUE};
+    const option<int> opt1{};
+    const option<int> opt2{VALUE};
     REQUIRE(opt1.value_or(0) == 0);
     REQUIRE(opt1.value_or(VALUE) == VALUE);
     REQUIRE(opt1.value_or() == int{});
@@ -146,11 +150,11 @@ TEST_CASE("option and_then", "[option]") {
 
 TEST_CASE("option or_else", "[option]") {
     static constexpr int VALUE = 42;
-    option<int> opt1{};
+    const option<int> opt1{};
     auto opt2 = opt1.or_else([]() -> option<int> { return 0; });
     REQUIRE(opt2.has_value() == true);
     REQUIRE(*opt2 == 0);
-    option<int> opt3{VALUE};
+    const option<int> opt3{VALUE};
     auto opt4 = opt3.or_else([]() -> option<int> { return 0; });
     REQUIRE(opt4.has_value() == true);
     REQUIRE(*opt4 == VALUE);
