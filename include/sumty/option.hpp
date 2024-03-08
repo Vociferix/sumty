@@ -264,6 +264,42 @@ class option {
     [[nodiscard]] constexpr value_type value_or() &&;
 
     template <typename F>
+    [[nodiscard]] constexpr value_type value_or_else(F&& f) const&;
+
+    template <typename F>
+    [[nodiscard]] constexpr value_type value_or_else(F&& f) &&;
+
+    template <typename E>
+    [[nodiscard]] constexpr result<T, std::remove_cvref_t<E>> ok_or(E&& err) const&;
+
+    template <typename E>
+    [[nodiscard]] constexpr result<T, std::remove_cvref_t<E>> ok_or(E&& err) &&;
+
+    template <typename F>
+    [[nodiscard]] constexpr result<T, std::invoke_result_t<F>> ok_or_else(F&& f) const&;
+
+    template <typename F>
+    [[nodiscard]] constexpr result<T, std::invoke_result_t<F>> ok_or_else(F&& f) &&;
+
+    template <typename U>
+    [[nodiscard]] constexpr result<std::remove_cvref_t<U>, T> error_or(U&& value) const&;
+
+    template <typename U>
+    [[nodiscard]] constexpr result<std::remove_cvref_t<U>, T> error_or(U&& value) &&;
+
+    template <typename F>
+    [[nodiscard]] constexpr result<std::invoke_result_t<F>, T> error_or_else(F&& f) const&;
+
+    template <typename F>
+    [[nodiscard]] constexpr result<std::invoke_result_t<F>, T> error_or_else(F&& f) &&;
+
+    [[nodiscard]] constexpr option<reference> ref() noexcept;
+
+    [[nodiscard]] constexpr option<const_reference> ref() const noexcept;
+
+    [[nodiscard]] constexpr option<const_reference> cref() const noexcept;
+
+    template <typename F>
     constexpr auto and_then(F&& f) &;
 
     template <typename F>

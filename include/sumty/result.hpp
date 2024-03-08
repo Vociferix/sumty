@@ -283,6 +283,12 @@ class result {
     [[nodiscard]] constexpr value_type value_or() &&;
 
     template <typename F>
+    [[nodiscard]] constexpr value_type value_or_else(F&& f) const&;
+
+    template <typename F>
+    [[nodiscard]] constexpr value_type value_or_else(F&& f) &&;
+
+    template <typename F>
     constexpr auto and_then(F&& f) &;
 
     template <typename F>

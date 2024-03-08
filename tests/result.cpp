@@ -263,6 +263,18 @@ TEST_CASE("result value_or", "[result]") {
     res3.value_or();
 }
 
+TEST_CASE("result value_or_else", "[result]") {
+    static constexpr int VALUE = 42;
+    const result<int, void> res1{VALUE};
+    REQUIRE(res1.value_or_else([] { return VALUE * 2; }) == VALUE);
+    const result<int, void> res2{error<void>()};
+    REQUIRE(res2.value_or_else([] { return VALUE; }) == VALUE);
+    const result<void, void> res3{error<void>()};
+    res3.value_or_else([] { REQUIRE(true); });
+    const result<void, void> res4{};
+    res4.value_or_else([] { REQUIRE(false); });
+}
+
 TEST_CASE("result or_none", "[result]") {
     static constexpr int VALUE = 42;
     const result<int, void> res1{VALUE};

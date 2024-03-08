@@ -173,6 +173,80 @@ TEST_CASE("option transform", "[option]") {
     REQUIRE(*opt4 == static_cast<long long>(VALUE) + 1);
 }
 
+TEST_CASE("option value_or_else", "[option]") {
+    static constexpr int VALUE = 42;
+    const option<int> opt1{};
+    const option<int> opt2{VALUE};
+    REQUIRE(opt1.value_or_else([] { return 0; }) == 0);
+    REQUIRE(opt1.value_or_else([] { return VALUE; }) == VALUE);
+    REQUIRE(opt2.value_or_else([] { return 0; }) == VALUE);
+    REQUIRE(opt2.value_or_else([] { return VALUE; }) == VALUE);
+}
+
+TEST_CASE("option ok_or", "[option]") {
+    static constexpr int VALUE = 42;
+    const option<int> opt1{};
+    const option<int> opt2{VALUE};
+    const auto res1 = opt1.ok_or(VALUE * 2);
+    const auto res2 = opt2.ok_or(VALUE * 2);
+    STATIC_REQUIRE(std::is_same_v<std::remove_cvref_t<decltype(res1)>, result<int, int>>);
+    REQUIRE(!res1.has_value());
+    REQUIRE(res1.error() == VALUE * 2);
+    STATIC_REQUIRE(std::is_same_v<std::remove_cvref_t<decltype(res2)>, result<int, int>>);
+    REQUIRE(res2.has_value());
+    REQUIRE(*res2 == VALUE);
+}
+
+TEST_CASE("option ok_or_else", "[option]") {
+    static constexpr int VALUE = 42;
+    const option<int> opt1{};
+    const option<int> opt2{VALUE};
+    const auto res1 = opt1.ok_or_else([] { return VALUE * 2; });
+    const auto res2 = opt2.ok_or_else([] { return VALUE * 2; });
+    STATIC_REQUIRE(std::is_same_v<std::remove_cvref_t<decltype(res1)>, result<int, int>>);
+    REQUIRE(!res1.has_value());
+    REQUIRE(res1.error() == VALUE * 2);
+    STATIC_REQUIRE(std::is_same_v<std::remove_cvref_t<decltype(res2)>, result<int, int>>);
+    REQUIRE(res2.has_value());
+    REQUIRE(*res2 == VALUE);
+}
+
+TEST_CASE("option error_or", "[option]") {
+    static constexpr int VALUE = 42;
+    const option<int> opt1{VALUE};
+    const option<int> opt2{};
+    const auto res1 = opt1.error_or(VALUE * 2);
+    const auto res2 = opt2.error_or(VALUE * 2);
+    STATIC_REQUIRE(std::is_same_v<std::remove_cvref_t<decltype(res1)>, result<int, int>>);
+    REQUIRE(!res1.has_value());
+    REQUIRE(res1.error() == VALUE);
+    STATIC_REQUIRE(std::is_same_v<std::remove_cvref_t<decltype(res2)>, result<int, int>>);
+    REQUIRE(res2.has_value());
+    REQUIRE(*res2 == VALUE * 2);
+}
+
+TEST_CASE("option error_or_else", "[option]") {
+    static constexpr int VALUE = 42;
+    const option<int> opt1{VALUE};
+    const option<int> opt2{};
+    const auto res1 = opt1.error_or_else([] { return VALUE * 2; });
+    const auto res2 = opt2.error_or_else([] { return VALUE * 2; });
+    STATIC_REQUIRE(std::is_same_v<std::remove_cvref_t<decltype(res1)>, result<int, int>>);
+    REQUIRE(!res1.has_value());
+    REQUIRE(res1.error() == VALUE);
+    STATIC_REQUIRE(std::is_same_v<std::remove_cvref_t<decltype(res2)>, result<int, int>>);
+    REQUIRE(res2.has_value());
+    REQUIRE(*res2 == VALUE * 2);
+}
+
+TEST_CASE("option ref", "[option]") {
+    static constexpr int VALUE = 42;
+    const option<int> opt1{};
+    const option<int> opt2{VALUE};
+    REQUIRE(opt1.ref() == nullptr);
+    REQUIRE(&*opt2.ref() == &*opt2);
+}
+
 struct Test {
   private:
     bool* alive_;

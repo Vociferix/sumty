@@ -430,6 +430,36 @@ constexpr typename result<T, E>::value_type result<T, E>::value_or() && {
 
 template <typename T, typename E>
 template <typename F>
+constexpr typename result<T, E>::value_type result<T, E>::value_or_else(F&& f) const& {
+    if (res_.index() == 0) {
+        return res_[index<0>];
+    } else {
+        if constexpr (std::is_void_v<T>) {
+            std::invoke(std::forward<F>(f));
+            return;
+        } else {
+            return std::invoke(std::forward<F>(f));
+        }
+    }
+}
+
+template <typename T, typename E>
+template <typename F>
+constexpr typename result<T, E>::value_type result<T, E>::value_or_else(F&& f) && {
+    if (res_.index() == 0) {
+        return std::move(res_)[index<0>];
+    } else {
+        if constexpr (std::is_void_v<T>) {
+            std::invoke(std::forward<F>(f));
+            return;
+        } else {
+            return std::invoke(std::forward<F>(f));
+        }
+    }
+}
+
+template <typename T, typename E>
+template <typename F>
 constexpr auto result<T, E>::and_then(F&& f) & {
     if constexpr (std::is_void_v<T>) {
         if (res_.index() == 0) {

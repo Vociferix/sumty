@@ -18,7 +18,8 @@
 
 #include "sumty/detail/utils.hpp"
 #include "sumty/exceptions.hpp"
-#include "sumty/utils.hpp"
+#include "sumty/result.hpp" // IWYU pragma: keep
+#include "sumty/utils.hpp"  // IWYU pragma: keep
 #include "sumty/variant.hpp"
 
 #include <compare>
@@ -299,6 +300,191 @@ constexpr typename option<T>::value_type option<T>::value_or() && {
             return value_type{};
         }
     }
+}
+
+template <typename T>
+template <typename F>
+constexpr typename option<T>::value_type option<T>::value_or_else(F&& f) const& {
+    if (opt_.index() != 0) {
+        return opt_[index<1>];
+    } else {
+        if constexpr (std::is_void_v<value_type>) {
+            std::invoke(std::forward<F>(f));
+            return;
+        } else {
+            return std::invoke(std::forward<F>(f));
+        }
+    }
+}
+
+template <typename T>
+template <typename F>
+constexpr typename option<T>::value_type option<T>::value_or_else(F&& f) && {
+    if (opt_.index() != 0) {
+        return std::move(opt_)[index<1>];
+    } else {
+        if constexpr (std::is_void_v<value_type>) {
+            std::invoke(std::forward<F>(f));
+            return;
+        } else {
+            return std::invoke(std::forward<F>(f));
+        }
+    }
+}
+
+template <typename T>
+template <typename E>
+constexpr result<T, std::remove_cvref_t<E>> option<T>::ok_or(E&& err) const& {
+    if (opt_.index() != 0) {
+        if constexpr (std::is_void_v<T>) {
+            return {};
+        } else {
+            return opt_[index<1>];
+        }
+    } else {
+        return error<std::remove_cvref_t<E>>(std::forward<E>(err));
+    }
+}
+
+template <typename T>
+template <typename E>
+constexpr result<T, std::remove_cvref_t<E>> option<T>::ok_or(E&& err) && {
+    if (opt_.index() != 0) {
+        if constexpr (std::is_void_v<T>) {
+            return {};
+        } else {
+            return std::move(opt_)[index<1>];
+        }
+    } else {
+        return error<std::remove_cvref_t<E>>(std::forward<E>(err));
+    }
+}
+
+template <typename T>
+template <typename F>
+constexpr result<T, std::invoke_result_t<F>> option<T>::ok_or_else(F&& f) const& {
+    if (opt_.index() != 0) {
+        if constexpr (std::is_void_v<T>) {
+            return {};
+        } else {
+            return opt_[index<1>];
+        }
+    } else {
+        if constexpr (std::is_void_v<std::invoke_result_t<F>>) {
+            std::invoke(std::forward<F>(f));
+            return error<std::invoke_result_t<F>>();
+        } else {
+            return error<std::invoke_result_t<F>>(std::invoke(std::forward<F>(f)));
+        }
+    }
+}
+
+template <typename T>
+template <typename F>
+constexpr result<T, std::invoke_result_t<F>> option<T>::ok_or_else(F&& f) && {
+    if (opt_.index() != 0) {
+        if constexpr (std::is_void_v<T>) {
+            return {};
+        } else {
+            return std::move(opt_)[index<1>];
+        }
+    } else {
+        if constexpr (std::is_void_v<std::invoke_result_t<F>>) {
+            std::invoke(std::forward<F>(f));
+            return error<std::invoke_result_t<F>>();
+        } else {
+            return error<std::invoke_result_t<F>>(std::invoke(std::forward<F>(f)));
+        }
+    }
+}
+
+template <typename T>
+template <typename U>
+constexpr result<std::remove_cvref_t<U>, T> option<T>::error_or(U&& value) const& {
+    if (opt_.index() != 0) {
+        if constexpr (std::is_void_v<T>) {
+            return error<T>();
+        } else {
+            return error<T>(opt_[index<1>]);
+        }
+    } else {
+        return ok<std::remove_cvref_t<U>>(std::forward<U>(value));
+    }
+}
+
+template <typename T>
+template <typename U>
+constexpr result<std::remove_cvref_t<U>, T> option<T>::error_or(U&& value) && {
+    if (opt_.index() != 0) {
+        if constexpr (std::is_void_v<T>) {
+            return error<T>();
+        } else {
+            return error<T>(std::move(opt_)[index<1>]);
+        }
+    } else {
+        return ok<std::remove_cvref_t<U>>(std::forward<U>(value));
+    }
+}
+
+template <typename T>
+template <typename F>
+constexpr result<std::invoke_result_t<F>, T> option<T>::error_or_else(F&& f) const& {
+    if (opt_.index() != 0) {
+        if constexpr (std::is_void_v<T>) {
+            return error<T>();
+        } else {
+            return error<T>(opt_[index<1>]);
+        }
+    } else {
+        if constexpr (std::is_void_v<std::invoke_result_t<F>>) {
+            std::invoke(std::forward<F>(f));
+            return ok<std::invoke_result_t<F>>();
+        } else {
+            return ok<std::invoke_result_t<F>>(std::invoke(std::forward<F>(f)));
+        }
+    }
+}
+
+template <typename T>
+template <typename F>
+constexpr result<std::invoke_result_t<F>, T> option<T>::error_or_else(F&& f) && {
+    if (opt_.index() != 0) {
+        if constexpr (std::is_void_v<T>) {
+            return error<T>();
+        } else {
+            return error<T>(std::move(opt_)[index<1>]);
+        }
+    } else {
+        if constexpr (std::is_void_v<std::invoke_result_t<F>>) {
+            std::invoke(std::forward<F>(f));
+            return ok<std::invoke_result_t<F>>();
+        } else {
+            return ok<std::invoke_result_t<F>>(std::invoke(std::forward<F>(f)));
+        }
+    }
+}
+
+template <typename T>
+constexpr option<typename option<T>::reference> option<T>::ref() noexcept {
+    if (opt_.index() != 0) {
+        return option<reference>{std::in_place, opt_[index<1>]};
+    } else {
+        return option<reference>{};
+    }
+}
+
+template <typename T>
+constexpr option<typename option<T>::const_reference> option<T>::ref() const noexcept {
+    if (opt_.index() != 0) {
+        return option<const_reference>{std::in_place, opt_[index<1>]};
+    } else {
+        return option<const_reference>{};
+    }
+}
+
+template <typename T>
+constexpr option<typename option<T>::const_reference> option<T>::cref() const noexcept {
+    return ref();
 }
 
 template <typename T>
