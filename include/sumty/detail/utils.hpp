@@ -141,6 +141,47 @@ struct is_unique : std::integral_constant<bool, type_count_v<T, U...> == 1> {};
 template <typename T, typename... U>
 static inline constexpr bool is_unique_v = is_unique<T, U...>::value;
 
+template <typename T, typename... U>
+struct is_uniquely_convertible
+    : std::integral_constant<bool,
+                             (0 + ... + static_cast<size_t>(std::is_convertible_v<T, U>)) ==
+                                 1> {};
+
+template <typename T, typename... U>
+static inline constexpr bool is_uniquely_convertible_v =
+    is_uniquely_convertible<T, U...>::value;
+
+template <typename T, typename... U>
+struct is_uniquely_constructible
+    : std::integral_constant<bool,
+                             (0 + ... +
+                              static_cast<size_t>(std::is_constructible_v<U, T>)) == 1> {};
+
+template <typename T, typename... U>
+static inline constexpr bool is_uniquely_constructible_v =
+    is_uniquely_constructible<T, U...>::value;
+
+template <typename T, typename... U>
+struct is_uniquely_explicitly_constructible
+    : std::integral_constant<bool,
+                             (0 + ... +
+                              static_cast<size_t>(std::is_constructible_v<U, T> &&
+                                                  !std::is_convertible_v<T, U>)) == 1> {};
+
+template <typename T, typename... U>
+static inline constexpr bool is_uniquely_explicitly_constructible_v =
+    is_uniquely_explicitly_constructible<T, U...>::value;
+
+template <typename T, typename... U>
+struct is_uniquely_assignable
+    : std::integral_constant<bool,
+                             (0 + ... + static_cast<size_t>(std::is_assignable_v<U, T>)) ==
+                                 1> {};
+
+template <typename T, typename... U>
+static inline constexpr bool is_uniquely_assignable_v =
+    is_uniquely_assignable<T, U...>::value;
+
 template <typename T, typename U0, typename... UN>
 constexpr size_t index_of_impl() noexcept {
     if constexpr (std::is_same_v<T, U0>) {

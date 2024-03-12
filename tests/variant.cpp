@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include <type_traits>
+#include <vector>
 
 #include "sumty/variant.hpp"
 
@@ -54,6 +55,24 @@ TEST_CASE("variant construct in place", "[variant]") {
     REQUIRE(v[index_v<1>] == INIT_VAL);
     REQUIRE(v[type<int>] == INIT_VAL);
     REQUIRE(holds_alternative<int>(v) == true);
+}
+
+TEST_CASE("variant emplace construct", "[variant]") {
+    static constexpr int INIT_VAL = 42;
+    variant<void, int> v1 = INIT_VAL;
+    REQUIRE(v1.index() == 1);
+    REQUIRE(get<1>(v1) == INIT_VAL);
+    REQUIRE(get<int>(v1) == INIT_VAL);
+    REQUIRE(v1[index_v<1>] == INIT_VAL);
+    REQUIRE(v1[type<int>] == INIT_VAL);
+    REQUIRE(holds_alternative<int>(v1) == true);
+    variant<void, std::vector<int>> v2 = {1, 2, 3, 4, 5};
+    REQUIRE(v2.index() == 1);
+    REQUIRE(get<1>(v2).size() == 5);
+    REQUIRE(get<std::vector<int>>(v2).size() == 5);
+    REQUIRE(v2[index_v<1>].size() == 5);
+    REQUIRE(v2[type<std::vector<int>>].size() == 5);
+    REQUIRE(holds_alternative<std::vector<int>>(v2) == true);
 }
 
 TEST_CASE("variant hold optional ref", "[variant]") {
@@ -142,6 +161,26 @@ TEST_CASE("variant copy", "[variant]") {
     REQUIRE(get<1>(v6) == INIT_VAL);
     REQUIRE(&get<1>(v5) == &i);
     REQUIRE(&get<1>(v6) == &i);
+}
+
+TEST_CASE("variant value assignment", "[variant]") {
+    static constexpr int INIT_VAL = 42;
+    variant<void, int> v1{};
+    v1 = 42;
+    REQUIRE(v1.index() == 1);
+    REQUIRE(get<1>(v1) == INIT_VAL);
+    REQUIRE(get<int>(v1) == INIT_VAL);
+    REQUIRE(v1[index_v<1>] == INIT_VAL);
+    REQUIRE(v1[type<int>] == INIT_VAL);
+    REQUIRE(holds_alternative<int>(v1) == true);
+    variant<void, std::vector<int>> v2{};
+    v2 = {1, 2, 3, 4, 5};
+    REQUIRE(v2.index() == 1);
+    REQUIRE(get<1>(v2).size() == 5);
+    REQUIRE(get<std::vector<int>>(v2).size() == 5);
+    REQUIRE(v2[index_v<1>].size() == 5);
+    REQUIRE(v2[type<std::vector<int>>].size() == 5);
+    REQUIRE(holds_alternative<std::vector<int>>(v2) == true);
 }
 
 TEST_CASE("variant visit method", "[variant]") {

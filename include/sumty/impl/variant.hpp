@@ -112,6 +112,20 @@ constexpr variant<T...>::variant([[maybe_unused]] std::in_place_type_t<U> inplac
             std::forward<Args>(args)...) {}
 
 template <typename... T>
+template <size_t IDX, typename U>
+constexpr void variant<T...>::assign_value(U&& value) {
+    if constexpr (std::is_assignable_v<detail::select_t<IDX, T...>, U>) {
+        if (index() == IDX) {
+            data_.template get<IDX>() = std::forward<U>(value);
+        } else {
+            data_.template emplace<IDX>(std::forward<U>(value));
+        }
+    } else {
+        assign_value<IDX + 1>(std::forward<U>(value));
+    }
+}
+
+template <typename... T>
 constexpr size_t variant<T...>::index() const noexcept {
     return data_.index();
 }

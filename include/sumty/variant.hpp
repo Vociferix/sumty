@@ -108,6 +108,19 @@ class variant {
     template <size_t IDX, typename U>
     [[nodiscard]] constexpr bool holds_alt_impl() const noexcept;
 
+    template <size_t IDX>
+    struct emplace_construct_t {};
+
+    template <size_t IDX, typename U>
+        requires(std::is_constructible_v<detail::select_t<IDX, T...>, U>)
+    constexpr explicit variant([[maybe_unused]] emplace_construct_t<IDX> tag, U&& value)
+        : variant(std::in_place_index<IDX>, std::forward<U>(value)) {}
+
+    template <size_t IDX, typename U>
+        requires(!std::is_constructible_v<detail::select_t<IDX, T...>, U>)
+    constexpr explicit variant([[maybe_unused]] emplace_construct_t<IDX> tag, U&& value)
+        : variant(emplace_construct_t<IDX + 1>{}, std::forward<U>(value)) {}
+
   public:
     /// @brief Default constructor
     ///
@@ -119,7 +132,7 @@ class variant {
     /// constructor to participate in overload resoltuion, but no other
     /// alternatives need be default constructible.
     ///
-    /// ## Example:
+    /// ## Example
     /// ```cpp
     /// variant<int, bool, int> v;
     ///
@@ -146,7 +159,7 @@ class variant {
     /// All alternative types *must* be copy constructible for this constructor
     /// to participate in overload resolution.
     ///
-    /// ## Example:
+    /// ## Example
     /// ```cpp
     /// variant<int, bool, int> v1{std::in_place_index<2>, 42};
     ///
@@ -179,7 +192,7 @@ class variant {
     /// on the move constructor of the type. In general, moved values are said
     /// to be in a valid, but unspecified, state.
     ///
-    /// ## Example:
+    /// ## Example
     /// ```cpp
     /// variant<int, bool, int> v1{std::in_place_index<2>, 42};
     ///
@@ -208,7 +221,7 @@ class variant {
     /// this constructor is always valid as long as `U` is constructible with
     /// the arguments, `std::forward<Args>(args)...`.
     ///
-    /// ## Example:
+    /// ## Example
     /// ```cpp
     /// variant<int, std::string> v{std::in_place_index<1>, 5, 'a'};
     ///
@@ -238,7 +251,7 @@ class variant {
     /// this constructor is always valid as long as `U` is constructible with
     /// the arguments, `init, std::forward<Args>(args)...`.
     ///
-    /// ## Example:
+    /// ## Example
     /// ```cpp
     /// variant<int, std::vector<int>> v{
     ///         std::in_place_index<1>,
@@ -276,7 +289,7 @@ class variant {
     /// emplacement constructor instead to initialize the alternative of type
     /// `A`.
     ///
-    /// ## Example:
+    /// ## Example
     /// ```cpp
     /// variant<int, std::string> v{
     ///         std::in_place_type<std::string>,
@@ -311,7 +324,7 @@ class variant {
     /// emplacement constructor instead to initialize the alternative of type
     /// `A`.
     ///
-    /// ## Example:
+    /// ## Example
     /// ```cpp
     /// variant<int, std::vector<int>> v{
     ///         std::in_place_type<std::string>,
@@ -328,6 +341,77 @@ class variant {
     constexpr variant(std::in_place_type_t<U> inplace,
                       std::initializer_list<V> init,
                       Args&&... args);
+
+    /// @brief Forwarding constructor
+    ///
+    /// @details
+    /// A new @ref variant is initialized such that an alternative is
+    /// constructed in place with the provided value as the constructor
+    /// argument.
+    ///
+    /// To avoid ambiguity to the reader, this constructor only participates
+    /// in overload resolution when there is only one alternative that could
+    /// possibly be constructed from the value.
+    ///
+    /// This constructor is `explicit` if the value is not implicitly
+    /// convertible to the target alternative type.
+    ///
+    /// This constructor should be avoided in generic code, because some @ref
+    /// variant instantiations will have distinct types while others will not.
+    /// Prefer the emplacement constructors.
+    ///
+    /// ## Example
+    /// ```cpp
+    /// variant<void, int> v{42};
+    ///
+    /// assert(v.index() == 1);
+    ///
+    /// assert(get<1>(v) == 42);
+    /// ```
+    ///
+    /// @param value The value that is used to construct the alternative
+    template <typename U>
+        requires(!std::is_same_v<std::remove_cvref_t<U>, variant<T...>> &&
+                 detail::is_uniquely_constructible_v<U, T...>)
+    constexpr explicit(detail::is_uniquely_explicitly_constructible_v<U, T...>)
+        variant(U&& value)
+        : variant(emplace_construct_t<0>{}, std::forward<U>(value)) {}
+
+    /// @brief Forwarding constructor with initializer list
+    ///
+    /// @details
+    /// A new @ref variant is initialized such that an alternative is
+    /// constructed in place with the provided `std::initializer_list`
+    /// as the constructor argument.
+    ///
+    /// To avoid ambiguity to the reader, this constructor only participates
+    /// in overload resulotion when there is only one alternative that could
+    /// possible be constructed from the initializer list.
+    ///
+    /// This constructor is `explicit` if the `std::initializer_list` is not
+    /// implicitly convertible to the target alternative type.
+    ///
+    /// This constructor should be avoided in generic code, because some @ref
+    /// variant instantiations will have distinct types while others will not.
+    /// Prefer the emplacement constructors.
+    ///
+    /// ## Example
+    /// ```cpp
+    /// variant<void, std::vector<int>> v({1, 2, 3, 4, 5});
+    ///
+    /// assert(v.index() == 1);
+    ///
+    /// assert(get<1>(v).size() == 5);
+    /// ```
+    ///
+    /// @param init The `std::initializer_list` that is used to construct the
+    /// alternative
+    template <typename U>
+        requires(detail::is_uniquely_constructible_v<std::initializer_list<U>, T...>)
+    constexpr explicit(
+        detail::is_uniquely_explicitly_constructible_v<std::initializer_list<U>, T...>)
+        variant(std::initializer_list<U> init)
+        : variant(emplace_construct_t<0>{}, init) {}
 
     /// @brief Destructor
     ///
@@ -354,7 +438,7 @@ class variant {
     /// All alternatives *must* be both copy assignable and copy constructible
     /// for this function to participate in overload resolution.
     ///
-    /// ## Example:
+    /// ## Example
     /// ```cpp
     /// variant<int, bool> v1{std::in_place_index<0>, 42};
     ///
@@ -397,7 +481,7 @@ class variant {
     /// All alternatives *must* be both move assignable and move constructible
     /// for this function to participate in overload resolution.
     ///
-    /// ## Example:
+    /// ## Example
     /// ```cpp
     /// variant<int, bool> v1{std::in_place_index<0>, 42};
     ///
@@ -421,6 +505,82 @@ class variant {
                   detail::traits<T>::is_move_constructible))
     = default;
 
+  private:
+    template <size_t IDX, typename U>
+    constexpr void assign_value(U&& value);
+
+  public:
+    /// @brief Forwarding assignment operator
+    ///
+    /// @details
+    /// This function assigns a value directly to an alternative. If the @ref
+    /// variant already contains the target alternative, the value is assigned
+    /// using the alternative type's assignemnt operator. Otherwise, the target
+    /// alternative is constructed with the value.
+    ///
+    /// To avoid ambiguity to the reader, this function only participates in
+    /// overload resolution when there is only one alternative that could
+    /// possibly be assigned from the value.
+    ///
+    /// This operator should be avoided in generic code, because some @ref
+    /// variant instantiations will have distinct types while others will not.
+    ///
+    /// ## Example
+    /// ```cpp
+    /// variant<void, int> v{};
+    ///
+    /// v = 42;
+    ///
+    /// assert(v.index() == 1);
+    ///
+    /// assert(get<1>(v) == 42);
+    /// ```
+    ///
+    /// @param rhs The value to be assigned to the alternative
+    template <typename U>
+        requires(!std::is_same_v<std::remove_cvref_t<U>, variant> &&
+                 detail::is_uniquely_assignable_v<U, T...>)
+    constexpr variant& operator=(U&& rhs) {
+        assign_value<0>(std::forward<U>(rhs));
+        return *this;
+    }
+
+    /// @brief Forwarding assignment operator with initializer list
+    ///
+    /// @details
+    /// This function assigns a `std::initializer_list` directoy to an
+    /// alternative. If the @ref variant already contains the target
+    /// alternative, the `std::initializer_list` is assigned uting the
+    /// alternative type's assignment operator. Otherwise, the target
+    /// alternative is constructed with the `std::initializer_list`.
+    ///
+    /// To avoid ambiguity to the reader, this function only participates in
+    /// overload resolution when there is only one alternative that could
+    /// possibly be assigned from the `std::initializer_list`.
+    ///
+    /// This opreator should be avoided in generic code, because some @ref
+    /// variant instantiations will have distinct types while others will not.
+    ///
+    /// ## Example
+    /// ```cpp
+    /// variant<void, std::vector<int>> v{};
+    ///
+    /// v = {1, 2, 3, 4, 5};
+    ///
+    /// assert(v.index() == 1);
+    ///
+    /// assert(get<1>(v).size() == 5);
+    /// ```
+    ///
+    /// @param rhs The `std::initializer_list` to be assigned to the
+    /// alternative
+    template <typename U>
+        requires(detail::is_uniquely_assignable_v<std::initializer_list<U>, T...>)
+    constexpr variant& operator=(std::initializer_list<U> rhs) {
+        assign_value<0>(rhs);
+        return *this;
+    }
+
     /// @brief Gets the index of the contained alternative
     ///
     /// @details
@@ -434,7 +594,7 @@ class variant {
     /// converting it to a zero-based index in order to provide a common
     /// interface for all @variant instantiations.
     ///
-    /// ## Example:
+    /// ## Example
     /// ```cpp
     /// variant<int, bool, float&, std::string, void> v{
     ///         std::in_place_index<3>, "hello"};
@@ -452,7 +612,7 @@ class variant {
     /// before the call, and constructs a new alternative with the specified
     /// index in place.
     ///
-    /// ## Example:
+    /// ## Example
     /// ```cpp
     /// variant<int, std::string> v;
     ///
@@ -478,7 +638,7 @@ class variant {
     /// before the call, and constructs a new alternative with the specified
     /// index in place.
     ///
-    /// ## Example:
+    /// ## Example
     /// ```cpp
     /// variant<int, std::vector<int>> v;
     ///
@@ -512,7 +672,7 @@ class variant {
     /// alternative of type `A`, but it can use this function to emplace an
     /// alternative of type `B`.
     ///
-    /// ## Example:
+    /// ## Example
     /// ```cpp
     /// variant<int, std::string> v;
     ///
@@ -544,7 +704,7 @@ class variant {
     /// alternative of type `A`, but it can use this function to emplace an
     /// alternative of type `B`.
     ///
-    /// ## Example:
+    /// ## Example
     /// ```cpp
     /// variant<int, std::vector<int>> v;
     ///
@@ -577,7 +737,7 @@ class variant {
     /// index that does not correspond to the currently contained alternative
     /// results in undefined behavior.
     ///
-    /// ## Example:
+    /// ## Example
     /// ```cpp
     /// variant<bool, int, void> v{std::in_place_index<1>, 42};
     ///
@@ -606,7 +766,7 @@ class variant {
     /// index that does not correspond to the currently contained alternative
     /// results in undefined behavior.
     ///
-    /// ## Example:
+    /// ## Example
     /// ```cpp
     /// variant<bool, int, void> v{std::in_place_index<1>, 42};
     ///
@@ -636,7 +796,7 @@ class variant {
     /// index that does not correspond to the currently contained alternative
     /// results in undefined behavior.
     ///
-    /// ## Example:
+    /// ## Example
     /// ```cpp
     /// variant<bool, int, void> v{std::in_place_index<1>, 42};
     ///
@@ -666,7 +826,7 @@ class variant {
     /// index that does not correspond to the currently contained alternative
     /// results in undefined behavior.
     ///
-    /// ## Example:
+    /// ## Example
     /// ```cpp
     /// variant<bool, int, void> v{std::in_place_index<1>, 42};
     ///
@@ -701,7 +861,7 @@ class variant {
     /// of type `A`, but it can use this fucntion to access an alternative of
     /// type `B`.
     ///
-    /// ## Example:
+    /// ## Example
     /// ```cpp
     /// variant<bool, int, void> v{std::in_place_type<int>, 42};
     ///
@@ -738,7 +898,7 @@ class variant {
     /// of type `A`, but it can use this fucntion to access an alternative of
     /// type `B`.
     ///
-    /// ## Example:
+    /// ## Example
     /// ```cpp
     /// variant<bool, int, void> v{std::in_place_type<int>, 42};
     ///
@@ -775,7 +935,7 @@ class variant {
     /// of type `A`, but it can use this fucntion to access an alternative of
     /// type `B`.
     ///
-    /// ## Example:
+    /// ## Example
     /// ```cpp
     /// variant<bool, int, void> v{std::in_place_type<int>, 42};
     ///
@@ -812,7 +972,7 @@ class variant {
     /// of type `A`, but it can use this fucntion to access an alternative of
     /// type `B`.
     ///
-    /// ## Example:
+    /// ## Example
     /// ```cpp
     /// variant<bool, int, void> v{std::in_place_type<int>, 42};
     ///
@@ -838,7 +998,7 @@ class variant {
     /// This function allows accessing alternatives by index, which is provided
     /// as a template argument.
     ///
-    /// ## Example:
+    /// ## Example
     /// ```cpp
     /// variant<bool, int, void> v{std::in_place_index<1>, 42};
     ///
@@ -865,7 +1025,7 @@ class variant {
     /// This function allows accessing alternatives by index, which is provided
     /// as a template argument.
     ///
-    /// ## Example:
+    /// ## Example
     /// ```cpp
     /// variant<bool, int, void> v{std::in_place_index<1>, 42};
     ///
@@ -893,7 +1053,7 @@ class variant {
     /// This function allows accessing alternatives by index, which is provided
     /// as a template argument.
     ///
-    /// ## Example:
+    /// ## Example
     /// ```cpp
     /// variant<bool, int, void> v{std::in_place_index<1>, 42};
     ///
@@ -921,7 +1081,7 @@ class variant {
     /// This function allows accessing alternatives by index, which is provided
     /// as a template argument.
     ///
-    /// ## Example:
+    /// ## Example
     /// ```cpp
     /// variant<bool, int, void> v{std::in_place_index<1>, 42};
     ///
@@ -955,7 +1115,7 @@ class variant {
     /// of type `A`, but it can use this fucntion to access an alternative of
     /// type `B`.
     ///
-    /// ## Example:
+    /// ## Example
     /// ```cpp
     /// variant<bool, int, void> v{std::in_place_index<1>, 42};
     ///
@@ -990,7 +1150,7 @@ class variant {
     /// of type `A`, but it can use this fucntion to access an alternative of
     /// type `B`.
     ///
-    /// ## Example:
+    /// ## Example
     /// ```cpp
     /// variant<bool, int, void> v{std::in_place_index<1>, 42};
     ///
@@ -1025,7 +1185,7 @@ class variant {
     /// of type `A`, but it can use this fucntion to access an alternative of
     /// type `B`.
     ///
-    /// ## Example:
+    /// ## Example
     /// ```cpp
     /// variant<bool, int, void> v{std::in_place_index<1>, 42};
     ///
@@ -1060,7 +1220,7 @@ class variant {
     /// of type `A`, but it can use this fucntion to access an alternative of
     /// type `B`.
     ///
-    /// ## Example:
+    /// ## Example
     /// ```cpp
     /// variant<bool, int, void> v{std::in_place_index<1>, 42};
     ///
@@ -1093,7 +1253,7 @@ class variant {
     /// the alternative, this function returns null. In the case where the
     /// alternative is of type `void`, this function does nothing.
     ///
-    /// ## Example:
+    /// ## Example
     /// ```cpp
     /// variant<bool, int, void> v{std::in_place_index<1>, 42};
     ///
@@ -1122,7 +1282,7 @@ class variant {
     /// the alternative, this function returns null. In the case where the
     /// alternative is of type `void`, this function does nothing.
     ///
-    /// ## Example:
+    /// ## Example
     /// ```cpp
     /// variant<bool, int, void> v{std::in_place_index<1>, 42};
     ///
@@ -1158,7 +1318,7 @@ class variant {
     /// of type `A`, but it can use this fucntion to access an alternative of
     /// type `B`.
     ///
-    /// ## Example:
+    /// ## Example
     /// ```cpp
     /// variant<bool, int, void> v{std::in_place_index<1>, 42};
     ///
@@ -1193,7 +1353,7 @@ class variant {
     /// of type `A`, but it can use this fucntion to access an alternative of
     /// type `B`.
     ///
-    /// ## Example:
+    /// ## Example
     /// ```cpp
     /// variant<bool, int, void> v{std::in_place_index<1>, 42};
     ///
@@ -1220,7 +1380,7 @@ class variant {
     /// Given a type parameter, this function checks if the @ref variant currently
     /// holds an alternative that has the exact same type.
     ///
-    /// ## Example:
+    /// ## Example
     /// ```cpp
     /// variant<int, bool, int> v1{std::in_place_index<0>, 42};
     ///
@@ -1252,7 +1412,7 @@ class variant {
     /// applications, be wary of any assumptions about how well or poorly your
     /// compiler will optimize a call to this function.
     ///
-    /// ## Example:
+    /// ## Example
     /// ```cpp
     /// variant<bool, int, void> v1{std::in_place_index<1>, 42};
     ///
@@ -1287,7 +1447,7 @@ class variant {
     /// applications, be wary of any assumptions about how well or poorly your
     /// compiler will optimize a call to this function.
     ///
-    /// ## Example:
+    /// ## Example
     /// ```cpp
     /// variant<bool, int, void> v1{std::in_place_index<1>, 42};
     ///
@@ -1323,7 +1483,7 @@ class variant {
     /// applications, be wary of any assumptions about how well or poorly your
     /// compiler will optimize a call to this function.
     ///
-    /// ## Example:
+    /// ## Example
     /// ```cpp
     /// variant<bool, int, void> v1{std::in_place_index<1>, 42};
     ///
@@ -1359,7 +1519,7 @@ class variant {
     /// applications, be wary of any assumptions about how well or poorly your
     /// compiler will optimize a call to this function.
     ///
-    /// ## Example:
+    /// ## Example
     /// ```cpp
     /// variant<bool, int, void> v1{std::in_place_index<1>, 42};
     ///
@@ -1386,7 +1546,7 @@ class variant {
     /// are swapped by moving out of the variants, destroying the old
     /// alternatives, and move constructed into the new alternatives.
     ///
-    /// ## Example:
+    /// ## Example
     /// ```cpp
     /// variant<bool, int, void> v1{std::in_place_index<0>, true};
     ///
@@ -1414,7 +1574,7 @@ class variant {
 /// Given a type parameter, this function checks if the @ref variant currently
 /// holds an alternative that has the exact same type.
 ///
-/// ## Example:
+/// ## Example
 /// ```cpp
 /// variant<int, bool, int> v1{std::in_place_index<0>, 42};
 ///
@@ -1437,7 +1597,7 @@ constexpr bool holds_alternative(const variant<U...>& v) noexcept;
 /// This function allows accessing @ref variant alternatives by index, which is
 /// provided as a template argument.
 ///
-/// ## Example:
+/// ## Example
 /// ```cpp
 /// variant<bool, int, void> v{std::in_place_index<1>, 42};
 ///
@@ -1467,7 +1627,7 @@ constexpr typename detail::traits<detail::select_t<I, T...>>::reference get(
 /// This function allows accessing @ref variant alternatives by index, which is
 /// provided as a template argument.
 ///
-/// ## Example:
+/// ## Example
 /// ```cpp
 /// variant<bool, int, void> v{std::in_place_index<1>, 42};
 ///
@@ -1497,7 +1657,7 @@ constexpr typename detail::traits<detail::select_t<I, T...>>::const_reference ge
 /// This function allows accessing @ref variant alternatives by index, which is
 /// provided as a template argument.
 ///
-/// ## Example:
+/// ## Example
 /// ```cpp
 /// variant<bool, int, void> v{std::in_place_index<1>, 42};
 ///
@@ -1527,7 +1687,7 @@ constexpr typename detail::traits<detail::select_t<I, T...>>::rvalue_reference g
 /// This function allows accessing @ref variant alternatives by index, which is
 /// provided as a template argument.
 ///
-/// ## Example:
+/// ## Example
 /// ```cpp
 /// variant<bool, int, void> v{std::in_place_index<1>, 42};
 ///
@@ -1563,7 +1723,7 @@ constexpr typename detail::traits<detail::select_t<I, T...>>::const_rvalue_refer
 /// of type `A`, but it can use this fucntion to access an alternative of
 /// type `B`.
 ///
-/// ## Example:
+/// ## Example
 /// ```cpp
 /// variant<bool, int, void> v{std::in_place_index<1>, 42};
 ///
@@ -1599,7 +1759,7 @@ constexpr typename detail::traits<T>::reference get(variant<U...>& v);
 /// of type `A`, but it can use this fucntion to access an alternative of
 /// type `B`.
 ///
-/// ## Example:
+/// ## Example
 /// ```cpp
 /// variant<bool, int, void> v{std::in_place_index<1>, 42};
 ///
@@ -1635,7 +1795,7 @@ constexpr typename detail::traits<T>::const_reference get(const variant<U...>& v
 /// of type `A`, but it can use this fucntion to access an alternative of
 /// type `B`.
 ///
-/// ## Example:
+/// ## Example
 /// ```cpp
 /// variant<bool, int, void> v{std::in_place_index<1>, 42};
 ///
@@ -1671,7 +1831,7 @@ constexpr typename detail::traits<T>::rvalue_reference get(variant<U...>&& v);
 /// of type `A`, but it can use this fucntion to access an alternative of
 /// type `B`.
 ///
-/// ## Example:
+/// ## Example
 /// ```cpp
 /// variant<bool, int, void> v{std::in_place_index<1>, 42};
 ///
@@ -1704,7 +1864,7 @@ constexpr typename detail::traits<T>::const_rvalue_reference get(const variant<U
 /// alternative, this function returns null. In the case where the alternative
 /// is of type `void`, this function does nothing.
 ///
-/// ## Example:
+/// ## Example
 /// ```cpp
 /// variant<bool, int, void> v{std::in_place_index<1>, 42};
 ///
@@ -1736,7 +1896,7 @@ constexpr typename detail::traits<detail::select_t<I, T...>>::pointer get_if(
 /// alternative, this function returns null. In the case where the alternative
 /// is of type `void`, this function does nothing.
 ///
-/// ## Example:
+/// ## Example
 /// ```cpp
 /// variant<bool, int, void> v{std::in_place_index<1>, 42};
 ///
@@ -1774,7 +1934,7 @@ constexpr typename detail::traits<detail::select_t<I, T...>>::const_pointer get_
 /// of type `A`, but it can use this fucntion to access an alternative of
 /// type `B`.
 ///
-/// ## Example:
+/// ## Example
 /// ```cpp
 /// variant<bool, int, void> v{std::in_place_index<1>, 42};
 ///
@@ -1812,7 +1972,7 @@ constexpr typename detail::traits<T>::pointer get_if(variant<U...>& v) noexcept;
 /// of type `A`, but it can use this fucntion to access an alternative of
 /// type `B`.
 ///
-/// ## Example:
+/// ## Example
 /// ```cpp
 /// variant<bool, int, void> v{std::in_place_index<1>, 42};
 ///
@@ -1855,7 +2015,7 @@ constexpr typename detail::traits<T>::const_pointer get_if(const variant<U...>& 
 /// applications, be wary of any assumptions about how well or poorly your
 /// compiler will optimize a call to this function.
 ///
-/// ## Example:
+/// ## Example
 /// ```cpp
 /// variant<bool, int, void> v1{std::in_place_index<1>, 42};
 /// variant<float, int> v2{std::in_place_index<0>, 3.14};
@@ -1897,7 +2057,7 @@ constexpr std::invoke_result_t<V&&> visit(V&& visitor);
 /// applications, be wary of any assumptions about how well or poorly your
 /// compiler will optimize a call to this function.
 ///
-/// ## Example:
+/// ## Example
 /// ```cpp
 /// variant<bool, int, void> v1{std::in_place_index<1>, 42};
 /// variant<float, int> v2{std::in_place_index<0>, 3.14};
@@ -1934,7 +2094,7 @@ visit(V&& visitor, T0&& var0, TN&&... varn);
 /// are swapped by moving out of the variants, destroying the old
 /// alternatives, and move constructed into the new alternatives.
 ///
-/// ## Example:
+/// ## Example
 /// ```cpp
 /// variant<bool, int, void> v1{std::in_place_index<0>, true};
 ///
@@ -1990,7 +2150,7 @@ struct variant_alternative_helper<I, const variant<T...>>
 /// @ref varaint_size provides the number alternatives in the @ref variant,
 /// `T`, in the static constexpr member `value`.
 ///
-/// ## Example:
+/// ## Example
 /// ```cpp
 /// assert(variant_size<variant<bool, int, void>>::value == 3);
 /// ```
@@ -2007,7 +2167,7 @@ struct variant_size : detail::variant_size_helper<T> {};
 /// @ref varaint_size_v provides the number alternatives in the @ref variant,
 /// `T`.
 ///
-/// ## Example:
+/// ## Example
 /// ```cpp
 /// assert(variant_size_v<variant<bool, int, void>> == 3);
 /// ```
@@ -2024,7 +2184,7 @@ static inline constexpr size_t variant_size_v = variant_size<T>::value;
 /// @ref variant_alternative provides the type of a @ref alternative with the
 /// index `I` in the member type, `type`.
 ///
-/// ## Example:
+/// ## Example
 /// ```cpp
 /// assert(std::is_same_v<
 ///     typename variant_alternative<1, variant<bool, int, void>>::type,
@@ -2046,7 +2206,7 @@ struct variant_alternative : detail::variant_alternative_helper<I, T> {};
 /// @ref variant_alternative provides the type of a @ref alternative with the
 /// index `I` in the member type, `type`.
 ///
-/// ## Example:
+/// ## Example
 /// ```cpp
 /// assert(std::is_same_v<
 ///         variant_alternative_t<1, variant<bool, int, void>>, int>);
