@@ -19,6 +19,18 @@ Checks: "*,
          -bugprone-forwarding-reference-overload,
          -hicpp-move-const-arg,
          -readability-function-cognitive-complexity,
+         -cppcoreguidelines-noexcept-move-operations,
+         -hicpp-noexcept-move,
+         -cppcoreguidelines-noexcept-destructor,
+         -cppcoreguidelines-noexcept-swap,
+         -performance-noexcept-move-constructor,
+         -performance-noexcept-destructor,
+         -performance-noexcept-swap,
+         -misc-include-cleaner,
+         -cppcoreguidelines-c-copy-assignment-signature,
+         -misc-unconventional-assign-operator,
+         -cppcoreguidelines-avoid-magic-numbers,
+         -readability-magic-numbers,
 "
 HeaderFilterRegex: '.*/sumty/.*'
 FormatStyle: file

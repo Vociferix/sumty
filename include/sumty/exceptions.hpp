@@ -57,6 +57,7 @@ class bad_result_access : public std::exception {
     bad_result_access(const bad_result_access&) = default;
 
     bad_result_access(bad_result_access&&) noexcept(
+        // NOLINTNEXTLINE(performance-noexcept-move-constructor)
         std::is_nothrow_move_constructible_v<E>) = default;
 
     ~bad_result_access() noexcept override = default;
@@ -64,6 +65,7 @@ class bad_result_access : public std::exception {
     bad_result_access& operator=(const bad_result_access&) = default;
 
     bad_result_access& operator=(bad_result_access&&) noexcept(
+        // NOLINTNEXTLINE(performance-noexcept-move-constructor)
         std::is_nothrow_move_assignable_v<E>) = default;
 
     [[nodiscard]] E& error() & noexcept { return err_; }

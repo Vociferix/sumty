@@ -20,14 +20,51 @@
 #include "sumty/detail/traits.hpp" // IWYU pragma: export
 #include "sumty/detail/utils.hpp"
 #include "sumty/detail/variant_impl.hpp"
+#include "sumty/exceptions.hpp"
 #include "sumty/utils.hpp"
 
 #include <cstddef>
+#include <functional>
 #include <initializer_list>
 #include <type_traits>
 #include <utility>
 
 namespace sumty {
+
+namespace detail {
+
+template <size_t IDX, typename V, typename U>
+constexpr decltype(auto) jump_table_entry(V&& visitor, U&& var) {
+    if constexpr (std::is_void_v<decltype(std::forward<U>(var)[sumty::index<IDX>])>) {
+        return std::invoke(std::forward<V>(visitor));
+    } else {
+        return std::invoke(std::forward<V>(visitor),
+                           std::forward<U>(var)[sumty::index<IDX>]);
+    }
+}
+
+template <typename V, typename U, size_t... IDX>
+consteval auto make_jump_table([[maybe_unused]] std::index_sequence<IDX...> seq) {
+    using ret_t = decltype(jump_table_entry<0>(std::declval<V&&>(), std::declval<U&&>()));
+    return std::array<ret_t (*)(V&&, U&&), sizeof...(IDX)>{
+        {&jump_table_entry<IDX, V, U>...}};
+}
+
+template <typename V, typename U, typename... T>
+consteval auto make_jump_table() noexcept {
+    return make_jump_table<V, U>(std::make_index_sequence<sizeof...(T)>{});
+}
+
+template <typename V, typename U, typename... T>
+static constexpr auto jump_table = make_jump_table<V, U, T...>();
+
+template <typename V, typename U, typename... T>
+constexpr decltype(auto) visit_impl(V&& visitor, U&& var) {
+    return jump_table<V, U, T...>[var.index()](std::forward<V>(visitor),
+                                               std::forward<U>(var));
+}
+
+} // namespace detail
 
 /// @class variant variant.hpp <sumty/variant.hpp>
 /// @brief General discriminated union
@@ -106,7 +143,19 @@ class variant {
     SUMTY_NO_UNIQ_ADDR detail::variant_impl<void, T...> data_;
 
     template <size_t IDX, typename U>
-    [[nodiscard]] constexpr bool holds_alt_impl() const noexcept;
+    [[nodiscard]] constexpr bool holds_alt_impl() const noexcept {
+        if constexpr (IDX == sizeof...(T)) {
+            return false;
+        } else if constexpr (std::is_same_v<detail::select_t<IDX, T...>, U>) {
+            if (index() == IDX) {
+                return true;
+            } else {
+                return holds_alt_impl<IDX + 1, U>();
+            }
+        } else {
+            return holds_alt_impl<IDX + 1, U>();
+        }
+    }
 
     template <size_t IDX>
     struct emplace_construct_t {};
@@ -237,7 +286,8 @@ class variant {
     template <size_t IDX, typename... Args>
     explicit(sizeof...(Args) == 0)
         // NOLINTNEXTLINE(hicpp-explicit-conversions)
-        constexpr variant(std::in_place_index_t<IDX> inplace, Args&&... args);
+        constexpr variant(std::in_place_index_t<IDX> inplace, Args&&... args)
+        : data_(inplace, std::forward<Args>(args)...) {}
 
     /// @brief Index emplacement constructor with `std::initializer_list`
     ///
@@ -270,7 +320,8 @@ class variant {
     template <size_t IDX, typename U, typename... Args>
     constexpr variant(std::in_place_index_t<IDX> inplace,
                       std::initializer_list<U> init,
-                      Args&&... args);
+                      Args&&... args)
+        : data_(inplace, init, std::forward<Args>(args)...) {}
 
     /// @brief Type emplacement constructor
     ///
@@ -305,7 +356,9 @@ class variant {
         requires(detail::is_unique_v<U, T...>)
     explicit(sizeof...(Args) == 0)
         // NOLINTNEXTLINE(hicpp-explicit-conversions)
-        constexpr variant(std::in_place_type_t<U> inplace, Args&&... args);
+        constexpr variant([[maybe_unused]] std::in_place_type_t<U> inplace, Args&&... args)
+        : data_(std::in_place_index<detail::index_of_v<U, T...>>,
+                std::forward<Args>(args)...) {}
 
     /// @brief Type emplacement constructor with `std::initializer_list`
     ///
@@ -338,9 +391,12 @@ class variant {
     /// ```
     template <typename U, typename V, typename... Args>
         requires(detail::is_unique_v<U, T...>)
-    constexpr variant(std::in_place_type_t<U> inplace,
+    constexpr variant([[maybe_unused]] std::in_place_type_t<U> inplace,
                       std::initializer_list<V> init,
-                      Args&&... args);
+                      Args&&... args)
+        : data_(std::in_place_index<detail::index_of_v<U, T...>>,
+                init,
+                std::forward<Args>(args)...) {}
 
     /// @brief Forwarding constructor
     ///
@@ -374,6 +430,7 @@ class variant {
         requires(!std::is_same_v<std::remove_cvref_t<U>, variant<T...>> &&
                  detail::is_uniquely_constructible_v<U, T...>)
     constexpr explicit(detail::is_uniquely_explicitly_constructible_v<U, T...>)
+        // NOLINTNEXTLINE(hicpp-explicit-conversions)
         variant(U&& value)
         : variant(emplace_construct_t<0>{}, std::forward<U>(value)) {}
 
@@ -507,7 +564,17 @@ class variant {
 
   private:
     template <size_t IDX, typename U>
-    constexpr void assign_value(U&& value);
+    constexpr void assign_value(U&& value) {
+        if constexpr (std::is_assignable_v<detail::select_t<IDX, T...>, U>) {
+            if (index() == IDX) {
+                data_.template get<IDX>() = std::forward<U>(value);
+            } else {
+                data_.template emplace<IDX>(std::forward<U>(value));
+            }
+        } else {
+            assign_value<IDX + 1>(std::forward<U>(value));
+        }
+    }
 
   public:
     /// @brief Forwarding assignment operator
@@ -603,7 +670,7 @@ class variant {
     /// ```
     ///
     /// @return The index of the contained alternative.
-    [[nodiscard]] constexpr size_t index() const noexcept;
+    [[nodiscard]] constexpr size_t index() const noexcept { return data_.index(); }
 
     /// @brief Constructs a new alternative in place by index
     ///
@@ -629,7 +696,10 @@ class variant {
     /// @return A reference to the new alternative, if applicable
     template <size_t I, typename... Args>
     constexpr typename detail::traits<detail::select_t<I, T...>>::reference emplace(
-        Args&&... args);
+        Args&&... args) {
+        data_.template emplace<I>(std::forward<Args>(args)...);
+        return data_.template get<I>();
+    }
 
     /// @brief Constructs a new alternative in place by index
     ///
@@ -657,7 +727,10 @@ class variant {
     template <size_t I, typename U, typename... Args>
     constexpr typename detail::traits<detail::select_t<I, T...>>::reference emplace(
         std::initializer_list<U> ilist,
-        Args&&... args);
+        Args&&... args) {
+        data_.template emplace<I>(ilist, std::forward<Args>(args)...);
+        return data_.template get<I>();
+    }
 
     /// @brief Constructs a new alternative in place by type
     ///
@@ -689,7 +762,10 @@ class variant {
     /// @return A reference to the new alternative, if applicable
     template <typename U, typename... Args>
         requires(detail::is_unique_v<U, T...>)
-    constexpr typename detail::traits<U>::reference emplace(Args&&... args);
+    constexpr typename detail::traits<U>::reference emplace(Args&&... args) {
+        data_.template emplace<detail::index_of_v<U, T...>>(std::forward<Args>(args)...);
+        return data_.template get<detail::index_of_v<U, T...>>();
+    }
 
     /// @brief Constructs a new alternative in place by type
     ///
@@ -723,7 +799,11 @@ class variant {
     template <typename U, typename V, typename... Args>
         requires(detail::is_unique_v<U, T...>)
     constexpr typename detail::traits<U>::reference emplace(std::initializer_list<V> ilist,
-                                                            Args&&... args);
+                                                            Args&&... args) {
+        data_.template emplace<detail::index_of_v<U, T...>>(ilist,
+                                                            std::forward<Args>(args)...);
+        return data_.template get<detail::index_of_v<U, T...>>();
+    }
 
     /// @brief Alternative access operator by index
     ///
@@ -752,7 +832,9 @@ class variant {
     /// @return A reference to the accessed alternative, if applicable
     template <size_t I>
     [[nodiscard]] constexpr typename detail::traits<detail::select_t<I, T...>>::reference
-    operator[](index_t<I> index) & noexcept;
+    operator[]([[maybe_unused]] index_t<I> index) & noexcept {
+        return data_.template get<I>();
+    }
 
     /// @brief Alternative access operator by index
     ///
@@ -782,7 +864,9 @@ class variant {
     template <size_t I>
     [[nodiscard]] constexpr
         typename detail::traits<detail::select_t<I, T...>>::const_reference
-        operator[](index_t<I> index) const& noexcept;
+        operator[]([[maybe_unused]] index_t<I> index) const& noexcept {
+        return data_.template get<I>();
+    }
 
     /// @brief Alternative access operator by index
     ///
@@ -812,7 +896,9 @@ class variant {
     template <size_t I>
     [[nodiscard]] constexpr
         typename detail::traits<detail::select_t<I, T...>>::rvalue_reference
-        operator[](index_t<I> index) &&;
+        operator[]([[maybe_unused]] index_t<I> index) && {
+        return std::move(data_).template get<I>();
+    }
 
     /// @brief Alternative access operator by index
     ///
@@ -842,7 +928,9 @@ class variant {
     template <size_t I>
     [[nodiscard]] constexpr
         typename detail::traits<detail::select_t<I, T...>>::const_rvalue_reference
-        operator[](index_t<I> index) const&&;
+        operator[]([[maybe_unused]] index_t<I> index) const&& {
+        return std::move(data_).template get<I>();
+    }
 
     /// @brief Alternative access operator by type
     ///
@@ -1017,7 +1105,10 @@ class variant {
     /// the alternative with the corresponding index.
     template <size_t I>
     [[nodiscard]] constexpr typename detail::traits<detail::select_t<I, T...>>::reference
-    get() &;
+    get() & {
+        if (index() != I) { throw bad_variant_access(); }
+        return data_.template get<I>();
+    }
 
     /// @brief Gets an alternative by index
     ///
@@ -1045,7 +1136,10 @@ class variant {
     template <size_t I>
     [[nodiscard]] constexpr
         typename detail::traits<detail::select_t<I, T...>>::const_reference
-        get() const&;
+        get() const& {
+        if (index() != I) { throw bad_variant_access(); }
+        return data_.template get<I>();
+    }
 
     /// @brief Gets an alternative by index
     ///
@@ -1073,7 +1167,10 @@ class variant {
     template <size_t I>
     [[nodiscard]] constexpr
         typename detail::traits<detail::select_t<I, T...>>::rvalue_reference
-        get() &&;
+        get() && {
+        if (index() != I) { throw bad_variant_access(); }
+        return std::move(data_).template get<I>();
+    }
 
     /// @brief Gets an alternative by index
     ///
@@ -1101,7 +1198,10 @@ class variant {
     template <size_t I>
     [[nodiscard]] constexpr
         typename detail::traits<detail::select_t<I, T...>>::const_rvalue_reference
-        get() const&&;
+        get() const&& {
+        if (index() != I) { throw bad_variant_access(); }
+        return std::move(data_).template get<I>();
+    }
 
     /// @brief Gets an alternative by type
     ///
@@ -1271,7 +1371,20 @@ class variant {
     /// @return A pointer to the accessed alternative, if applicable, or null
     template <size_t I>
     [[nodiscard]] constexpr typename detail::traits<detail::select_t<I, T...>>::pointer
-    get_if() noexcept;
+    get_if() noexcept {
+        using ptr_t = typename detail::traits<detail::select_t<I, T...>>::pointer;
+        if constexpr (!std::is_void_v<ptr_t>) {
+            ptr_t ret;
+            if (index() == I) {
+                ret = &data_.template get<I>();
+            } else {
+                ret = nullptr;
+            }
+            return ret;
+        } else {
+            return;
+        }
+    }
 
     /// @brief Gets an alternative pointer by index if the @ref variant holds it
     ///
@@ -1301,7 +1414,20 @@ class variant {
     template <size_t I>
     [[nodiscard]] constexpr
         typename detail::traits<detail::select_t<I, T...>>::const_pointer
-        get_if() const noexcept;
+        get_if() const noexcept {
+        using ptr_t = typename detail::traits<detail::select_t<I, T...>>::const_pointer;
+        if constexpr (!std::is_void_v<ptr_t>) {
+            ptr_t ret;
+            if (index() == I) {
+                ret = &data_.template get<I>();
+            } else {
+                ret = nullptr;
+            }
+            return ret;
+        } else {
+            return;
+        }
+    }
 
     /// @brief Gets an alternative pointer by type if the @ref variant holds it
     ///
@@ -1336,7 +1462,9 @@ class variant {
     /// @return A pointer to the accessed alternative, if applicable, or null
     template <typename U>
         requires detail::is_unique_v<U, T...>
-    [[nodiscard]] constexpr typename detail::traits<U>::pointer get_if() noexcept;
+    [[nodiscard]] constexpr typename detail::traits<U>::pointer get_if() noexcept {
+        return get_if<detail::index_of_v<U, T...>>();
+    }
 
     /// @brief Gets an alternative pointer by type if the @ref variant holds it
     ///
@@ -1372,7 +1500,9 @@ class variant {
     template <typename U>
         requires detail::is_unique_v<U, T...>
     [[nodiscard]] constexpr typename detail::traits<U>::const_pointer get_if()
-        const noexcept;
+        const noexcept {
+        return get_if<detail::index_of_v<U, T...>>();
+    }
 
     /// @brief Checks if a @ref variant contains a particular alternative.
     ///
@@ -1393,7 +1523,13 @@ class variant {
     ///
     /// @return `true` if the @ref variant holds an alternative of the given type.
     template <typename U>
-    [[nodiscard]] constexpr bool holds_alternative() const noexcept;
+    [[nodiscard]] constexpr bool holds_alternative() const noexcept {
+        if constexpr (detail::is_unique_v<U, T...>) {
+            return index() == detail::index_of_v<U, T...>;
+        } else {
+            return holds_alt_impl<0, U>();
+        }
+    }
 
     /// @brief Calls a visitor callable with the contained alternative
     ///
@@ -1428,7 +1564,9 @@ class variant {
     template <typename V>
     constexpr detail::
         invoke_result_t<V&&, typename detail::traits<detail::select_t<0, T...>>::reference>
-        visit(V&& visitor) &;
+        visit(V&& visitor) & {
+        return detail::visit_impl<V, variant&, T...>(std::forward<V>(visitor), *this);
+    }
 
     /// @brief Calls a visitor callable with the contained alternative
     ///
@@ -1464,7 +1602,9 @@ class variant {
     constexpr detail::invoke_result_t<
         V&&,
         typename detail::traits<detail::select_t<0, T...>>::const_reference>
-    visit(V&& visitor) const&;
+    visit(V&& visitor) const& {
+        return detail::visit_impl<V, const variant&, T...>(std::forward<V>(visitor), *this);
+    }
 
     /// @brief Calls a visitor callable with the contained alternative
     ///
@@ -1500,7 +1640,10 @@ class variant {
     constexpr detail::invoke_result_t<
         V&&,
         typename detail::traits<detail::select_t<0, T...>>::rvalue_reference>
-    visit(V&& visitor) &&;
+    visit(V&& visitor) && {
+        return detail::visit_impl<V, variant&&, T...>(std::forward<V>(visitor),
+                                                      std::move(*this));
+    }
 
     /// @brief Calls a visitor callable with the contained alternative
     ///
@@ -1536,7 +1679,10 @@ class variant {
     constexpr detail::invoke_result_t<
         V&&,
         typename detail::traits<detail::select_t<0, T...>>::const_rvalue_reference>
-    visit(V&& visitor) const&&;
+    visit(V&& visitor) const&& {
+        return detail::visit_impl<V, const variant&&, T...>(std::forward<V>(visitor),
+                                                            std::move(*this));
+    }
 
     /// @brief Swaps two @ref variant instances
     ///
@@ -1564,7 +1710,9 @@ class variant {
     /// ```
     ///
     /// @param other The "other" @ref variant to swap with this @ref variant
-    constexpr void swap(variant& other) noexcept(noexcept(data_.swap(other.data_)));
+    constexpr void swap(variant& other) noexcept(noexcept(data_.swap(other.data_))) {
+        data_.swap(other.data_);
+    }
 };
 
 /// @relates variant
@@ -1588,7 +1736,9 @@ class variant {
 /// @param v The @ref variant to check.
 /// @return `true` if the @ref variant holds an alternative of the given type.
 template <typename T, typename... U>
-constexpr bool holds_alternative(const variant<U...>& v) noexcept;
+constexpr bool holds_alternative(const variant<U...>& v) noexcept {
+    return v.template holds_alternative<T>();
+}
 
 /// @relates variant
 /// @brief Gets a @ref variant alternative by index
@@ -1618,7 +1768,9 @@ constexpr bool holds_alternative(const variant<U...>& v) noexcept;
 /// the alternative with the corresponding index.
 template <size_t I, typename... T>
 constexpr typename detail::traits<detail::select_t<I, T...>>::reference get(
-    variant<T...>& v);
+    variant<T...>& v) {
+    return v.template get<I>();
+}
 
 /// @relates variant
 /// @brief Gets a @ref variant alternative by index
@@ -1648,7 +1800,9 @@ constexpr typename detail::traits<detail::select_t<I, T...>>::reference get(
 /// the alternative with the corresponding index.
 template <size_t I, typename... T>
 constexpr typename detail::traits<detail::select_t<I, T...>>::const_reference get(
-    const variant<T...>& v);
+    const variant<T...>& v) {
+    return v.template get<I>();
+}
 
 /// @relates variant
 /// @brief Gets a @ref variant alternative by index
@@ -1678,7 +1832,9 @@ constexpr typename detail::traits<detail::select_t<I, T...>>::const_reference ge
 /// the alternative with the corresponding index.
 template <size_t I, typename... T>
 constexpr typename detail::traits<detail::select_t<I, T...>>::rvalue_reference get(
-    variant<T...>&& v);
+    variant<T...>&& v) {
+    return std::move(v).template get<I>();
+}
 
 /// @relates variant
 /// @brief Gets a @ref variant alternative by index
@@ -1708,7 +1864,9 @@ constexpr typename detail::traits<detail::select_t<I, T...>>::rvalue_reference g
 /// the alternative with the corresponding index.
 template <size_t I, typename... T>
 constexpr typename detail::traits<detail::select_t<I, T...>>::const_rvalue_reference get(
-    const variant<T...>&& v);
+    const variant<T...>&& v) {
+    return std::move(v).template get<I>();
+}
 
 /// @relates variant
 /// @brief Gets a @ref variant alternative by type
@@ -1744,7 +1902,9 @@ constexpr typename detail::traits<detail::select_t<I, T...>>::const_rvalue_refer
 /// the alternative with the corresponding type.
 template <typename T, typename... U>
     requires detail::is_unique_v<T, U...>
-constexpr typename detail::traits<T>::reference get(variant<U...>& v);
+constexpr typename detail::traits<T>::reference get(variant<U...>& v) {
+    return v.template get<T>();
+}
 
 /// @relates variant
 /// @brief Gets a @ref variant alternative by type
@@ -1780,7 +1940,9 @@ constexpr typename detail::traits<T>::reference get(variant<U...>& v);
 /// the alternative with the corresponding type.
 template <typename T, typename... U>
     requires detail::is_unique_v<T, U...>
-constexpr typename detail::traits<T>::const_reference get(const variant<U...>& v);
+constexpr typename detail::traits<T>::const_reference get(const variant<U...>& v) {
+    return v.template get<T>();
+}
 
 /// @relates variant
 /// @brief Gets a @ref variant alternative by type
@@ -1816,7 +1978,9 @@ constexpr typename detail::traits<T>::const_reference get(const variant<U...>& v
 /// the alternative with the corresponding type.
 template <typename T, typename... U>
     requires detail::is_unique_v<T, U...>
-constexpr typename detail::traits<T>::rvalue_reference get(variant<U...>&& v);
+constexpr typename detail::traits<T>::rvalue_reference get(variant<U...>&& v) {
+    return std::move(v).template get<T>();
+}
 
 /// @relates variant
 /// @brief Gets a @ref variant alternative by type
@@ -1852,7 +2016,9 @@ constexpr typename detail::traits<T>::rvalue_reference get(variant<U...>&& v);
 /// the alternative with the corresponding type.
 template <typename T, typename... U>
     requires detail::is_unique_v<T, U...>
-constexpr typename detail::traits<T>::const_rvalue_reference get(const variant<U...>&& v);
+constexpr typename detail::traits<T>::const_rvalue_reference get(const variant<U...>&& v) {
+    return std::move(v).template get<T>();
+}
 
 /// @relates variant
 /// @brief Gets a @ref variant alternative pointer by index if the @ref variant holds it
@@ -1884,7 +2050,9 @@ constexpr typename detail::traits<T>::const_rvalue_reference get(const variant<U
 /// @return A pointer to the accessed alternative, if applicable, or null
 template <size_t I, typename... T>
 constexpr typename detail::traits<detail::select_t<I, T...>>::pointer get_if(
-    variant<T...>& v) noexcept;
+    variant<T...>& v) noexcept {
+    return v.template get_if<I>();
+}
 
 /// @relates variant
 /// @brief Gets a @ref variant alternative pointer by index if the @ref variant holds it
@@ -1916,7 +2084,9 @@ constexpr typename detail::traits<detail::select_t<I, T...>>::pointer get_if(
 /// @return A pointer to the accessed alternative, if applicable, or null
 template <size_t I, typename... T>
 constexpr typename detail::traits<detail::select_t<I, T...>>::const_pointer get_if(
-    const variant<T...>& v) noexcept;
+    const variant<T...>& v) noexcept {
+    return v.template get_if<I>();
+}
 
 /// @relates variant
 /// @brief Gets a @ref variant alternative pointer by type if the @ref variant holds it
@@ -1954,7 +2124,9 @@ constexpr typename detail::traits<detail::select_t<I, T...>>::const_pointer get_
 /// @return A pointer to the accessed alternative, if applicable, or null
 template <typename T, typename... U>
     requires detail::is_unique_v<T, U...>
-constexpr typename detail::traits<T>::pointer get_if(variant<U...>& v) noexcept;
+constexpr typename detail::traits<T>::pointer get_if(variant<U...>& v) noexcept {
+    return v.template get_if<T>();
+}
 
 /// @relates variant
 /// @brief Gets a @ref variant alternative pointer by type if the @ref variant holds it
@@ -1992,7 +2164,10 @@ constexpr typename detail::traits<T>::pointer get_if(variant<U...>& v) noexcept;
 /// @return A pointer to the accessed alternative, if applicable, or null
 template <typename T, typename... U>
     requires detail::is_unique_v<T, U...>
-constexpr typename detail::traits<T>::const_pointer get_if(const variant<U...>& v) noexcept;
+constexpr typename detail::traits<T>::const_pointer get_if(
+    const variant<U...>& v) noexcept {
+    return v.template get_if<T>();
+}
 
 /// @relates variant
 /// @brief Calls a visitor callable with the contained @ref variant alternatives
@@ -2034,7 +2209,9 @@ constexpr typename detail::traits<T>::const_pointer get_if(const variant<U...>& 
 ///
 /// @return The return value of the visitor, if any.
 template <typename V>
-constexpr std::invoke_result_t<V&&> visit(V&& visitor);
+constexpr std::invoke_result_t<V&&> visit(V&& visitor) {
+    return std::invoke(std::forward<V>(visitor));
+}
 
 /// @relates variant
 /// @brief Calls a visitor callable with the contained @ref variant alternatives
@@ -2083,7 +2260,26 @@ template <typename V, typename T0, typename... TN>
 constexpr detail::invoke_result_t<V&&,
                                   decltype(get<0>(std::declval<T0&&>())),
                                   decltype(get<0>(std::declval<TN&&>()))...>
-visit(V&& visitor, T0&& var0, TN&&... varn);
+// NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
+visit(V&& visitor, T0&& var0, TN&&... varn) {
+    if constexpr (sizeof...(TN) == 0) {
+        return std::forward<T0>(var0).visit(std::forward<V>(visitor));
+    } else {
+        return std::forward<T0>(var0).visit(
+            [visitor = std::forward<V>(visitor),
+             ... varn = std::forward<TN>(varn)](auto&&... value) mutable {
+                return visit(
+                    [visitor = std::forward<V>(visitor),
+                     ... value = std::forward<decltype(value)>(value)](
+                        auto&&... args) mutable -> decltype(auto) {
+                        return std::invoke(std::forward<V>(visitor),
+                                           std::forward<decltype(value)>(value)...,
+                                           std::forward<decltype(args)>(args)...);
+                    },
+                    std::forward<TN>(varn)...);
+            });
+    }
+}
 
 /// @relates variant
 /// @brief Swaps two @ref variant instances
@@ -2114,7 +2310,9 @@ visit(V&& visitor, T0&& var0, TN&&... varn);
 /// @param a The first variant in the swap
 /// @param b The second variant in the swap
 template <typename... T>
-constexpr void swap(variant<T...>& a, variant<T...>& b);
+constexpr void swap(variant<T...>& a, variant<T...>& b) {
+    a.swap(b);
+}
 
 namespace detail {
 
@@ -2219,7 +2417,5 @@ template <size_t I, typename T>
 using variant_alternative_t = typename variant_alternative<I, T>::type;
 
 } // namespace sumty
-
-#include "sumty/impl/variant.hpp" // IWYU pragma: export
 
 #endif

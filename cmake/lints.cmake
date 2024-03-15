@@ -19,9 +19,7 @@ if(CLANG_TIDY_LINTS)
     endif()
 endif()
 
-# Only can be explicitly enabled for now. There seems to be a cppcheck issue where it hangs
-# while building tests/result.cpp
-option(CPPCHECK_LINTS "Enable cppcheck lints" OFF)
+option(CPPCHECK_LINTS "Enable cppcheck lints" ${LINTS})
 if(CPPCHECK_LINTS)
     find_program(CPPCHECK cppcheck)
     if(CPPCHECK)

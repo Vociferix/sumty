@@ -485,6 +485,7 @@ class variant_impl<void, void> {
 
     template <typename T>
     constexpr variant_impl([[maybe_unused]] std::in_place_index_t<0> inplace,
+                           // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
                            [[maybe_unused]] T&& value) noexcept {}
 
     [[nodiscard]] static constexpr size_t index() noexcept { return 0; }
@@ -518,6 +519,7 @@ class variant_impl<void, T&, void> {
 
     template <typename U>
     explicit constexpr variant_impl([[maybe_unused]] std::in_place_index_t<1> inplace,
+                                    // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
                                     [[maybe_unused]] U&& value) noexcept
         : data_(nullptr) {}
 
@@ -552,6 +554,7 @@ class variant_impl<void, T&, void> {
     }
 
     template <size_t I, typename U>
+    // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
     constexpr void emplace([[maybe_unused]] U&& value) noexcept {
         if constexpr (I == 0) {
             static_assert(std::is_lvalue_reference_v<U>,
@@ -579,6 +582,7 @@ class variant_impl<void, void, T&> {
 
     template <typename U>
     explicit constexpr variant_impl([[maybe_unused]] std::in_place_index_t<0> inplace,
+                                    // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
                                     [[maybe_unused]] U&& value) noexcept
         : data_(nullptr) {}
 
@@ -619,6 +623,7 @@ class variant_impl<void, void, T&> {
     }
 
     template <size_t I, typename U>
+    // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
     constexpr void emplace([[maybe_unused]] U&& value) noexcept {
         if constexpr (I == 1) {
             static_assert(std::is_lvalue_reference_v<U>,
@@ -693,8 +698,8 @@ class variant_impl<std::enable_if_t<(sizeof(U) <= sizeof(bool))>, T&, U> {
     }
 
     constexpr variant_impl& operator=(variant_impl&& rhs) noexcept(
-        std::is_nothrow_move_assignable_v<U>&& std::is_nothrow_move_constructible_v<U>&&
-            std::is_nothrow_destructible_v<U>) {
+        std::is_nothrow_move_assignable_v<U> && std::is_nothrow_move_constructible_v<U> &&
+        std::is_nothrow_destructible_v<U>) {
         if (head_ == nullptr) {
             head_ = rhs.head_;
             if (head_ == nullptr) {
@@ -792,8 +797,8 @@ class variant_impl<std::enable_if_t<(sizeof(U) <= sizeof(bool))>, T&, U> {
     }
 
     constexpr void swap(variant_impl& other) noexcept(
-        std::is_nothrow_swappable_v<U>&& std::is_nothrow_move_constructible_v<U>&&
-            std::is_nothrow_destructible_v<U>) {
+        std::is_nothrow_swappable_v<U> && std::is_nothrow_move_constructible_v<U> &&
+        std::is_nothrow_destructible_v<U>) {
         if (head_ == nullptr) {
             if (other.head_ == nullptr) {
                 using std::swap;
@@ -879,8 +884,8 @@ class variant_impl<std::enable_if_t<(sizeof(T) <= sizeof(bool))>, T, U&> {
     }
 
     constexpr variant_impl& operator=(variant_impl&& rhs) noexcept(
-        std::is_nothrow_move_assignable_v<T>&& std::is_nothrow_move_constructible_v<T>&&
-            std::is_nothrow_destructible_v<T>) {
+        std::is_nothrow_move_assignable_v<T> && std::is_nothrow_move_constructible_v<T> &&
+        std::is_nothrow_destructible_v<T>) {
         if (tail_ == nullptr) {
             tail_ = rhs.tail_;
             if (tail_ == nullptr) {
@@ -978,8 +983,8 @@ class variant_impl<std::enable_if_t<(sizeof(T) <= sizeof(bool))>, T, U&> {
     }
 
     constexpr void swap(variant_impl& other) noexcept(
-        std::is_nothrow_swappable_v<T>&& std::is_nothrow_move_constructible_v<T>&&
-            std::is_nothrow_destructible_v<T>) {
+        std::is_nothrow_swappable_v<T> && std::is_nothrow_move_constructible_v<T> &&
+        std::is_nothrow_destructible_v<T>) {
         if (tail_ == nullptr) {
             if (other.tail_ == nullptr) {
                 using std::swap;

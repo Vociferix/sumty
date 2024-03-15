@@ -1,7 +1,11 @@
 #include <catch2/catch_test_macros.hpp>
+#include <compare>
+#include <optional>
 #include <string>
+#include <type_traits>
 
-#include "sumty/option.hpp"
+#include "sumty/option.hpp" // IWYU pragma: associated
+#include "sumty/result.hpp"
 
 using namespace sumty;
 
@@ -522,5 +526,3 @@ TEST_CASE("option compare with nullptr", "[option]") {
     REQUIRE(nullptr <= opt);
     REQUIRE(!(nullptr >= opt));
 }
-
-#include "sumty/impl/option.hpp" // IWYU pragma: associated

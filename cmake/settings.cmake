@@ -10,6 +10,7 @@ set(_${PROJECT_NAME_CAPS}_DEVEL OFF)
 if(${PROJECT_NAME_CAPS}_IS_TOP_LEVEL)
     option(DEVEL "Enable option defaults for development" OFF)
     set(_${PROJECT_NAME_CAPS}_DEVEL ${DEVEL})
+    set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 endif()
 
 option(${PROJECT_NAME_CAPS}_INSTALL "Eanble installation of ${PROJECT_NAME}" ${${PROJECT_NAME_CAPS}_IS_TOPE_LEVEL})

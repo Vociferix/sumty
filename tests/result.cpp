@@ -1,8 +1,11 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <system_error>
+#include <type_traits>
+#include <utility>
 
-#include "sumty/result.hpp"
+#include "sumty/option.hpp"
+#include "sumty/result.hpp" // IWYU pragma: associated
 
 using namespace sumty;
 
@@ -366,5 +369,3 @@ TEST_CASE("result visit", "[result]") {
     });
     REQUIRE(val2 == VALUE);
 }
-
-#include "sumty/impl/result.hpp" // IWYU pragma: associated
