@@ -100,6 +100,7 @@ class option {
     variant<void, T> opt_{};
 
   public:
+#ifndef DOXYGEN
     using value_type = typename detail::traits<T>::value_type;
     using reference = typename detail::traits<T>::reference;
     using const_reference = typename detail::traits<T>::const_reference;
@@ -107,6 +108,15 @@ class option {
     using const_rvalue_reference = typename detail::traits<T>::const_rvalue_reference;
     using pointer = typename detail::traits<T>::pointer;
     using const_pointer = typename detail::traits<T>::const_pointer;
+#else
+    using value_type = ...;
+    using reference = ...;
+    using const_reference = ...;
+    using rvalue_reference = ...;
+    using const_rvalue_reference = ...;
+    using pointer = ...;
+    using const_pointer = ...;
+#endif
 
     /// @brief Default constructor
     ///
@@ -121,7 +131,12 @@ class option {
     ///
     /// assert(opt.has_value() == false);
     /// ```
-    constexpr option() noexcept = default;
+    constexpr option() noexcept
+#ifndef DOXYGEN
+        = default;
+#else
+        ;
+#endif
 
     /// @brief Copy constructor
     ///
@@ -143,8 +158,12 @@ class option {
     /// assert(opt2_copy);
     /// assert(*opt2_copy == 42);
     /// ```
-    constexpr option(const option&) noexcept(
-        detail::traits<T>::is_nothrow_copy_constructible) = default;
+    constexpr option(const option&)
+#ifndef DOXYGEN
+        noexcept(detail::traits<T>::is_nothrow_copy_constructible) = default;
+#else
+        CONDITIONALLY_NOEXCEPT;
+#endif
 
     /// @brief Move constructor
     ///
@@ -167,8 +186,12 @@ class option {
     /// assert(opt2_copy);
     /// assert(*opt2_copy == 42);
     /// ```
-    constexpr option(option&&) noexcept(detail::traits<T>::is_nothrow_move_constructible) =
-        default;
+    constexpr option(option&&)
+#ifndef DOXYGEN
+        noexcept(detail::traits<T>::is_nothrow_move_constructible) = default;
+#else
+        CONDITIONALLY_NOEXCEPT;
+#endif
 
     // NOLINTNEXTLINE(hicpp-explicit-conversions)
     constexpr option([[maybe_unused]] none_t null) noexcept : option() {}
@@ -178,43 +201,64 @@ class option {
 
     // NOLINTNEXTLINE(hicpp-explicit-conversions)
     constexpr option([[maybe_unused]] std::nullptr_t null) noexcept
+#ifndef DOXYGEN
         requires(std::is_lvalue_reference_v<T>)
-        : option() {}
+#endif
+        : option() {
+    }
 
     template <typename U>
+#ifndef DOXYGEN
         requires(std::is_lvalue_reference_v<T> && std::is_convertible_v<U*, pointer>)
-    // NOLINTNEXTLINE(hicpp-explicit-conversions)
-    explicit(!std::is_convertible_v<U*, pointer>) constexpr option(U* ptr) noexcept {
+    explicit(!std::is_convertible_v<U*, pointer>)
+#else
+    CONDITIONALLY_EXPLICIT
+#endif
+        // NOLINTNEXTLINE(hicpp-explicit-conversions)
+        constexpr option(U* ptr) noexcept {
         if (ptr != nullptr) { opt_.template emplace<1>(*ptr); }
     }
 
     template <typename U>
+#ifndef DOXYGEN
         requires(std::is_constructible_v<variant<void, T>,
                                          std::in_place_index_t<1>,
                                          typename detail::traits<U>::const_reference>)
-    // NOLINTNEXTLINE(hicpp-explicit-conversions)
-    explicit(!detail::traits<T>::template is_convertible_from<U>) constexpr option(
-        const option<U>& other)
+    explicit(!detail::traits<T>::template is_convertible_from<U>)
+#else
+    CONDITIONALLY_EXPLICIT
+#endif
+        // NOLINTNEXTLINE(hicpp-explicit-conversions)
+        constexpr option(const option<U>& other)
         : option() {
         if (other.has_value()) { opt_.template emplace<1>(*other); }
     }
 
     template <typename U>
+#ifndef DOXYGEN
         requires(std::is_constructible_v<variant<void, T>,
                                          std::in_place_index_t<1>,
                                          typename detail::traits<U>::rvalue_reference>)
-    // NOLINTNEXTLINE(hicpp-explicit-conversions)
-    explicit(!detail::traits<T>::template is_convertible_from<U>) constexpr option(
-        option<U>&& other)
+    explicit(!detail::traits<T>::template is_convertible_from<U>)
+#else
+    CONDITIONALLY_EXPLICIT
+#endif
+        // NOLINTNEXTLINE(hicpp-explicit-conversions)
+        constexpr option(option<U>&& other)
         : option() {
         if (other.has_value()) { opt_.template emplace<1>(*std::move(other)); }
     }
 
     template <typename... Args>
+#ifndef DOXYGEN
     explicit(sizeof...(Args) == 0)
+#else
+    CONDITIONALLY_EXPLICIT
+#endif
         // NOLINTNEXTLINE(hicpp-explicit-conversions)
         constexpr option([[maybe_unused]] std::in_place_t inplace, Args&&... args)
-        : opt_(std::in_place_index<1>, std::forward<Args>(args)...) {}
+        : opt_(std::in_place_index<1>, std::forward<Args>(args)...) {
+    }
 
     template <typename U, typename... Args>
     constexpr option([[maybe_unused]] std::in_place_t inplace,
@@ -223,61 +267,95 @@ class option {
         : opt_(std::in_place_index<1>, init, std::forward<Args>(args)...) {}
 
     template <typename U>
+#ifndef DOXYGEN
         requires(
             std::is_constructible_v<variant<void, T>, std::in_place_index_t<1>, U &&> &&
             !std::is_same_v<std::remove_cvref_t<U>, std::in_place_t> &&
             !std::is_same_v<std::remove_const_t<T>, bool> &&
             !detail::is_option_v<std::remove_cvref_t<U>>)
-    // NOLINTNEXTLINE(hicpp-explicit-conversions)
-    explicit(!detail::traits<T>::template is_convertible_from<U>) constexpr option(
-        U&& value)
-        : opt_(std::in_place_index<1>, std::forward<U>(value)) {}
+    explicit(!detail::traits<T>::template is_convertible_from<U>)
+#else
+    CONDITIONALLY_EXPLICIT
+#endif
+        // NOLINTNEXTLINE(hicpp-explicit-conversions)
+        constexpr option(U&& value)
+        : opt_(std::in_place_index<1>, std::forward<U>(value)) {
+    }
 
-    constexpr ~option() noexcept(detail::traits<T>::is_nothrow_destructible) = default;
+    constexpr ~option()
+#ifndef DOXYGEN
+        noexcept(detail::traits<T>::is_nothrow_destructible) = default;
+#else
+        CONDITIONALLY_NOEXCEPT;
+#endif
 
-    constexpr option& operator=(const option&) noexcept(
-        detail::traits<T>::is_nothrow_copy_assignable &&
-        detail::traits<T>::is_nothrow_copy_constructible &&
-        detail::traits<T>::is_nothrow_destructible) = default;
+    constexpr option& operator=(const option&)
+#ifndef DOXYGEN
+        noexcept(detail::traits<T>::is_nothrow_copy_assignable &&
+                 detail::traits<T>::is_nothrow_copy_constructible &&
+                 detail::traits<T>::is_nothrow_destructible) = default;
+#else
+        CONDITIONALLY_NOEXCEPT;
+#endif
 
-    constexpr option& operator=(option&&) noexcept(
-        detail::traits<T>::is_nothrow_move_assignable &&
-        detail::traits<T>::is_nothrow_move_constructible &&
-        detail::traits<T>::is_nothrow_destructible) = default;
+    constexpr option& operator=(option&&)
+#ifndef DOXYGEN
+        noexcept(detail::traits<T>::is_nothrow_move_assignable &&
+                 detail::traits<T>::is_nothrow_move_constructible &&
+                 detail::traits<T>::is_nothrow_destructible) = default;
+#else
+        CONDITIONALLY_NOEXCEPT;
+#endif
 
-    constexpr option& operator=([[maybe_unused]] none_t null) noexcept(
-        detail::traits<T>::is_nothrow_destructible) {
+    constexpr option& operator=([[maybe_unused]] none_t null)
+#ifndef DOXYGEN
+        noexcept(detail::traits<T>::is_nothrow_destructible)
+#else
+        CONDTIONALLY_NOEXCEPT
+#endif
+    {
         opt_.template emplace<0>();
         return *this;
     }
 
-    constexpr option& operator=([[maybe_unused]] std::nullopt_t null) noexcept(
-        detail::traits<T>::is_nothrow_destructible) {
+    constexpr option& operator=([[maybe_unused]] std::nullopt_t null)
+#ifndef DOXYGEN
+        noexcept(detail::traits<T>::is_nothrow_destructible)
+#else
+        CONDITIONALLY_NOEXCEPT
+#endif
+    {
         opt_.template emplace<0>();
         return *this;
     }
 
     constexpr option& operator=([[maybe_unused]] std::nullptr_t null) noexcept
+#ifndef DOXYGEN
         requires(std::is_lvalue_reference_v<T>)
+#endif
     {
         opt_.template emplace<0>();
         return *this;
     }
 
     template <typename U>
+#ifndef DOXYGEN
         requires(
             !detail::is_option_v<std::remove_cvref_t<U>> &&
             std::is_constructible_v<variant<void, T>, std::in_place_index_t<1>, U &&> &&
             detail::traits<T>::template is_assignable<U &&> &&
             (!std::is_scalar_v<value_type> || !std::is_same_v<T, std::decay_t<U>>))
+#endif
     constexpr option& operator=(U&& value) {
         opt_.template emplace<1>(std::forward<U>(value));
         return *this;
     }
 
     template <typename U>
+#ifndef DOXYGEN
         requires(std::is_lvalue_reference_v<value_type> &&
                  std::is_convertible_v<U*, pointer>)
+#endif
     constexpr option& operator=(U* ptr) noexcept {
         if (ptr == nullptr) {
             opt_.template emplace<0>();
@@ -288,6 +366,7 @@ class option {
     }
 
     template <typename U>
+#ifndef DOXYGEN
         requires(!detail::traits<T>::template is_constructible<option<U>&> &&
                  !detail::traits<T>::template is_constructible<const option<U>&> &&
                  !detail::traits<T>::template is_constructible<option<U> &&> &&
@@ -305,6 +384,7 @@ class option {
                       typename detail::traits<U>::const_reference>) &&
                  detail::traits<T>::template is_assignable<
                      typename detail::traits<U>::const_reference>)
+#endif
     constexpr option& operator=(const option<U>& value) {
         if (value.has_value()) {
             opt_.template emplace<1>(*value);
@@ -315,6 +395,7 @@ class option {
     }
 
     template <typename U>
+#ifndef DOXYGEN
         requires(!detail::traits<T>::template is_constructible<option<U>&> &&
                  !detail::traits<T>::template is_constructible<const option<U>&> &&
                  !detail::traits<T>::template is_constructible<option<U> &&> &&
@@ -332,6 +413,7 @@ class option {
                       typename detail::traits<U>::rvalue_reference>) &&
                  detail::traits<T>::template is_assignable<
                      typename detail::traits<U>::rvalue_reference>)
+#endif
     constexpr option& operator=(option<U>&& value) {
         if (value.has_value()) {
             opt_.template emplace<1>(*std::move(value));
@@ -345,10 +427,16 @@ class option {
     constexpr operator bool() const noexcept { return opt_.index() != 0; }
 
     template <typename U>
+#ifndef DOXYGEN
         requires(std::is_lvalue_reference_v<T> &&
                  requires(pointer src, U* dst) { dst = static_cast<U*>(src); })
-    // NOLINTNEXTLINE(hicpp-explicit-conversions)
-    explicit(!std::is_convertible_v<pointer, U*>) constexpr operator U*() const noexcept {
+    explicit(!std::is_convertible_v<pointer, U*>)
+#else
+    CONDITIONALLY_EXPLICIT
+#endif
+        constexpr
+        // NOLINTNEXTLINE(hicpp-explicit-conversions)
+        operator U*() const noexcept {
         if (opt_.index() == 0) {
             return nullptr;
         } else {
@@ -688,7 +776,7 @@ class option {
     }
 
     template <typename F>
-    constexpr decltype(auto) transform(F&& f) & {
+    constexpr auto transform(F&& f) & {
         if constexpr (std::is_void_v<reference>) {
             using res_t = std::invoke_result_t<F>;
             if (opt_.index() != 0) {
@@ -718,7 +806,7 @@ class option {
     }
 
     template <typename F>
-    constexpr decltype(auto) transform(F&& f) const& {
+    constexpr auto transform(F&& f) const& {
         if constexpr (std::is_void_v<const_reference>) {
             using res_t = std::invoke_result_t<F>;
             if (opt_.index() != 0) {
@@ -748,7 +836,7 @@ class option {
     }
 
     template <typename F>
-    constexpr decltype(auto) transform(F&& f) && {
+    constexpr auto transform(F&& f) && {
         if constexpr (std::is_void_v<rvalue_reference>) {
             using res_t = std::invoke_result_t<F>;
             if (opt_.index() != 0) {
@@ -779,7 +867,7 @@ class option {
     }
 
     template <typename F>
-    constexpr decltype(auto) transform(F&& f) const&& {
+    constexpr auto transform(F&& f) const&& {
         if constexpr (std::is_void_v<const_rvalue_reference>) {
             using res_t = std::invoke_result_t<F>;
             if (opt_.index() != 0) {
@@ -810,6 +898,26 @@ class option {
     }
 
     template <typename F>
+    constexpr auto map(F&& f) & {
+        return transform(std::forward<F>(f));
+    }
+
+    template <typename F>
+    constexpr auto map(F&& f) const& {
+        return transform(std::forward<F>(f));
+    }
+
+    template <typename F>
+    constexpr auto map(F&& f) && {
+        return std::move(*this).transform(std::forward<F>(f));
+    }
+
+    template <typename F>
+    constexpr auto map(F&& f) const&& {
+        return std::move(*this).transform(std::forward<F>(f));
+    }
+
+    template <typename F>
     constexpr option or_else(F&& f) const& {
         if (opt_.index() != 0) {
             return *this;
@@ -828,26 +936,56 @@ class option {
     }
 
     template <typename V>
-    constexpr decltype(auto) visit(V&& visitor) & {
+    constexpr
+#ifndef DOXYGEN
+        decltype(auto)
+#else
+        DEDUCED
+#endif
+        visit(V&& visitor) & {
         return opt_.visit(std::forward<V>(visitor));
     }
 
     template <typename V>
-    constexpr decltype(auto) visit(V&& visitor) const& {
+    constexpr
+#ifndef DOXYGEN
+        decltype(auto)
+#else
+        DEDUCED
+#endif
+        visit(V&& visitor) const& {
         return opt_.visit(std::forward<V>(visitor));
     }
 
     template <typename V>
-    constexpr decltype(auto) visit(V&& visitor) && {
+    constexpr
+#ifndef DOXYGEN
+        decltype(auto)
+#else
+        DEDUCED
+#endif
+        visit(V&& visitor) && {
         return std::move(opt_).visit(std::forward<V>(visitor));
     }
 
     template <typename V>
-    constexpr decltype(auto) visit(V&& visitor) const&& {
+    constexpr
+#ifndef DOXYGEN
+        decltype(auto)
+#else
+        DEDUCED
+#endif
+        visit(V&& visitor) const&& {
         return std::move(opt_).visit(std::forward<V>(visitor));
     }
 
-    constexpr void swap(option& other) noexcept(noexcept(opt_.swap(other.opt_))) {
+    constexpr void swap(option& other)
+#ifndef DOXYGEN
+        noexcept(noexcept(opt_.swap(other.opt_)))
+#else
+        CONDITIONALLY_NOEXCEPT
+#endif
+    {
         opt_.swap(other.opt_);
     }
 
@@ -860,9 +998,15 @@ class option {
     }
 };
 
+/// @relates option
 template <size_t IDX, typename T>
-constexpr typename detail::traits<detail::select_t<IDX, void, T>>::reference get(
-    option<T>& opt) {
+constexpr
+#ifndef DOXYGEN
+    typename detail::traits<detail::select_t<IDX, void, T>>::reference
+#else
+    REFERENCE
+#endif
+    get(option<T>& opt) {
     if constexpr (IDX == 0) {
         if (opt.has_value()) { throw bad_option_access(); }
     } else {
@@ -871,9 +1015,15 @@ constexpr typename detail::traits<detail::select_t<IDX, void, T>>::reference get
     }
 }
 
+/// @relates option
 template <size_t IDX, typename T>
-constexpr typename detail::traits<detail::select_t<IDX, void, T>>::const_reference get(
-    const option<T>& opt) {
+constexpr
+#ifndef DOXYGEN
+    typename detail::traits<detail::select_t<IDX, void, T>>::const_reference
+#else
+    CONST_REFERENCE
+#endif
+    get(const option<T>& opt) {
     if constexpr (IDX == 0) {
         if (opt.has_value()) { throw bad_option_access(); }
     } else {
@@ -882,9 +1032,15 @@ constexpr typename detail::traits<detail::select_t<IDX, void, T>>::const_referen
     }
 }
 
+/// @relates option
 template <size_t IDX, typename T>
-constexpr typename detail::traits<detail::select_t<IDX, void, T>>::rvalue_reference get(
-    option<T>&& opt) {
+constexpr
+#ifndef DOXYGEN
+    typename detail::traits<detail::select_t<IDX, void, T>>::rvalue_reference
+#else
+    RVALUE_REFERENCE
+#endif
+    get(option<T>&& opt) {
     if constexpr (IDX == 0) {
         if (opt.has_value()) { throw bad_option_access(); }
     } else {
@@ -893,9 +1049,15 @@ constexpr typename detail::traits<detail::select_t<IDX, void, T>>::rvalue_refere
     }
 }
 
+/// @relates option
 template <size_t IDX, typename T>
-constexpr typename detail::traits<detail::select_t<IDX, void, T>>::const_rvalue_reference
-get(const option<T>&& opt) {
+constexpr
+#ifndef DOXYGEN
+    typename detail::traits<detail::select_t<IDX, void, T>>::const_rvalue_reference
+#else
+    CONST_RVALUE_REFERENCE
+#endif
+    get(const option<T>&& opt) {
     if constexpr (IDX == 0) {
         if (opt.has_value()) { throw bad_option_access(); }
     } else {
@@ -904,9 +1066,18 @@ get(const option<T>&& opt) {
     }
 }
 
+/// @relates option
 template <typename T, typename U>
+#ifndef DOXYGEN
     requires(!std::is_void_v<U>)
-constexpr typename detail::traits<T>::reference get(option<U>& opt) {
+#endif
+constexpr
+#ifndef DOXYGEN
+    typename detail::traits<T>::reference
+#else
+    REFERENCE
+#endif
+    get(option<U>& opt) {
     if constexpr (std::is_void_v<T>) {
         if (opt.has_value()) { throw bad_option_access(); }
     } else {
@@ -915,9 +1086,18 @@ constexpr typename detail::traits<T>::reference get(option<U>& opt) {
     }
 }
 
+/// @relates option
 template <typename T, typename U>
+#ifndef DOXYGEN
     requires(!std::is_void_v<U>)
-constexpr typename detail::traits<T>::const_reference get(const option<U>& opt) {
+#endif
+constexpr
+#ifndef DOXYGEN
+    typename detail::traits<T>::const_reference
+#else
+    CONST_REFERENCE
+#endif
+    get(const option<U>& opt) {
     if constexpr (std::is_void_v<T>) {
         if (opt.has_value()) { throw bad_option_access(); }
     } else {
@@ -926,9 +1106,18 @@ constexpr typename detail::traits<T>::const_reference get(const option<U>& opt) 
     }
 }
 
+/// @relates option
 template <typename T, typename U>
+#ifndef DOXYGEN
     requires(!std::is_void_v<U>)
-constexpr typename detail::traits<T>::rvalue_reference get(option<U>&& opt) {
+#endif
+constexpr
+#ifndef DOXYGEN
+    typename detail::traits<T>::rvalue_reference
+#else
+    RVALUE_REFERENCE
+#endif
+    get(option<U>&& opt) {
     if constexpr (std::is_void_v<T>) {
         if (opt.has_value()) { throw bad_option_access(); }
     } else {
@@ -937,9 +1126,18 @@ constexpr typename detail::traits<T>::rvalue_reference get(option<U>&& opt) {
     }
 }
 
+/// @relates option
 template <typename T, typename U>
+#ifndef DOXYGEN
     requires(!std::is_void_v<U>)
-constexpr typename detail::traits<T>::const_rvalue_reference get(const option<U>&& opt) {
+#endif
+constexpr
+#ifndef DOXYGEN
+    typename detail::traits<T>::const_rvalue_reference
+#else
+    CONST_RVALUE_REFERENCE
+#endif
+    get(const option<U>&& opt) {
     if constexpr (std::is_void_v<T>) {
         if (opt.has_value()) { throw bad_option_access(); }
     } else {
@@ -948,6 +1146,7 @@ constexpr typename detail::traits<T>::const_rvalue_reference get(const option<U>
     }
 }
 
+/// @relates option
 template <typename T, typename U>
 constexpr bool operator==(const option<T>& lhs, const option<U>& rhs) {
     if (lhs.has_value()) {
@@ -957,6 +1156,7 @@ constexpr bool operator==(const option<T>& lhs, const option<U>& rhs) {
     }
 }
 
+/// @relates option
 template <typename T, typename U>
 constexpr bool operator!=(const option<T>& lhs, const option<U>& rhs) {
     if (lhs.has_value()) {
@@ -966,30 +1166,42 @@ constexpr bool operator!=(const option<T>& lhs, const option<U>& rhs) {
     }
 }
 
+/// @relates option
 template <typename T, typename U>
 constexpr bool operator<(const option<T>& lhs, const option<U>& rhs) {
     return rhs.has_value() && (!lhs.has_value() || *lhs < *rhs);
 }
 
+/// @relates option
 template <typename T, typename U>
 constexpr bool operator>(const option<T>& lhs, const option<U>& rhs) {
     return lhs.has_value() && (!rhs.has_value() || *lhs > *rhs);
 }
 
+/// @relates option
 template <typename T, typename U>
 constexpr bool operator<=(const option<T>& lhs, const option<U>& rhs) {
     return !lhs.has_value() || (rhs.has_value() && *lhs <= *rhs);
 }
 
+/// @relates option
 template <typename T, typename U>
 constexpr bool operator>=(const option<T>& lhs, const option<U>& rhs) {
     return !rhs.has_value() || (lhs.has_value() && *lhs >= *rhs);
 }
 
+/// @relates option
 template <typename T, typename U>
+#ifndef DOXYGEN
     requires(std::three_way_comparable_with<std::remove_cvref_t<U>, std::remove_cvref_t<T>>)
-constexpr std::compare_three_way_result_t<std::remove_cvref_t<T>, std::remove_cvref_t<U>>
-operator<=>(const option<T>& lhs, const option<U>& rhs) {
+#endif
+constexpr
+#ifndef DOXYGEN
+    std::compare_three_way_result_t<std::remove_cvref_t<T>, std::remove_cvref_t<U>>
+#else
+    auto
+#endif
+    operator<=>(const option<T>& lhs, const option<U>& rhs) {
     if (lhs.has_value() && rhs.has_value()) {
         return *lhs <=> *rhs;
     } else {
@@ -997,71 +1209,93 @@ operator<=>(const option<T>& lhs, const option<U>& rhs) {
     }
 }
 
+/// @relates option
 template <typename T, typename U>
 constexpr bool operator==(const option<T>& lhs, const U& rhs) {
     return lhs.has_value() && *lhs == rhs;
 }
 
+/// @relates option
 template <typename T, typename U>
 constexpr bool operator==(const U& lhs, const option<T>& rhs) {
     return rhs.has_value() && lhs == *rhs;
 }
 
+/// @relates option
 template <typename T, typename U>
 constexpr bool operator!=(const option<T>& lhs, const U& rhs) {
     return !lhs.has_value() || *lhs != rhs;
 }
 
+/// @relates option
 template <typename T, typename U>
 constexpr bool operator!=(const U& lhs, const option<T>& rhs) {
     return !rhs.has_value() || lhs != *rhs;
 }
 
+/// @relates option
 template <typename T, typename U>
 constexpr bool operator<(const option<T>& lhs, const U& rhs) {
     return !lhs.has_value() || *lhs < rhs;
 }
 
+/// @relates option
 template <typename T, typename U>
 constexpr bool operator<(const U& lhs, const option<T>& rhs) {
     return rhs.has_value() && lhs < *rhs;
 }
 
+/// @relates option
 template <typename T, typename U>
 constexpr bool operator>(const option<T>& lhs, const U& rhs) {
     return !lhs.has_value() && *lhs > rhs;
 }
 
+/// @relates option
 template <typename T, typename U>
 constexpr bool operator>(const U& lhs, const option<T>& rhs) {
     return !rhs.has_value() || lhs > *lhs;
 }
 
+/// @relates option
 template <typename T, typename U>
 constexpr bool operator<=(const option<T>& lhs, const U& rhs) {
     return !lhs.has_value() || *lhs <= rhs;
 }
 
+/// @relates option
 template <typename T, typename U>
 constexpr bool operator<=(const U& lhs, const option<T>& rhs) {
     return rhs.has_value() && lhs <= *rhs;
 }
 
+/// @relates option
 template <typename T, typename U>
 constexpr bool operator>=(const option<T>& lhs, const U& rhs) {
     return lhs.has_value() && *lhs >= rhs;
 }
 
+/// @relates option
 template <typename T, typename U>
 constexpr bool operator>=(const U& lhs, const option<T>& rhs) {
     return !rhs.has_value() || lhs >= *rhs;
 }
 
+/// @relates option
 template <typename T, typename U>
+#ifndef DOXYGEN
     requires(!detail::is_option_v<U>)
-constexpr std::compare_three_way_result_t<std::remove_cvref_t<T>, std::remove_cvref_t<U>>
-operator<=>(const option<T>& lhs, const U& rhs)
+#endif
+constexpr
+#ifndef DOXYGEN
+    std::compare_three_way_result_t<std::remove_cvref_t<T>, std::remove_cvref_t<U>>
+#else
+    auto
+#endif
+    operator<=>(const option<T>& lhs, const U& rhs)
+#ifndef DOXYGEN
     requires(std::three_way_comparable_with<std::remove_cvref_t<U>, std::remove_cvref_t<T>>)
+#endif
 {
     if (lhs.has_value()) {
         return *lhs <=> rhs;
@@ -1070,241 +1304,315 @@ operator<=>(const option<T>& lhs, const U& rhs)
     }
 }
 
+/// @relates option
 template <typename T>
 constexpr bool operator==(const option<T>& lhs, [[maybe_unused]] none_t rhs) {
     return !lhs.has_value();
 }
 
+/// @relates option
 template <typename T>
 constexpr bool operator==([[maybe_unused]] none_t lhs, const option<T>& rhs) {
     return !rhs.has_value();
 }
 
+/// @relates option
 template <typename T>
 constexpr bool operator!=(const option<T>& lhs, [[maybe_unused]] none_t rhs) {
     return lhs.has_value();
 }
 
+/// @relates option
 template <typename T>
 constexpr bool operator!=([[maybe_unused]] none_t lhs, const option<T>& rhs) {
     return rhs.has_value();
 }
 
+/// @relates option
 template <typename T>
 constexpr bool operator<([[maybe_unused]] const option<T>& lhs,
                          [[maybe_unused]] none_t rhs) {
     return false;
 }
 
+/// @relates option
 template <typename T>
 constexpr bool operator<([[maybe_unused]] none_t lhs, const option<T>& rhs) {
     return rhs.has_value();
 }
 
+/// @relates option
 template <typename T>
 constexpr bool operator>(const option<T>& lhs, [[maybe_unused]] none_t rhs) {
     return lhs.has_value();
 }
 
+/// @relates option
 template <typename T>
 constexpr bool operator>([[maybe_unused]] none_t lhs,
                          [[maybe_unused]] const option<T>& rhs) {
     return false;
 }
 
+/// @relates option
 template <typename T>
 constexpr bool operator<=(const option<T>& lhs, [[maybe_unused]] none_t rhs) {
     return !lhs.has_value();
 }
 
+/// @relates option
 template <typename T>
 constexpr bool operator<=([[maybe_unused]] none_t lhs,
                           [[maybe_unused]] const option<T>& rhs) {
     return true;
 }
 
+/// @relates option
 template <typename T>
 constexpr bool operator>=([[maybe_unused]] const option<T>& lhs,
                           [[maybe_unused]] none_t rhs) {
     return true;
 }
 
+/// @relates option
 template <typename T>
 constexpr bool operator>=([[maybe_unused]] none_t lhs, const option<T>& rhs) {
     return !rhs.has_value();
 }
 
+/// @relates option
 template <typename T>
 constexpr std::strong_ordering operator<=>(const option<T>& lhs,
                                            [[maybe_unused]] none_t rhs) {
     return lhs.has_value() <=> false;
 }
 
+/// @relates option
 template <typename T>
 constexpr bool operator==(const option<T>& lhs, [[maybe_unused]] std::nullopt_t rhs) {
     return !lhs.has_value();
 }
 
+/// @relates option
 template <typename T>
 constexpr bool operator==([[maybe_unused]] std::nullopt_t lhs, const option<T>& rhs) {
     return !rhs.has_value();
 }
 
+/// @relates option
 template <typename T>
 constexpr bool operator!=(const option<T>& lhs, [[maybe_unused]] std::nullopt_t rhs) {
     return lhs.has_value();
 }
 
+/// @relates option
 template <typename T>
 constexpr bool operator!=([[maybe_unused]] std::nullopt_t lhs, const option<T>& rhs) {
     return rhs.has_value();
 }
 
+/// @relates option
 template <typename T>
 constexpr bool operator<([[maybe_unused]] const option<T>& lhs,
                          [[maybe_unused]] std::nullopt_t rhs) {
     return false;
 }
 
+/// @relates option
 template <typename T>
 constexpr bool operator<([[maybe_unused]] std::nullopt_t lhs, const option<T>& rhs) {
     return rhs.has_value();
 }
 
+/// @relates option
 template <typename T>
 constexpr bool operator>(const option<T>& lhs, [[maybe_unused]] std::nullopt_t rhs) {
     return lhs.has_value();
 }
 
+/// @relates option
 template <typename T>
 constexpr bool operator>([[maybe_unused]] std::nullopt_t lhs,
                          [[maybe_unused]] const option<T>& rhs) {
     return false;
 }
 
+/// @relates option
 template <typename T>
 constexpr bool operator<=(const option<T>& lhs, [[maybe_unused]] std::nullopt_t rhs) {
     return !lhs.has_value();
 }
 
+/// @relates option
 template <typename T>
 constexpr bool operator<=([[maybe_unused]] std::nullopt_t lhs,
                           [[maybe_unused]] const option<T>& rhs) {
     return true;
 }
 
+/// @relates option
 template <typename T>
 constexpr bool operator>=([[maybe_unused]] const option<T>& lhs,
                           [[maybe_unused]] std::nullopt_t rhs) {
     return true;
 }
 
+/// @relates option
 template <typename T>
 constexpr bool operator>=([[maybe_unused]] std::nullopt_t lhs, const option<T>& rhs) {
     return !rhs.has_value();
 }
 
+/// @relates option
 template <typename T>
 constexpr std::strong_ordering operator<=>(const option<T>& lhs,
                                            [[maybe_unused]] std::nullopt_t rhs) {
     return lhs.has_value() <=> false;
 }
 
+/// @relates option
 template <typename T>
+#ifndef DOXYGEN
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
+#endif
 constexpr bool operator==(const option<T>& lhs, [[maybe_unused]] std::nullptr_t rhs) {
     return !lhs.has_value();
 }
 
+/// @relates option
 template <typename T>
+#ifndef DOXYGEN
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
+#endif
 constexpr bool operator==([[maybe_unused]] std::nullptr_t lhs, const option<T>& rhs) {
     return !rhs.has_value();
 }
 
+/// @relates option
 template <typename T>
+#ifndef DOXYGEN
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
+#endif
 constexpr bool operator!=(const option<T>& lhs, [[maybe_unused]] std::nullptr_t rhs) {
     return lhs.has_value();
 }
 
+/// @relates option
 template <typename T>
+#ifndef DOXYGEN
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
+#endif
 constexpr bool operator!=([[maybe_unused]] std::nullptr_t lhs, const option<T>& rhs) {
     return rhs.has_value();
 }
 
+/// @relates option
 template <typename T>
+#ifndef DOXYGEN
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
+#endif
 constexpr bool operator<([[maybe_unused]] const option<T>& lhs,
                          [[maybe_unused]] std::nullptr_t rhs) {
     return false;
 }
 
+/// @relates option
 template <typename T>
+#ifndef DOXYGEN
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
+#endif
 constexpr bool operator<([[maybe_unused]] std::nullptr_t lhs, const option<T>& rhs) {
     return rhs.has_value();
 }
 
+/// @relates option
 template <typename T>
+#ifndef DOXYGEN
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
+#endif
 constexpr bool operator>(const option<T>& lhs, [[maybe_unused]] std::nullptr_t rhs) {
     return lhs.has_value();
 }
 
+/// @relates option
 template <typename T>
+#ifndef DOXYGEN
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
+#endif
 constexpr bool operator>([[maybe_unused]] std::nullptr_t lhs,
                          [[maybe_unused]] const option<T>& rhs) {
     return false;
 }
 
+/// @relates option
 template <typename T>
+#ifndef DOXYGEN
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
+#endif
 constexpr bool operator<=(const option<T>& lhs, [[maybe_unused]] std::nullptr_t rhs) {
     return !lhs.has_value();
 }
 
+/// @relates option
 template <typename T>
+#ifndef DOXYGEN
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
+#endif
 constexpr bool operator<=([[maybe_unused]] std::nullptr_t lhs,
                           [[maybe_unused]] const option<T>& rhs) {
     return true;
 }
 
+/// @relates option
 template <typename T>
+#ifndef DOXYGEN
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
+#endif
 constexpr bool operator>=([[maybe_unused]] const option<T>& lhs,
                           [[maybe_unused]] std::nullptr_t rhs) {
     return true;
 }
 
+/// @relates option
 template <typename T>
+#ifndef DOXYGEN
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
+#endif
 constexpr bool operator>=([[maybe_unused]] std::nullptr_t lhs, const option<T>& rhs) {
     return !rhs.has_value();
 }
 
+/// @relates option
 template <typename T>
+#ifndef DOXYGEN
     requires(std::is_lvalue_reference_v<typename option<T>::value_type>)
+#endif
 constexpr std::strong_ordering operator<=>(const option<T>& lhs,
                                            [[maybe_unused]] std::nullptr_t rhs) {
     return lhs.has_value() <=> false;
 }
 
+/// @relates option
 template <typename T, typename... Args>
 constexpr option<T> some(Args&&... args) {
     return option<T>{std::in_place, std::forward<Args>(args)...};
 }
 
+/// @relates option
 template <typename T, typename U, typename... Args>
 constexpr option<T> some(std::initializer_list<U> ilist, Args&&... args) {
     return option<T>{std::in_place, ilist, std::forward<Args>(args)...};
 }
 
+/// @relates option
 template <typename T>
-constexpr void swap(option<T>& a, option<T>& b) {
+constexpr void swap(option<T>& a, option<T>& b)
+#ifndef DOXYGEN
+    noexcept(noexcept(a.swap(b)))
+#else
+    CONDITIONALLY_NOEXCEPT
+#endif
+{
     a.swap(b);
 }
 

@@ -20,6 +20,7 @@
 
 namespace sumty {
 
+/// @relates variant
 class bad_variant_access : public std::exception {
   public:
     bad_variant_access() noexcept = default;
@@ -34,6 +35,7 @@ class bad_variant_access : public std::exception {
     }
 };
 
+/// @relates option
 class bad_option_access : public std::exception {
   public:
     bad_option_access() noexcept = default;
@@ -46,6 +48,7 @@ class bad_option_access : public std::exception {
     [[nodiscard]] const char* what() const noexcept override { return "bad option access"; }
 };
 
+/// @relates result
 template <typename E>
 class bad_result_access : public std::exception {
   private:
@@ -79,6 +82,7 @@ class bad_result_access : public std::exception {
     [[nodiscard]] const char* what() const noexcept override { return "bad result access"; }
 };
 
+/// @relates result
 template <>
 class bad_result_access<void> : public std::exception {
   public:
