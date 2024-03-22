@@ -509,11 +509,14 @@ class variant {
     /// @details
     /// The contained alternative of the @ref variant will is destroyed in
     /// place.
+    ///
+    /// The destructor is `noexcept` if all alternative types are nothrow
+    /// destructible.
     constexpr ~variant()
 #ifndef DOXYGEN
         noexcept((true && ... && detail::traits<T>::is_nothrow_destructible)) = default;
 #else
-        ;
+        CONDITIONALLY_NOEXCEPT;
 #endif
 
     /// @brief Copy assignment operator

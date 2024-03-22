@@ -105,6 +105,14 @@ TEST_CASE("option converting construct from value", "[option]") {
     REQUIRE(*opt == static_cast<long long>(VALUE));
 }
 
+TEST_CASE("option assignment from value", "[option]") {
+    static constexpr int VALUE = 42;
+    option<int> opt{};
+    opt = VALUE;
+    REQUIRE(opt.has_value() == true);
+    REQUIRE(*opt == VALUE);
+}
+
 TEST_CASE("option converting assigment from value", "[option]") {
     static constexpr int VALUE = 42;
     option<long long> opt{};
