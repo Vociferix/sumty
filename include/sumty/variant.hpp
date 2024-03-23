@@ -245,12 +245,12 @@ class variant {
     struct emplace_construct_t {};
 
     template <size_t IDX, typename U>
-        requires(std::is_constructible_v<detail::select_t<IDX, T...>, U>)
+        requires(detail::traits<detail::select_t<IDX, T...>>::template is_constructible<U>)
     constexpr explicit variant([[maybe_unused]] emplace_construct_t<IDX> tag, U&& value)
         : variant(std::in_place_index<IDX>, std::forward<U>(value)) {}
 
     template <size_t IDX, typename U>
-        requires(!std::is_constructible_v<detail::select_t<IDX, T...>, U>)
+        requires(!detail::traits<detail::select_t<IDX, T...>>::template is_constructible<U>)
     constexpr explicit variant([[maybe_unused]] emplace_construct_t<IDX> tag, U&& value)
         : variant(emplace_construct_t<IDX + 1>{}, std::forward<U>(value)) {}
 
@@ -698,9 +698,11 @@ class variant {
   private:
     template <size_t IDX, typename U>
     constexpr void assign_value(U&& value) {
-        if constexpr (std::is_assignable_v<detail::select_t<IDX, T...>, U>) {
+        if constexpr (detail::traits<detail::select_t<IDX, T...>>::template is_assignable<U>) {
             if (index() == IDX) {
-                data_.template get<IDX>() = std::forward<U>(value);
+                if constexpr (!std::is_void_v<detail::select_t<IDX, T...>>) {
+                    data_.template get<IDX>() = std::forward<U>(value);
+                }
             } else {
                 data_.template emplace<IDX>(std::forward<U>(value));
             }

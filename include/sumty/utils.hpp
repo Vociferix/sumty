@@ -100,11 +100,6 @@ struct void_t {
 
     constexpr void_t(void_t&&) noexcept = default;
 
-    template <typename T>
-        requires(!std::is_same_v<std::remove_cvref_t<T>, void_t>)
-    // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
-    explicit constexpr void_t([[maybe_unused]] T&& value) noexcept {}
-
     constexpr ~void_t() noexcept = default;
 
     constexpr void_t& operator=(const void_t&) noexcept = default;

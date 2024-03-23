@@ -73,6 +73,8 @@ TEST_CASE("variant emplace construct", "[variant]") {
     REQUIRE(v2[index_v<1>].size() == 5);
     REQUIRE(v2[type<std::vector<int>>].size() == 5);
     REQUIRE(holds_alternative<std::vector<int>>(v2) == true);
+    variant<void, int> v3 = void_v;
+    REQUIRE(v3.index() == 0);
 }
 
 TEST_CASE("variant hold optional ref", "[variant]") {
@@ -173,6 +175,9 @@ TEST_CASE("variant value assignment", "[variant]") {
     REQUIRE(v1[index_v<1>] == INIT_VAL);
     REQUIRE(v1[type<int>] == INIT_VAL);
     REQUIRE(holds_alternative<int>(v1) == true);
+    v1 = void_v;
+    REQUIRE(v1.index() == 0);
+    REQUIRE(holds_alternative<void>(v1) == true);
     variant<void, std::vector<int>> v2{};
     v2 = {1, 2, 3, 4, 5};
     REQUIRE(v2.index() == 1);
