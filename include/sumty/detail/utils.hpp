@@ -17,6 +17,7 @@
 #define SUMTY_DETAIL_UTILS_HPP
 
 #include "sumty/detail/fwd.hpp"
+#include "sumty/utils.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -105,7 +106,7 @@ struct invoke_result_impl<F, type_list<Args...>> {
 
 template <typename F, typename RealArgs, typename... Args>
 struct invoke_result_impl<F, RealArgs, void, Args...>
-    : invoke_result_impl<F, RealArgs, Args...> {};
+    : invoke_result_impl<F, RealArgs, void_t, Args...> {};
 
 template <typename F, typename RealArgs, typename FirstArg, typename... Args>
 struct invoke_result_impl<F, RealArgs, FirstArg, Args...>
@@ -140,6 +141,22 @@ struct is_unique : std::integral_constant<bool, type_count_v<T, U...> == 1> {};
 
 template <typename T, typename... U>
 static inline constexpr bool is_unique_v = is_unique<T, U...>::value;
+
+template <typename... T>
+struct all_unique;
+
+template <>
+struct all_unique<> : std::true_type {};
+
+template <typename T>
+struct all_unique<T> : std::true_type {};
+
+template <typename T0, typename... TN>
+struct all_unique<T0, TN...>
+    : std::integral_constant<bool, is_unique_v<T0, TN...> && all_unique<TN...>::value> {};
+
+template <typename... T>
+static inline constexpr bool all_unique_v = all_unique<T...>::value;
 
 template <typename T, typename... U>
 struct is_uniquely_convertible
@@ -241,6 +258,39 @@ struct is_error<error_t<E>> : std::true_type {};
 
 template <typename T>
 static inline constexpr bool is_error_v = is_error<T>::value;
+
+template <typename ES1, typename ES2>
+struct is_subset_of_impl;
+
+template <typename... T>
+struct is_subset_of_impl<error_set<>, error_set<T...>> : std::true_type {};
+
+template <typename T11, typename... T1N, typename... T2>
+struct is_subset_of_impl<error_set<T11, T1N...>, error_set<T2...>>
+    : std::integral_constant<
+          bool,
+          is_unique_v<T11, T2...> &&
+              is_subset_of_impl<error_set<T1N...>, error_set<T2...>>::value> {};
+
+template <typename ES1, typename ES2>
+static inline constexpr bool is_subset_of_impl_v = is_subset_of_impl<ES1, ES2>::value;
+
+template <typename ES1, typename ES2>
+struct is_equivalent_impl : std::integral_constant<bool,
+                                                   is_subset_of_impl_v<ES1, ES2> &&
+                                                       is_subset_of_impl_v<ES2, ES1>> {};
+
+template <typename ES1, typename ES2>
+static inline constexpr bool is_equivalent_impl_v = is_equivalent_impl<ES1, ES2>::value;
+
+template <typename T>
+struct is_error_set : std::false_type {};
+
+template <typename... T>
+struct is_error_set<error_set<T...>> : std::true_type {};
+
+template <typename T>
+static inline constexpr bool is_error_set_v = is_error_set<T>::value;
 
 } // namespace sumty::detail
 

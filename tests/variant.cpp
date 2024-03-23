@@ -188,9 +188,7 @@ TEST_CASE("variant visit method", "[variant]") {
     int i = INIT_VAL;
     variant<void, int&, float> v1{};
     v1.template emplace<1>(i);
-    REQUIRE(v1.visit(overload([]() -> int { return 24; },
-                              [](auto val) { return static_cast<int>(val * 2); })) ==
-            INIT_VAL * 2);
+    REQUIRE(v1.visit([](auto val) { return static_cast<int>(val) * 2; }) == INIT_VAL * 2);
 }
 
 TEST_CASE("variant visit function", "[variant]") {
@@ -198,9 +196,7 @@ TEST_CASE("variant visit function", "[variant]") {
     int i = INIT_VAL;
     variant<void, int&, float> v1{};
     v1.template emplace<1>(i);
-    REQUIRE(visit(overload([]() -> int { return 24; },
-                           [](auto val) { return static_cast<int>(val * 2); }),
-                  v1) == INIT_VAL * 2);
+    REQUIRE(visit([](auto val) { return static_cast<int>(val) * 2; }, v1) == INIT_VAL * 2);
 }
 
 TEST_CASE("multi variant visit", "[variant]") {
@@ -211,10 +207,8 @@ TEST_CASE("multi variant visit", "[variant]") {
     variant<float, bool, int&> v2{};
     v1.template emplace<1>(i);
     v2.template emplace<0>(INIT_FLT);
-    REQUIRE(visit(overload([](auto&& rhs) { return static_cast<int>(rhs); },
-                           [](auto&& lhs, auto&& rhs) {
-                               return static_cast<int>(lhs) + static_cast<int>(rhs);
-                           }),
+    REQUIRE(visit([](auto&& lhs,
+                     auto&& rhs) { return static_cast<int>(lhs) + static_cast<int>(rhs); },
                   v1, v2) == INIT_VAL + static_cast<int>(INIT_FLT));
 }
 

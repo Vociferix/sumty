@@ -33,10 +33,32 @@ namespace sumty {
 
 namespace detail {
 
+template <typename T>
+struct variant_size_helper;
+
+template <typename... T>
+struct variant_size_helper<variant<T...>> : std::integral_constant<size_t, sizeof...(T)> {};
+
+template <typename... T>
+struct variant_size_helper<const variant<T...>>
+    : std::integral_constant<size_t, sizeof...(T)> {};
+
+template <size_t I, typename T>
+struct variant_alternative_helper;
+
+template <size_t I, typename... T>
+struct variant_alternative_helper<I, variant<T...>> {
+    using type = detail::select_t<I, T...>;
+};
+
+template <size_t I, typename... T>
+struct variant_alternative_helper<I, const variant<T...>>
+    : variant_alternative_helper<I, variant<T...>> {};
+
 template <size_t IDX, typename V, typename U>
 constexpr decltype(auto) jump_table_entry(V&& visitor, U&& var) {
     if constexpr (std::is_void_v<decltype(std::forward<U>(var)[sumty::index<IDX>])>) {
-        return std::invoke(std::forward<V>(visitor));
+        return std::invoke(std::forward<V>(visitor), void_v);
     } else {
         return std::invoke(std::forward<V>(visitor),
                            std::forward<U>(var)[sumty::index<IDX>]);
@@ -62,6 +84,68 @@ template <typename V, typename U, typename... T>
 constexpr decltype(auto) visit_impl(V&& visitor, U&& var) {
     return jump_table<V, U, T...>[var.index()](std::forward<V>(visitor),
                                                std::forward<U>(var));
+}
+
+template <size_t IDX, typename V>
+struct alternative_info;
+
+template <size_t IDX, typename V>
+    requires(!std::is_void_v<typename variant_alternative_helper<IDX, V>::type>)
+struct alternative_info<IDX, V> {
+    static inline constexpr size_t index = IDX;
+    using type = typename variant_alternative_helper<IDX, V>::type;
+
+    static constexpr decltype(auto) forward(std::remove_reference_t<type>& value) {
+        return std::forward<type>(value);
+    }
+
+    // NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved)
+    static constexpr decltype(auto) forward(std::remove_reference_t<type>&& value) {
+        return std::forward<type>(value);
+    }
+};
+
+template <size_t IDX, typename V>
+    requires(std::is_void_v<typename variant_alternative_helper<IDX, V>::type>)
+struct alternative_info<IDX, V> {
+    static inline constexpr size_t index = IDX;
+    using type = typename variant_alternative_helper<IDX, V>::type;
+
+    static constexpr void_t forward(void_t value) { return value; }
+};
+
+template <size_t IDX, typename V, typename U>
+constexpr decltype(auto) informed_jump_table_entry(V&& visitor, U&& var) {
+    if constexpr (std::is_void_v<decltype(std::forward<U>(var)[sumty::index<IDX>])>) {
+        return std::invoke(std::forward<V>(visitor), void_v,
+                           alternative_info<IDX, std::remove_cvref_t<U>>{});
+    } else {
+        return std::invoke(std::forward<V>(visitor),
+                           std::forward<U>(var)[sumty::index<IDX>],
+                           alternative_info<IDX, std::remove_cvref_t<U>>{});
+    }
+}
+
+template <typename V, typename U, size_t... IDX>
+consteval auto make_informed_jump_table([[maybe_unused]] std::index_sequence<IDX...> seq) {
+    using ret_t =
+        decltype(informed_jump_table_entry<0>(std::declval<V&&>(), std::declval<U&&>()));
+    return std::array<ret_t (*)(V&&, U&&), sizeof...(IDX)>{
+        {&jump_table_entry<IDX, V, U>...}};
+}
+
+template <typename V, typename U, typename... T>
+consteval auto make_informed_jump_table() noexcept {
+    return make_informed_jump_table<V, U>(std::make_index_sequence<sizeof...(T)>{});
+}
+
+template <typename V, typename U, typename... T>
+static constexpr auto informed_jump_table = make_informed_jump_table<V, U, T...>();
+
+template <typename V, typename U, typename... T>
+constexpr decltype(auto) visit_informed_impl(V&& visitor, U&& var) {
+    return informed_jump_table<V, U, T...>[var.index()](std::forward<V>(visitor),
+                                                        std::forward<U>(var));
 }
 
 } // namespace detail
@@ -1732,7 +1816,7 @@ class variant {
     /// and returns the result of that call, if any. As such, `visitor` *must*
     /// be able to accecpt any alternative type as an argument. In the case of
     /// an alternative of type `void`, the visitor must be callable as
-    /// `std::invoke(visitor)` (i.e. with no arguments).
+    /// `std::invoke(visitor, void_v)`.
     ///
     /// Note that the @ref overload function can be helpful for defining a
     /// visitor inline.
@@ -1749,7 +1833,7 @@ class variant {
     /// v1.visit(overload(
     ///     [](bool bool_value) { assert(false); },
     ///     [](int int_value) { assert(int_value == 42); },
-    ///     [] { assert(false); }
+    ///     [](void_t void_value) { assert(false); }
     /// ));
     /// ```
     ///
@@ -1775,7 +1859,7 @@ class variant {
     /// and returns the result of that call, if any. As such, `visitor` *must*
     /// be able to accecpt any alternative type as an argument. In the case of
     /// an alternative of type `void`, the visitor must be callable as
-    /// `std::invoke(visitor)` (i.e. with no arguments).
+    /// `std::invoke(visitor, void_v)`.
     ///
     /// Note that the @ref overload function can be helpful for defining a
     /// visitor inline.
@@ -1792,7 +1876,7 @@ class variant {
     /// v1.visit(overload(
     ///     [](bool bool_value) { assert(false); },
     ///     [](int int_value) { assert(int_value == 42); },
-    ///     [] { assert(false); }
+    ///     [](void_t void_value) { assert(false); }
     /// ));
     /// ```
     ///
@@ -1818,7 +1902,7 @@ class variant {
     /// and returns the result of that call, if any. As such, `visitor` *must*
     /// be able to accecpt any alternative type as an argument. In the case of
     /// an alternative of type `void`, the visitor must be callable as
-    /// `std::invoke(visitor)` (i.e. with no arguments).
+    /// `std::invoke(visitor, void_v)`.
     ///
     /// Note that the @ref overload function can be helpful for defining a
     /// visitor inline.
@@ -1835,7 +1919,7 @@ class variant {
     /// v1.visit(overload(
     ///     [](bool bool_value) { assert(false); },
     ///     [](int int_value) { assert(int_value == 42); },
-    ///     [] { assert(false); }
+    ///     [](void_t void_value) { assert(false); }
     /// ));
     /// ```
     ///
@@ -1862,7 +1946,7 @@ class variant {
     /// and returns the result of that call, if any. As such, `visitor` *must*
     /// be able to accecpt any alternative type as an argument. In the case of
     /// an alternative of type `void`, the visitor must be callable as
-    /// `std::invoke(visitor)` (i.e. with no arguments).
+    /// `std::invoke(visitor, void_v)`.
     ///
     /// Note that the @ref overload function can be helpful for defining a
     /// visitor inline.
@@ -1879,7 +1963,7 @@ class variant {
     /// v1.visit(overload(
     ///     [](bool bool_value) { assert(false); },
     ///     [](int int_value) { assert(int_value == 42); },
-    ///     [] { assert(false); }
+    ///     [](void_t void_value) { assert(false); }
     /// ));
     /// ```
     ///
@@ -1897,6 +1981,66 @@ class variant {
         visit(V&& visitor) const&& {
         return detail::visit_impl<V, const variant&&, T...>(std::forward<V>(visitor),
                                                             std::move(*this));
+    }
+
+    template <typename V>
+    constexpr
+#ifndef DOXYGEN
+        detail::invoke_result_t<
+            V&&,
+            typename detail::traits<detail::select_t<0, T...>>::reference,
+            detail::alternative_info<0, variant>>
+#else
+        DEDUCED
+#endif
+        visit_informed(V&& visitor) & {
+        return detail::visit_informed_impl<V, variant&, T...>(std::forward<V>(visitor),
+                                                              *this);
+    }
+
+    template <typename V>
+    constexpr
+#ifndef DOXYGEN
+        detail::invoke_result_t<
+            V&&,
+            typename detail::traits<detail::select_t<0, T...>>::const_reference,
+            detail::alternative_info<0, variant>>
+#else
+        DEDUCED
+#endif
+        visit_informed(V&& visitor) const& {
+        return detail::visit_informed_impl<V, const variant&, T...>(
+            std::forward<V>(visitor), *this);
+    }
+
+    template <typename V>
+    constexpr
+#ifndef DOXYGEN
+        detail::invoke_result_t<
+            V&&,
+            typename detail::traits<detail::select_t<0, T...>>::rvalue_reference,
+            detail::alternative_info<0, variant>>
+#else
+        DEDUCED
+#endif
+        visit_informed(V&& visitor) && {
+        return detail::visit_informed_impl<V, variant&&, T...>(std::forward<V>(visitor),
+                                                               std::move(*this));
+    }
+
+    template <typename V>
+    constexpr
+#ifndef DOXYGEN
+        detail::invoke_result_t<
+            V&&,
+            typename detail::traits<detail::select_t<0, T...>>::const_rvalue_reference,
+            detail::alternative_info<0, variant>>
+#else
+        DEDUCED
+#endif
+        visit_informed(V&& visitor) const&& {
+        return detail::visit_informed_impl<V, const variant&&, T...>(
+            std::forward<V>(visitor), std::move(*this));
     }
 
     /// @brief Swaps two @ref variant instances
@@ -2628,32 +2772,6 @@ constexpr void swap(variant<T...>& a, variant<T...>& b)
 {
     a.swap(b);
 }
-
-namespace detail {
-
-template <typename T>
-struct variant_size_helper;
-
-template <typename... T>
-struct variant_size_helper<variant<T...>> : std::integral_constant<size_t, sizeof...(T)> {};
-
-template <typename... T>
-struct variant_size_helper<const variant<T...>>
-    : std::integral_constant<size_t, sizeof...(T)> {};
-
-template <size_t I, typename T>
-struct variant_alternative_helper;
-
-template <size_t I, typename... T>
-struct variant_alternative_helper<I, variant<T...>> {
-    using type = detail::select_t<I, T...>;
-};
-
-template <size_t I, typename... T>
-struct variant_alternative_helper<I, const variant<T...>>
-    : variant_alternative_helper<I, variant<T...>> {};
-
-} // namespace detail
 
 /// @relates variant
 /// @class variant_size variant.hpp <sumty/variant.hpp>

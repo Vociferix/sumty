@@ -17,6 +17,7 @@
 #define SUMTY_UTILS_HPP
 
 #include <cstddef>
+#include <type_traits>
 #include <utility>
 
 #if defined(_MSC_VER) && !defined(__clang__)
@@ -90,6 +91,36 @@ static inline constexpr type_t<T> type{};
 /// @relates type_t
 template <typename T>
 static inline constexpr type_t<T> type_v{};
+
+/// @relates variant
+struct void_t {
+    constexpr void_t() noexcept = default;
+
+    constexpr void_t(const void_t&) noexcept = default;
+
+    constexpr void_t(void_t&&) noexcept = default;
+
+    template <typename T>
+        requires(!std::is_same_v<std::remove_cvref_t<T>, void_t>)
+    // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
+    explicit constexpr void_t([[maybe_unused]] T&& value) noexcept {}
+
+    constexpr ~void_t() noexcept = default;
+
+    constexpr void_t& operator=(const void_t&) noexcept = default;
+
+    constexpr void_t& operator=(void_t&&) noexcept = default;
+
+    template <typename T>
+        requires(std::is_default_constructible_v<T>)
+    explicit constexpr operator T() const
+        noexcept(std::is_nothrow_default_constructible_v<T>) {
+        return T{};
+    }
+};
+
+/// @relates void_t
+static inline constexpr void_t void_v{};
 
 /// @relates option
 struct none_t {};

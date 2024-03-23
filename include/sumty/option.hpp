@@ -2776,7 +2776,7 @@ class option {
     /// This function treats an @ref option as if it was a @ref variant of
     /// `void` and `T`. If the @ref option contains a value, that value is
     /// passed to the visitor. If the @ref option is `none`, the visitor is
-    /// called without any arguments.
+    /// called with @ref void_t.
     ///
     /// Note that the @ref overload function can be helpful for defining a
     /// visitor inline.
@@ -2788,13 +2788,13 @@ class option {
     ///
     /// opt1.visit(overload([](int value) {
     ///     assert(false);
-    /// }, [] {
+    /// }, [](void_t value) {
     ///     assert(true);
     /// });
     ///
     /// opt2.visit(overload([](int value) {
     ///     assert(value == 42);
-    /// }, [] {
+    /// }, [](void_t value) {
     ///     assert(false);
     /// });
     /// ```
@@ -2815,7 +2815,7 @@ class option {
     /// This function treats an @ref option as if it was a @ref variant of
     /// `void` and `T`. If the @ref option contains a value, that value is
     /// passed to the visitor. If the @ref option is `none`, the visitor is
-    /// called without any arguments.
+    /// called with @ref void_t.
     ///
     /// Note that the @ref overload function can be helpful for defining a
     /// visitor inline.
@@ -2827,13 +2827,13 @@ class option {
     ///
     /// opt1.visit(overload([](int value) {
     ///     assert(false);
-    /// }, [] {
+    /// }, [](void_t value) {
     ///     assert(true);
     /// });
     ///
     /// opt2.visit(overload([](int value) {
     ///     assert(value == 42);
-    /// }, [] {
+    /// }, [](void_t value) {
     ///     assert(false);
     /// });
     /// ```
@@ -2866,13 +2866,13 @@ class option {
     ///
     /// std::move(opt1).visit(overload([](int value) {
     ///     assert(false);
-    /// }, [] {
+    /// }, [](void_t value) {
     ///     assert(true);
     /// });
     ///
     /// std::move(opt2).visit(overload([](int value) {
     ///     assert(value == 42);
-    /// }, [] {
+    /// }, [](void_t value) {
     ///     assert(false);
     /// });
     /// ```
@@ -2893,7 +2893,7 @@ class option {
     /// This function treats an @ref option as if it was a @ref variant of
     /// `void` and `T`. If the @ref option contains a value, that value is
     /// passed to the visitor. If the @ref option is `none`, the visitor is
-    /// called without any arguments.
+    /// called with @ref void_t.
     ///
     /// Note that the @ref overload function can be helpful for defining a
     /// visitor inline.
@@ -2905,13 +2905,13 @@ class option {
     ///
     /// std::move(opt1).visit(overload([](int value) {
     ///     assert(false);
-    /// }, [] {
+    /// }, [](void_t value) {
     ///     assert(true);
     /// });
     ///
     /// std::move(opt2).visit(overload([](int value) {
     ///     assert(value == 42);
-    /// }, [] {
+    /// }, [](void_t value) {
     ///     assert(false);
     /// });
     /// ```

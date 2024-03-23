@@ -320,11 +320,9 @@ TEST_CASE("option visit method", "[option]") {
     static constexpr int VALUE = 42;
     option<int> opt1{};
     option<int> opt2{VALUE};
-    auto r1 = opt1.visit(
-        overload([]() -> int { return 0; }, [](int val) -> int { return val + 1; }));
-    REQUIRE(r1 == 0);
-    auto r2 = opt2.visit(
-        overload([]() -> int { return 0; }, [](int val) -> int { return val + 1; }));
+    auto r1 = opt1.visit([](auto val) { return static_cast<int>(val) + 1; });
+    REQUIRE(r1 == 1);
+    auto r2 = opt2.visit([](auto val) { return static_cast<int>(val) + 1; });
     REQUIRE(r2 == VALUE + 1);
 }
 
@@ -332,11 +330,9 @@ TEST_CASE("option visit func", "[option]") {
     static constexpr int VALUE = 42;
     option<int> opt1{};
     option<int> opt2{VALUE};
-    auto r1 = visit(
-        overload([]() -> int { return 0; }, [](int val) -> int { return val + 1; }), opt1);
-    REQUIRE(r1 == 0);
-    auto r2 = visit(
-        overload([]() -> int { return 0; }, [](int val) -> int { return val + 1; }), opt2);
+    auto r1 = visit([](auto val) { return static_cast<int>(val) + 1; }, opt1);
+    REQUIRE(r1 == 1);
+    auto r2 = visit([](auto val) { return static_cast<int>(val) + 1; }, opt2);
     REQUIRE(r2 == VALUE + 1);
 }
 
@@ -346,10 +342,10 @@ TEST_CASE("multi option visit func", "[option]") {
     option<int> opt1{};
     option<float> opt2{};
 
-    auto visitor =
-        overload([]() -> int { return 0; }, [](int val) { return val; },
-                 [](float val) { return static_cast<int>(val); },
-                 [](int ival, float fval) { return ival + static_cast<int>(fval); });
+    auto visitor = [](auto ival, auto fval) {
+        return static_cast<int>(ival) + static_cast<int>(fval);
+    };
+
     auto r1 = visit(visitor, opt1, opt2);
     REQUIRE(r1 == 0);
     opt1.emplace(INT_VAL);

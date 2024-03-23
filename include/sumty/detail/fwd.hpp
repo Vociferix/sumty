@@ -35,6 +35,9 @@ class ok_t; // IWYU pragma: export
 template <typename E>
 class error_t; // IWYU pragma: export
 
+template <typename... T>
+class error_set; // IWYU pragma: export
+
 } // namespace sumty
 
 #endif
