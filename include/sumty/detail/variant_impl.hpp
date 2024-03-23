@@ -30,6 +30,10 @@
 
 namespace sumty::detail {
 
+struct uninit_t {};
+
+static inline constexpr uninit_t uninit{};
+
 template <typename Enable, typename... T>
 class variant_impl {
   private:
@@ -215,6 +219,8 @@ class variant_impl {
     }
 
   public:
+    constexpr variant_impl([[maybe_unused]] uninit_t tag) noexcept {}
+
     constexpr variant_impl() noexcept(
         traits<first_t<T...>>::is_nothrow_default_constructible)
         : variant_impl(std::in_place_index<0>) {}
@@ -337,6 +343,12 @@ class variant_impl {
         discrim_ = static_cast<discrim_t>(I);
     }
 
+    template <size_t I, typename... Args>
+    constexpr void uninit_emplace(Args&&... args) {
+        data_.template construct<I>(std::forward<Args>(args)...);
+        discrim_ = static_cast<discrim_t>(I);
+    }
+
     constexpr void swap(variant_impl& other) noexcept(
         (true && ... &&
          (traits<T>::is_nothrow_swappable && traits<T>::is_nothrow_move_constructible &&
@@ -358,6 +370,8 @@ class variant_impl<void, T> {
     SUMTY_NO_UNIQ_ADDR auto_union<T> data_;
 
   public:
+    constexpr variant_impl([[maybe_unused]] uninit_t tag) noexcept {}
+
     constexpr variant_impl() noexcept(traits<T>::is_nothrow_default_constructible) {
         data_.template construct<0>();
     }
@@ -461,6 +475,11 @@ class variant_impl<void, T> {
         data_.template construct<0>(std::forward<Args>(args)...);
     }
 
+    template <size_t I, typename... Args>
+    constexpr void uninit_emplace(Args&&... args) {
+        data_.template construct<0>(std::forward<Args>(args)...);
+    }
+
     constexpr void swap(variant_impl& other) noexcept(traits<T>::is_nothrow_swappable) {
         if constexpr (std::is_void_v<T>) {
             return;
@@ -479,6 +498,9 @@ template <>
 class variant_impl<void, void> {
   public:
     constexpr variant_impl() noexcept = default;
+
+    constexpr variant_impl([[maybe_unused]] uninit_t tag) noexcept
+        : variant_impl() {}
 
     explicit constexpr variant_impl(
         [[maybe_unused]] std::in_place_index_t<0> inplace) noexcept {}
@@ -506,6 +528,9 @@ class variant_impl<void, T&, void> {
 
   public:
     variant_impl() = delete;
+
+    constexpr variant_impl([[maybe_unused]] uninit_t tag) noexcept
+        : data_(nullptr) {}
 
     template <typename U>
         requires(std::is_convertible_v<U*, T*>)
@@ -565,6 +590,16 @@ class variant_impl<void, T&, void> {
         }
     }
 
+    template <size_t I>
+    constexpr void uninit_emplace() noexcept {
+        emplace<I>();
+    }
+
+    template <size_t I, typename U>
+    constexpr void uninit_emplace(U&& value) noexcept {
+        emplace<I>(std::forward<U>(value));
+    }
+
     constexpr void swap(variant_impl& other) noexcept { std::swap(data_, other.data_); }
 };
 
@@ -575,6 +610,9 @@ class variant_impl<void, void, T&> {
 
   public:
     constexpr variant_impl() noexcept = default;
+
+    constexpr variant_impl([[maybe_unused]] uninit_t tag) noexcept
+        : variant_impl() {}
 
     explicit constexpr variant_impl(
         [[maybe_unused]] std::in_place_index_t<0> inplace) noexcept
@@ -634,6 +672,16 @@ class variant_impl<void, void, T&> {
         }
     }
 
+    template <size_t I>
+    constexpr void uninit_emplace() noexcept {
+        emplace<I>();
+    }
+
+    template <size_t I, typename U>
+    constexpr void uninit_emplace(U&& value) noexcept {
+        emplace<I>(std::forward<U>(value));
+    }
+
     constexpr void swap(variant_impl& other) noexcept { std::swap(data_, other.data_); }
 };
 
@@ -648,6 +696,9 @@ class variant_impl<std::enable_if_t<(sizeof(U) <= sizeof(bool))>, T&, U> {
 
   public:
     variant_impl() = delete;
+
+    constexpr variant_impl([[maybe_unused]] uninit_t tag) noexcept
+        : head_(nullptr) {}
 
     constexpr variant_impl(const variant_impl& other) : head_(other.head_) {
         if (head_ == nullptr) { std::construct_at(&tail_.tail, other.tail_.tail); }
@@ -796,6 +847,19 @@ class variant_impl<std::enable_if_t<(sizeof(U) <= sizeof(bool))>, T&, U> {
         }
     }
 
+    template <size_t I, typename... Args>
+    constexpr void uninit_emplace(Args&&... args) noexcept {
+        if constexpr (I == 0) {
+            static_assert(
+                (true && ... && std::is_lvalue_reference_v<Args>)&&sizeof...(Args) == 1,
+                "no matching constructor for reference");
+            head_ = std::addressof(std::forward<Args>(args)...);
+        } else {
+            head_ = nullptr;
+            std::construct_at(&tail_.tail, std::forward<Args>(args)...);
+        }
+    }
+
     constexpr void swap(variant_impl& other) noexcept(
         std::is_nothrow_swappable_v<U> && std::is_nothrow_move_constructible_v<U> &&
         std::is_nothrow_destructible_v<U>) {
@@ -835,6 +899,9 @@ class variant_impl<std::enable_if_t<(sizeof(T) <= sizeof(bool))>, T, U&> {
     constexpr variant_impl() noexcept(std::is_nothrow_default_constructible_v<T>) {
         std::construct_at(&head_.head);
     }
+
+    constexpr variant_impl([[maybe_unused]] uninit_t tag) noexcept
+        : tail_(nullptr) {}
 
     constexpr variant_impl(const variant_impl& other) : tail_(other.tail_) {
         if (tail_ == nullptr) { std::construct_at(&head_.head, other.head_.head); }
@@ -978,6 +1045,19 @@ class variant_impl<std::enable_if_t<(sizeof(T) <= sizeof(bool))>, T, U&> {
             } else {
                 tail_ = nullptr;
             }
+            std::construct_at(&head_.head, std::forward<Args>(args)...);
+        }
+    }
+
+    template <size_t I, typename... Args>
+    constexpr void uninit_emplace(Args&&... args) noexcept {
+        if constexpr (I == 1) {
+            static_assert(
+                (true && ... && std::is_lvalue_reference_v<Args>)&&sizeof...(Args) == 1,
+                "no matching constructor for reference");
+            tail_ = std::addressof(std::forward<Args>(args)...);
+        } else {
+            tail_ = nullptr;
             std::construct_at(&head_.head, std::forward<Args>(args)...);
         }
     }

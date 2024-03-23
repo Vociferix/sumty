@@ -217,6 +217,21 @@ TEST_CASE("multi variant visit", "[variant]") {
                   v1, v2) == INIT_VAL + static_cast<int>(INIT_FLT));
 }
 
+TEST_CASE("variant visit_informed", "[variant]") {
+    static constexpr int INIT_VAL = 42;
+    int i = INIT_VAL;
+    variant<void, int&, float> v1{};
+    v1.template emplace<1>(i);
+    v1.visit_informed([]([[maybe_unused]] auto&& value, auto info) {
+        REQUIRE(info.index == 1);
+        REQUIRE(std::is_same_v<int&, typename decltype(info)::type>);
+        auto val = info.forward(value);
+        if constexpr (info.index == 1) {
+            REQUIRE(val == INIT_VAL);
+        }
+    });
+}
+
 TEST_CASE("variant get_if", "[variant]") {
     static constexpr int INIT_VAL = 42;
     static constexpr float INIT_FLT = 3.14F;

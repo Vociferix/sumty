@@ -131,7 +131,7 @@ consteval auto make_informed_jump_table([[maybe_unused]] std::index_sequence<IDX
     using ret_t =
         decltype(informed_jump_table_entry<0>(std::declval<V&&>(), std::declval<U&&>()));
     return std::array<ret_t (*)(V&&, U&&), sizeof...(IDX)>{
-        {&jump_table_entry<IDX, V, U>...}};
+        {&informed_jump_table_entry<IDX, V, U>...}};
 }
 
 template <typename V, typename U, typename... T>
@@ -253,6 +253,16 @@ class variant {
         requires(!detail::traits<detail::select_t<IDX, T...>>::template is_constructible<U>)
     constexpr explicit variant([[maybe_unused]] emplace_construct_t<IDX> tag, U&& value)
         : variant(emplace_construct_t<IDX + 1>{}, std::forward<U>(value)) {}
+
+    constexpr variant([[maybe_unused]] detail::uninit_t tag) noexcept
+        : data_(tag) {}
+
+    template <size_t I, typename... Args>
+    constexpr void uninit_emplace(Args&&... args) {
+        data_.template uninit_emplace<I>(std::forward<Args>(args)...);
+    }
+
+    friend class error_set<T...>;
 
   public:
     /// @brief Default constructor
