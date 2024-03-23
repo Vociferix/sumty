@@ -1655,6 +1655,50 @@ class result {
         return std::move(res_).visit(std::forward<V>(visitor));
     }
 
+    template <typename V>
+    constexpr
+#ifndef DOXYGEN
+        decltype(auto)
+#else
+        DEDUCED
+#endif
+        visit_informed(V&& visitor) & {
+        return res_.visit_informed(std::forward<V>(visitor));
+    }
+
+    template <typename V>
+    constexpr
+#ifndef DOXYGEN
+        decltype(auto)
+#else
+        DEDUCED
+#endif
+        visit_informed(V&& visitor) const& {
+        return res_.visit_informed(std::forward<V>(visitor));
+    }
+
+    template <typename V>
+    constexpr
+#ifndef DOXYGEN
+        decltype(auto)
+#else
+        DEDUCED
+#endif
+        visit_informed(V&& visitor) && {
+        return std::move(res_).visit_informed(std::forward<V>(visitor));
+    }
+
+    template <typename V>
+    constexpr
+#ifndef DOXYGEN
+        decltype(auto)
+#else
+        DEDUCED
+#endif
+        visit_informed(V&& visitor) const&& {
+        return std::move(res_).visit_informed(std::forward<V>(visitor));
+    }
+
     constexpr void swap(result& other)
 #ifndef DOXYGEN
         noexcept(std::is_nothrow_swappable_v<variant<T, E>>)

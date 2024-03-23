@@ -2926,6 +2926,50 @@ class option {
         return std::move(opt_).visit(std::forward<V>(visitor));
     }
 
+    template <typename V>
+    constexpr
+#ifndef DOXYGEN
+        decltype(auto)
+#else
+        DEDUCED
+#endif
+        visit_informed(V&& visitor) & {
+        return opt_.visit(std::forward<V>(visitor));
+    }
+
+    template <typename V>
+    constexpr
+#ifndef DOXYGEN
+        decltype(auto)
+#else
+        DEDUCED
+#endif
+        visit_informed(V&& visitor) const& {
+        return opt_.visit(std::forward<V>(visitor));
+    }
+
+    template <typename V>
+    constexpr
+#ifndef DOXYGEN
+        decltype(auto)
+#else
+        DEDUCED
+#endif
+        visit_informed(V&& visitor) && {
+        return std::move(opt_).visit(std::forward<V>(visitor));
+    }
+
+    template <typename V>
+    constexpr
+#ifndef DOXYGEN
+        decltype(auto)
+#else
+        DEDUCED
+#endif
+        visit_informed(V&& visitor) const&& {
+        return std::move(opt_).visit(std::forward<V>(visitor));
+    }
+
     /// @brief Swaps two @ref option instances
     ///
     /// @details
