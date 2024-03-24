@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "sumty/error_set.hpp" // IWYU pragma: associated
+#include "sumty/result.hpp"
 
 using namespace sumty;
 
@@ -118,4 +119,16 @@ TEST_CASE("error_set assign from subset", "[error_set]") {
     REQUIRE(e3.index() == 1);
     REQUIRE(holds_alternative<myerr<2>>(e3));
     REQUIRE(get<1>(e3).value == 42);
+}
+
+TEST_CASE("error_set propagate by result", "[error_set]") {
+    auto res = []() -> result<void, error_set<myerr<0>, myerr<1>, myerr<2>>> {
+        return []() -> result<void, myerr<1>> {
+            return error<myerr<1>>(42);
+        }();
+    }();
+
+    REQUIRE(!res.has_value());
+    REQUIRE(res.error().index() == 1);
+    REQUIRE(get<1>(res.error()).value == 42);
 }

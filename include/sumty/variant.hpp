@@ -264,6 +264,9 @@ class variant {
 
     friend class error_set<T...>;
 
+    template <typename, typename>
+    friend class result;
+
   public:
     /// @brief Default constructor
     ///

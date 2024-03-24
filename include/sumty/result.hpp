@@ -443,22 +443,8 @@ class result {
   private:
     variant<T, E> res_;
 
-    template <typename R, typename U, typename V>
-    static constexpr variant<U, V> convert(R&& res) {
-        if (res.has_value()) {
-            if constexpr (std::is_void_v<decltype(*std::forward<R>(res))>) {
-                return variant<U, V>{std::in_place_index<0>};
-            } else {
-                return variant<U, V>{std::in_place_index<0>, *std::forward<R>(res)};
-            }
-        } else {
-            if constexpr (std::is_void_v<decltype(std::forward<R>(res).error())>) {
-                return result<U, V>{std::in_place_index<1>};
-            } else {
-                return result<U, V>{std::in_place_index<1>, std::forward<R>(res).error()};
-            }
-        }
-    }
+    template <typename, typename>
+    friend class result;
 
   public:
 #ifndef DOXYGEN
@@ -646,7 +632,10 @@ class result {
 #endif
         // NOLINTNEXTLINE(hicpp-explicit-conversions)
         constexpr result(const result<U, V>& other)
-        : res_(convert(other)) {
+        : res_(detail::uninit) {
+        other.res_.visit_informed([this](auto&& value, auto info) {
+            res_.template uninit_emplace<info.index>(value);
+        });
     }
 
     template <typename U, typename V>
@@ -666,7 +655,10 @@ class result {
 #endif
         // NOLINTNEXTLINE(hicpp-explicit-conversions)
         constexpr result(result<U, V>&& other)
-        : res_(convert(std::move(other))) {
+        : res_(detail::uninit) {
+        other.res_.visit_informed([this](auto&& value, auto info) {
+            res_.template uninit_emplace<info.index>(info.forward(value));
+        });
     }
 
     constexpr ~result()
