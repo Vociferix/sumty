@@ -154,8 +154,8 @@ constexpr decltype(auto) visit_informed_impl(V&& visitor, U&& var) {
 /// @brief General discriminated union
 ///
 /// @details
-/// @ref variant is the fundamental sum type of sumty. @ref option and @ref
-/// result are defined in terms of @ref variant.
+/// @ref variant is the fundamental sum type of sumty. @ref option, @ref
+/// result, and @ref error_set are defined in terms of @ref variant.
 ///
 /// @ref variant is very similar to `std::variant`, but it does have some
 /// key differences. Most notably, @ref variant does not support type-based
@@ -254,8 +254,7 @@ class variant {
     constexpr explicit variant([[maybe_unused]] emplace_construct_t<IDX> tag, U&& value)
         : variant(emplace_construct_t<IDX + 1>{}, std::forward<U>(value)) {}
 
-    constexpr variant([[maybe_unused]] detail::uninit_t tag) noexcept
-        : data_(tag) {}
+    constexpr variant([[maybe_unused]] detail::uninit_t tag) noexcept : data_(tag) {}
 
     template <size_t I, typename... Args>
     constexpr void uninit_emplace(Args&&... args) {
@@ -711,7 +710,8 @@ class variant {
   private:
     template <size_t IDX, typename U>
     constexpr void assign_value(U&& value) {
-        if constexpr (detail::traits<detail::select_t<IDX, T...>>::template is_assignable<U>) {
+        if constexpr (detail::traits<detail::select_t<IDX, T...>>::template is_assignable<
+                          U>) {
             if (index() == IDX) {
                 if constexpr (!std::is_void_v<detail::select_t<IDX, T...>>) {
                     data_.template get<IDX>() = std::forward<U>(value);
@@ -1998,6 +1998,60 @@ class variant {
                                                             std::move(*this));
     }
 
+    /// @brief Calls a visitor callable with the contained alternative an metadata
+    ///
+    /// @details
+    /// This function calls the visitor as `std::invoke(visitor, alternative, info)`,
+    /// and returns the result of that call, if any. As such, `visitor` *must* be
+    /// able to accept any alternative type as an argument. In the case of an
+    /// alternative of type `void`, the visitor must be callable as
+    /// `std::invoke(visitor, void_v, info)`.
+    ///
+    /// The `info` argument passed to the visitor, which differentiates this
+    /// function from `.visit(...)`, communicates `constexpr` information about
+    /// the alternative being visited. The type of the `info` object is not
+    /// meant to be named, but it has the API shown below. Note that `info` is
+    /// always an empty type.
+    ///
+    /// ```
+    /// struct alternative_info {
+    ///     // index of the alternative in the source variant
+    ///     static inline constexpr size_t index = ...;
+    ///
+    ///     // type of the alternative as declared in the source variant
+    ///     using type = ...;
+    ///
+    ///     // helper function for forwarding non-const alternative values
+    ///     // without needing to provide a template argument.
+    ///     static constexpr decltype(auto) forward(...);
+    /// };
+    /// ```
+    ///
+    /// Note that the @ref overload function can be helpful for defining a
+    /// visitor inline.
+    ///
+    /// Also note that this function is implemented as a compile-time-defined
+    /// jump table (array of function pointers). In performance critical
+    /// applications, be wary of any assumptions about how well or poorly your
+    /// compiler will optimize a call to this function.
+    ///
+    /// ## Example
+    /// ```
+    /// variant<bool, int, void> v1{std::in_place_index<1>, 42};
+    ///
+    /// v1.visit_informed([](auto value, auto info) {
+    ///     if constexpr (info.index == 0) {
+    ///         assert(false);
+    ///     } else if constexpr (info.index == 1) {
+    ///         assert(value == 42);
+    ///     } else if constexpr (info.index == 2) {
+    ///         assert(false);
+    ///     }
+    /// });
+    /// ```
+    ///
+    /// @param visitor The callable object that will be passed an alternative.
+    /// @return The return value of the visitor, if any.
     template <typename V>
     constexpr
 #ifndef DOXYGEN
@@ -2013,6 +2067,60 @@ class variant {
                                                               *this);
     }
 
+    /// @brief Calls a visitor callable with the contained alternative an metadata
+    ///
+    /// @details
+    /// This function calls the visitor as `std::invoke(visitor, alternative, info)`,
+    /// and returns the result of that call, if any. As such, `visitor` *must* be
+    /// able to accept any alternative type as an argument. In the case of an
+    /// alternative of type `void`, the visitor must be callable as
+    /// `std::invoke(visitor, void_v, info)`.
+    ///
+    /// The `info` argument passed to the visitor, which differentiates this
+    /// function from `.visit(...)`, communicates `constexpr` information about
+    /// the alternative being visited. The type of the `info` object is not
+    /// meant to be named, but it has the API shown below. Note that `info` is
+    /// always an empty type.
+    ///
+    /// ```
+    /// struct alternative_info {
+    ///     // index of the alternative in the source variant
+    ///     static inline constexpr size_t index = ...;
+    ///
+    ///     // type of the alternative as declared in the source variant
+    ///     using type = ...;
+    ///
+    ///     // helper function for forwarding non-const alternative values
+    ///     // without needing to provide a template argument.
+    ///     static constexpr decltype(auto) forward(...);
+    /// };
+    /// ```
+    ///
+    /// Note that the @ref overload function can be helpful for defining a
+    /// visitor inline.
+    ///
+    /// Also note that this function is implemented as a compile-time-defined
+    /// jump table (array of function pointers). In performance critical
+    /// applications, be wary of any assumptions about how well or poorly your
+    /// compiler will optimize a call to this function.
+    ///
+    /// ## Example
+    /// ```
+    /// const variant<bool, int, void> v1{std::in_place_index<1>, 42};
+    ///
+    /// v1.visit_informed([](auto value, auto info) {
+    ///     if constexpr (info.index == 0) {
+    ///         assert(false);
+    ///     } else if constexpr (info.index == 1) {
+    ///         assert(value == 42);
+    ///     } else if constexpr (info.index == 2) {
+    ///         assert(false);
+    ///     }
+    /// });
+    /// ```
+    ///
+    /// @param visitor The callable object that will be passed an alternative.
+    /// @return The return value of the visitor, if any.
     template <typename V>
     constexpr
 #ifndef DOXYGEN
@@ -2028,6 +2136,60 @@ class variant {
             std::forward<V>(visitor), *this);
     }
 
+    /// @brief Calls a visitor callable with the contained alternative an metadata
+    ///
+    /// @details
+    /// This function calls the visitor as `std::invoke(visitor, alternative, info)`,
+    /// and returns the result of that call, if any. As such, `visitor` *must* be
+    /// able to accept any alternative type as an argument. In the case of an
+    /// alternative of type `void`, the visitor must be callable as
+    /// `std::invoke(visitor, void_v, info)`.
+    ///
+    /// The `info` argument passed to the visitor, which differentiates this
+    /// function from `.visit(...)`, communicates `constexpr` information about
+    /// the alternative being visited. The type of the `info` object is not
+    /// meant to be named, but it has the API shown below. Note that `info` is
+    /// always an empty type.
+    ///
+    /// ```
+    /// struct alternative_info {
+    ///     // index of the alternative in the source variant
+    ///     static inline constexpr size_t index = ...;
+    ///
+    ///     // type of the alternative as declared in the source variant
+    ///     using type = ...;
+    ///
+    ///     // helper function for forwarding non-const alternative values
+    ///     // without needing to provide a template argument.
+    ///     static constexpr decltype(auto) forward(...);
+    /// };
+    /// ```
+    ///
+    /// Note that the @ref overload function can be helpful for defining a
+    /// visitor inline.
+    ///
+    /// Also note that this function is implemented as a compile-time-defined
+    /// jump table (array of function pointers). In performance critical
+    /// applications, be wary of any assumptions about how well or poorly your
+    /// compiler will optimize a call to this function.
+    ///
+    /// ## Example
+    /// ```
+    /// variant<bool, int, void> v1{std::in_place_index<1>, 42};
+    ///
+    /// std::move(v1).visit_informed([](auto value, auto info) {
+    ///     if constexpr (info.index == 0) {
+    ///         assert(false);
+    ///     } else if constexpr (info.index == 1) {
+    ///         assert(value == 42);
+    ///     } else if constexpr (info.index == 2) {
+    ///         assert(false);
+    ///     }
+    /// });
+    /// ```
+    ///
+    /// @param visitor The callable object that will be passed an alternative.
+    /// @return The return value of the visitor, if any.
     template <typename V>
     constexpr
 #ifndef DOXYGEN
@@ -2043,6 +2205,60 @@ class variant {
                                                                std::move(*this));
     }
 
+    /// @brief Calls a visitor callable with the contained alternative an metadata
+    ///
+    /// @details
+    /// This function calls the visitor as `std::invoke(visitor, alternative, info)`,
+    /// and returns the result of that call, if any. As such, `visitor` *must* be
+    /// able to accept any alternative type as an argument. In the case of an
+    /// alternative of type `void`, the visitor must be callable as
+    /// `std::invoke(visitor, void_v, info)`.
+    ///
+    /// The `info` argument passed to the visitor, which differentiates this
+    /// function from `.visit(...)`, communicates `constexpr` information about
+    /// the alternative being visited. The type of the `info` object is not
+    /// meant to be named, but it has the API shown below. Note that `info` is
+    /// always an empty type.
+    ///
+    /// ```
+    /// struct alternative_info {
+    ///     // index of the alternative in the source variant
+    ///     static inline constexpr size_t index = ...;
+    ///
+    ///     // type of the alternative as declared in the source variant
+    ///     using type = ...;
+    ///
+    ///     // helper function for forwarding non-const alternative values
+    ///     // without needing to provide a template argument.
+    ///     static constexpr decltype(auto) forward(...);
+    /// };
+    /// ```
+    ///
+    /// Note that the @ref overload function can be helpful for defining a
+    /// visitor inline.
+    ///
+    /// Also note that this function is implemented as a compile-time-defined
+    /// jump table (array of function pointers). In performance critical
+    /// applications, be wary of any assumptions about how well or poorly your
+    /// compiler will optimize a call to this function.
+    ///
+    /// ## Example
+    /// ```
+    /// const variant<bool, int, void> v1{std::in_place_index<1>, 42};
+    ///
+    /// std::move(v1).visit_informed([](auto value, auto info) {
+    ///     if constexpr (info.index == 0) {
+    ///         assert(false);
+    ///     } else if constexpr (info.index == 1) {
+    ///         assert(value == 42);
+    ///     } else if constexpr (info.index == 2) {
+    ///         assert(false);
+    ///     }
+    /// });
+    /// ```
+    ///
+    /// @param visitor The callable object that will be passed an alternative.
+    /// @return The return value of the visitor, if any.
     template <typename V>
     constexpr
 #ifndef DOXYGEN

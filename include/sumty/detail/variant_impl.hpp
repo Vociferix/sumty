@@ -499,8 +499,7 @@ class variant_impl<void, void> {
   public:
     constexpr variant_impl() noexcept = default;
 
-    constexpr variant_impl([[maybe_unused]] uninit_t tag) noexcept
-        : variant_impl() {}
+    constexpr variant_impl([[maybe_unused]] uninit_t tag) noexcept : variant_impl() {}
 
     explicit constexpr variant_impl(
         [[maybe_unused]] std::in_place_index_t<0> inplace) noexcept {}
@@ -529,8 +528,7 @@ class variant_impl<void, T&, void> {
   public:
     variant_impl() = delete;
 
-    constexpr variant_impl([[maybe_unused]] uninit_t tag) noexcept
-        : data_(nullptr) {}
+    constexpr variant_impl([[maybe_unused]] uninit_t tag) noexcept : data_(nullptr) {}
 
     template <typename U>
         requires(std::is_convertible_v<U*, T*>)
@@ -611,8 +609,7 @@ class variant_impl<void, void, T&> {
   public:
     constexpr variant_impl() noexcept = default;
 
-    constexpr variant_impl([[maybe_unused]] uninit_t tag) noexcept
-        : variant_impl() {}
+    constexpr variant_impl([[maybe_unused]] uninit_t tag) noexcept : variant_impl() {}
 
     explicit constexpr variant_impl(
         [[maybe_unused]] std::in_place_index_t<0> inplace) noexcept
@@ -697,8 +694,7 @@ class variant_impl<std::enable_if_t<(sizeof(U) <= sizeof(bool))>, T&, U> {
   public:
     variant_impl() = delete;
 
-    constexpr variant_impl([[maybe_unused]] uninit_t tag) noexcept
-        : head_(nullptr) {}
+    constexpr variant_impl([[maybe_unused]] uninit_t tag) noexcept : head_(nullptr) {}
 
     constexpr variant_impl(const variant_impl& other) : head_(other.head_) {
         if (head_ == nullptr) { std::construct_at(&tail_.tail, other.tail_.tail); }
@@ -900,8 +896,7 @@ class variant_impl<std::enable_if_t<(sizeof(T) <= sizeof(bool))>, T, U&> {
         std::construct_at(&head_.head);
     }
 
-    constexpr variant_impl([[maybe_unused]] uninit_t tag) noexcept
-        : tail_(nullptr) {}
+    constexpr variant_impl([[maybe_unused]] uninit_t tag) noexcept : tail_(nullptr) {}
 
     constexpr variant_impl(const variant_impl& other) : tail_(other.tail_) {
         if (tail_ == nullptr) { std::construct_at(&head_.head, other.head_.head); }

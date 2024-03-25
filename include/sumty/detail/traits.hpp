@@ -63,7 +63,7 @@ struct traits {
     static inline constexpr bool is_constructible =
         std::is_constructible_v<value_type, U...> &&
         (std::is_same_v<value_type, void_t> ||
-        ((sizeof...(U) != 1) || ... || !std::is_same_v<std::remove_cvref_t<U>, void_t>));
+         ((sizeof...(U) != 1) || ... || !std::is_same_v<std::remove_cvref_t<U>, void_t>));
 
     template <typename U>
     static inline constexpr bool is_assignable = std::is_assignable_v<reference, U>;
@@ -72,10 +72,11 @@ struct traits {
     static inline constexpr bool is_nothrow_constructible =
         std::is_nothrow_constructible_v<value_type, U...> &&
         (std::is_same_v<value_type, void_t> ||
-        ((sizeof...(U) != 1) || ... || !std::is_same_v<std::remove_cvref_t<U>, void_t>));
+         ((sizeof...(U) != 1) || ... || !std::is_same_v<std::remove_cvref_t<U>, void_t>));
 
     template <typename U>
-    static inline constexpr bool is_nothrow_assignable = std::is_nothrow_assignable_v<reference, U>;
+    static inline constexpr bool is_nothrow_assignable =
+        std::is_nothrow_assignable_v<reference, U>;
 };
 
 template <typename T>
@@ -159,19 +160,23 @@ struct traits<void> {
     static inline constexpr bool is_nothrow_swappable = true;
 
     template <typename U>
-    static inline constexpr bool is_convertible_from = traits<void_t>::is_convertible_from<U> || std::is_void_v<U>;
+    static inline constexpr bool is_convertible_from =
+        traits<void_t>::is_convertible_from<U> || std::is_void_v<U>;
 
     template <typename... U>
     static inline constexpr bool is_constructible = traits<void_t>::is_constructible<U...>;
 
     template <typename U>
-    static inline constexpr bool is_assignable = traits<void_t>::is_assignable<U> || std::is_void_v<U>;
+    static inline constexpr bool is_assignable =
+        traits<void_t>::is_assignable<U> || std::is_void_v<U>;
 
     template <typename... U>
-    static inline constexpr bool is_nothrow_constructible = traits<void_t>::is_nothrow_constructible<U...>;
+    static inline constexpr bool is_nothrow_constructible =
+        traits<void_t>::is_nothrow_constructible<U...>;
 
     template <typename U>
-    static inline constexpr bool is_nothrow_assignable = traits<void_t>::is_nothrow_assignable<U> || std::is_void_v<U>;
+    static inline constexpr bool is_nothrow_assignable =
+        traits<void_t>::is_nothrow_assignable<U> || std::is_void_v<U>;
 };
 
 } // namespace sumty::detail

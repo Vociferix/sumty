@@ -226,9 +226,7 @@ TEST_CASE("variant visit_informed", "[variant]") {
         REQUIRE(info.index == 1);
         REQUIRE(std::is_same_v<int&, typename decltype(info)::type>);
         auto val = info.forward(value);
-        if constexpr (info.index == 1) {
-            REQUIRE(val == INIT_VAL);
-        }
+        if constexpr (info.index == 1) { REQUIRE(val == INIT_VAL); }
     });
 }
 

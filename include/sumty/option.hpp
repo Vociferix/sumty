@@ -91,7 +91,8 @@ namespace sumty {
 /// An @ref option of an lvalue reference can also be used as an alternative
 /// to raw pointers is many cases. `option<T&>` communicates that the pointer
 /// is allowed to be null and that the pointer is non-owning. Depending on a
-/// project's C++ coding practices, `option<T&>` may be preferable to `T*`.
+/// project's C++ coding practices, `option<T&>` may be preferable to `T*`, for
+/// single-object pointers.
 ///
 /// @tparam T The possibly contained type
 template <typename T>
@@ -2926,6 +2927,57 @@ class option {
         return std::move(opt_).visit(std::forward<V>(visitor));
     }
 
+    /// @brief Calls a visitor callable with the contained value and meta data.
+    ///
+    /// @details
+    /// This function treats an @ref option as if it was a @ref variant of
+    /// `void` and `T`. If the @ref option contains a value, that value is
+    /// passed to the visitor. If the @ref option is `none`, the visitor is
+    /// called with @ref void_t.
+    ///
+    /// In either case, an additional (second) parameter is passed to the
+    /// visitor, which provides `constexpr` information about the specific
+    /// alternative being visited. This `info` parameter has the API shown
+    /// below. Note that this type is always an empty type.
+    ///
+    /// ```
+    /// struct alternative_info {
+    ///     // index of the alternative in the source variant
+    ///     static inline constexpr size_t index = ...;
+    ///
+    ///     // type of the alternative as declared in the source variant
+    ///     using type = ...;
+    ///
+    ///     // helper function for forwarding non-const alternative values
+    ///     // without needing to provide a template argument.
+    ///     static constexpr decltype(auto) forward(...);
+    /// };
+    /// ```
+    ///
+    /// Note that the @ref overload function can be helpful for defining a
+    /// visitor inline.
+    ///
+    /// ## Example
+    /// ```cpp
+    /// option<int> opt1{};
+    /// option<int> opt2{42};
+    ///
+    /// opt1.visit_informed([](auto value, auto info) {
+    ///     if constexpr (info.index == 0) { // none
+    ///         assert(true);
+    ///     } else if constexpr (info.index == 1) { // some
+    ///         assert(false);
+    ///     }
+    /// });
+    ///
+    /// opt1.visit_informed([](auto value, auto info) {
+    ///     if constexpr (info.index == 0) { // none
+    ///         assert(false);
+    ///     } else if constexpr (info.index == 1) { // some
+    ///         assert(value == 42);
+    ///     }
+    /// });
+    /// ```
     template <typename V>
     constexpr
 #ifndef DOXYGEN
@@ -2937,6 +2989,57 @@ class option {
         return opt_.visit(std::forward<V>(visitor));
     }
 
+    /// @brief Calls a visitor callable with the contained value and meta data.
+    ///
+    /// @details
+    /// This function treats an @ref option as if it was a @ref variant of
+    /// `void` and `T`. If the @ref option contains a value, that value is
+    /// passed to the visitor. If the @ref option is `none`, the visitor is
+    /// called with @ref void_t.
+    ///
+    /// In either case, an additional (second) parameter is passed to the
+    /// visitor, which provides `constexpr` information about the specific
+    /// alternative being visited. This `info` parameter has the API shown
+    /// below. Note that this type is always an empty type.
+    ///
+    /// ```
+    /// struct alternative_info {
+    ///     // index of the alternative in the source variant
+    ///     static inline constexpr size_t index = ...;
+    ///
+    ///     // type of the alternative as declared in the source variant
+    ///     using type = ...;
+    ///
+    ///     // helper function for forwarding non-const alternative values
+    ///     // without needing to provide a template argument.
+    ///     static constexpr decltype(auto) forward(...);
+    /// };
+    /// ```
+    ///
+    /// Note that the @ref overload function can be helpful for defining a
+    /// visitor inline.
+    ///
+    /// ## Example
+    /// ```cpp
+    /// const option<int> opt1{};
+    /// const option<int> opt2{42};
+    ///
+    /// opt1.visit_informed([](auto value, auto info) {
+    ///     if constexpr (info.index == 0) { // none
+    ///         assert(true);
+    ///     } else if constexpr (info.index == 1) { // some
+    ///         assert(false);
+    ///     }
+    /// });
+    ///
+    /// opt1.visit_informed([](auto value, auto info) {
+    ///     if constexpr (info.index == 0) { // none
+    ///         assert(false);
+    ///     } else if constexpr (info.index == 1) { // some
+    ///         assert(value == 42);
+    ///     }
+    /// });
+    /// ```
     template <typename V>
     constexpr
 #ifndef DOXYGEN
@@ -2948,6 +3051,57 @@ class option {
         return opt_.visit(std::forward<V>(visitor));
     }
 
+    /// @brief Calls a visitor callable with the contained value and meta data.
+    ///
+    /// @details
+    /// This function treats an @ref option as if it was a @ref variant of
+    /// `void` and `T`. If the @ref option contains a value, that value is
+    /// passed to the visitor. If the @ref option is `none`, the visitor is
+    /// called with @ref void_t.
+    ///
+    /// In either case, an additional (second) parameter is passed to the
+    /// visitor, which provides `constexpr` information about the specific
+    /// alternative being visited. This `info` parameter has the API shown
+    /// below. Note that this type is always an empty type.
+    ///
+    /// ```
+    /// struct alternative_info {
+    ///     // index of the alternative in the source variant
+    ///     static inline constexpr size_t index = ...;
+    ///
+    ///     // type of the alternative as declared in the source variant
+    ///     using type = ...;
+    ///
+    ///     // helper function for forwarding non-const alternative values
+    ///     // without needing to provide a template argument.
+    ///     static constexpr decltype(auto) forward(...);
+    /// };
+    /// ```
+    ///
+    /// Note that the @ref overload function can be helpful for defining a
+    /// visitor inline.
+    ///
+    /// ## Example
+    /// ```cpp
+    /// option<int> opt1{};
+    /// option<int> opt2{42};
+    ///
+    /// std::move(opt1).visit_informed([](auto value, auto info) {
+    ///     if constexpr (info.index == 0) { // none
+    ///         assert(true);
+    ///     } else if constexpr (info.index == 1) { // some
+    ///         assert(false);
+    ///     }
+    /// });
+    ///
+    /// std::move(opt1).visit_informed([](auto value, auto info) {
+    ///     if constexpr (info.index == 0) { // none
+    ///         assert(false);
+    ///     } else if constexpr (info.index == 1) { // some
+    ///         assert(value == 42);
+    ///     }
+    /// });
+    /// ```
     template <typename V>
     constexpr
 #ifndef DOXYGEN
@@ -2959,6 +3113,57 @@ class option {
         return std::move(opt_).visit(std::forward<V>(visitor));
     }
 
+    /// @brief Calls a visitor callable with the contained value and meta data.
+    ///
+    /// @details
+    /// This function treats an @ref option as if it was a @ref variant of
+    /// `void` and `T`. If the @ref option contains a value, that value is
+    /// passed to the visitor. If the @ref option is `none`, the visitor is
+    /// called with @ref void_t.
+    ///
+    /// In either case, an additional (second) parameter is passed to the
+    /// visitor, which provides `constexpr` information about the specific
+    /// alternative being visited. This `info` parameter has the API shown
+    /// below. Note that this type is always an empty type.
+    ///
+    /// ```
+    /// struct alternative_info {
+    ///     // index of the alternative in the source variant
+    ///     static inline constexpr size_t index = ...;
+    ///
+    ///     // type of the alternative as declared in the source variant
+    ///     using type = ...;
+    ///
+    ///     // helper function for forwarding non-const alternative values
+    ///     // without needing to provide a template argument.
+    ///     static constexpr decltype(auto) forward(...);
+    /// };
+    /// ```
+    ///
+    /// Note that the @ref overload function can be helpful for defining a
+    /// visitor inline.
+    ///
+    /// ## Example
+    /// ```cpp
+    /// const option<int> opt1{};
+    /// const option<int> opt2{42};
+    ///
+    /// std::move(opt1).visit_informed([](auto value, auto info) {
+    ///     if constexpr (info.index == 0) { // none
+    ///         assert(true);
+    ///     } else if constexpr (info.index == 1) { // some
+    ///         assert(false);
+    ///     }
+    /// });
+    ///
+    /// std::move(opt1).visit_informed([](auto value, auto info) {
+    ///     if constexpr (info.index == 0) { // none
+    ///         assert(false);
+    ///     } else if constexpr (info.index == 1) { // some
+    ///         assert(value == 42);
+    ///     }
+    /// });
+    /// ```
     template <typename V>
     constexpr
 #ifndef DOXYGEN

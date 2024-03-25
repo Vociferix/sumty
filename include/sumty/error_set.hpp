@@ -139,7 +139,8 @@ class error_set {
         constexpr error_set(const error_set<U...>& other)
         : set_(detail::uninit) {
         other.set_.visit_informed([this](auto&& value, auto info) {
-            set_.template uninit_emplace<detail::index_of_v<typename decltype(info)::type, T...>>(value);
+            set_.template uninit_emplace<
+                detail::index_of_v<typename decltype(info)::type, T...>>(value);
         });
     }
 
@@ -153,7 +154,9 @@ class error_set {
     constexpr error_set(error_set<U...>&& other) : set_(detail::uninit) {
         // clang-format on
         std::move(other.set_).visit_informed([this](auto&& value, auto info) {
-            set_.template uninit_emplace<detail::index_of_v<typename decltype(info)::type, T...>>(info.forward(value));
+            set_.template uninit_emplace<
+                detail::index_of_v<typename decltype(info)::type, T...>>(
+                info.forward(value));
         });
     }
 
@@ -208,7 +211,8 @@ class error_set {
 #endif
     constexpr error_set& operator=(const error_set<U...>& rhs) {
         rhs.set_.visit_informed([this](auto&& value, auto info) {
-            set_.template emplace<detail::index_of_v<typename decltype(info)::type, T...>>(value);
+            set_.template emplace<detail::index_of_v<typename decltype(info)::type, T...>>(
+                value);
         });
         return *this;
     }
@@ -221,7 +225,8 @@ class error_set {
     // NOLINTNEXTLINE(cppcoreguidelines-rvalue-reference-param-not-moved)
     constexpr error_set& operator=(error_set<U...>&& rhs) {
         std::move(rhs.set_).visit_informed([this](auto&& value, auto info) {
-            set_.template emplace<detail::index_of_v<typename decltype(info)::type, T...>>(info.forward(value));
+            set_.template emplace<detail::index_of_v<typename decltype(info)::type, T...>>(
+                info.forward(value));
         });
         return *this;
     }

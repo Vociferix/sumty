@@ -143,7 +143,8 @@ template <typename T, typename... U>
 static inline constexpr bool is_unique_v = is_unique<T, U...>::value;
 
 template <typename T, typename... U>
-struct type_list_contains : std::integral_constant<bool, (false || ... || std::is_same_v<T, U>)> {};
+struct type_list_contains
+    : std::integral_constant<bool, (false || ... || std::is_same_v<T, U>)> {};
 
 template <typename T, typename... U>
 static inline constexpr bool type_list_contains_v = type_list_contains<T, U...>::value;
@@ -159,7 +160,9 @@ struct all_unique<T> : std::true_type {};
 
 template <typename T0, typename... TN>
 struct all_unique<T0, TN...>
-    : std::integral_constant<bool, !type_list_contains_v<T0, TN...> && all_unique<TN...>::value> {};
+    : std::integral_constant<bool,
+                             !type_list_contains_v<T0, TN...> && all_unique<TN...>::value> {
+};
 
 template <typename... T>
 static inline constexpr bool all_unique_v = all_unique<T...>::value;
@@ -167,8 +170,9 @@ static inline constexpr bool all_unique_v = all_unique<T...>::value;
 template <typename T, typename... U>
 struct is_uniquely_convertible
     : std::integral_constant<bool,
-                             (0 + ... + static_cast<size_t>(traits<U>::template is_convertible_from<T>)) ==
-                                 1> {};
+                             (0 + ... +
+                              static_cast<size_t>(
+                                  traits<U>::template is_convertible_from<T>)) == 1> {};
 
 template <typename T, typename... U>
 static inline constexpr bool is_uniquely_convertible_v =
@@ -176,9 +180,9 @@ static inline constexpr bool is_uniquely_convertible_v =
 
 template <typename T, typename... U>
 struct is_uniquely_constructible
-    : std::integral_constant<bool,
-                             (0 + ... +
-                              static_cast<size_t>(traits<U>::template is_constructible<T>)) == 1> {};
+    : std::integral_constant<
+          bool,
+          (0 + ... + static_cast<size_t>(traits<U>::template is_constructible<T>)) == 1> {};
 
 template <typename T, typename... U>
 static inline constexpr bool is_uniquely_constructible_v =
@@ -198,9 +202,9 @@ static inline constexpr bool is_uniquely_explicitly_constructible_v =
 
 template <typename T, typename... U>
 struct is_uniquely_assignable
-    : std::integral_constant<bool,
-                             (0 + ... + static_cast<size_t>(traits<U>::template is_assignable<T>)) ==
-                                 1> {};
+    : std::integral_constant<
+          bool,
+          (0 + ... + static_cast<size_t>(traits<U>::template is_assignable<T>)) == 1> {};
 
 template <typename T, typename... U>
 static inline constexpr bool is_uniquely_assignable_v =

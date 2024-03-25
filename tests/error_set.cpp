@@ -73,24 +73,17 @@ TEST_CASE("error_set value assignment", "[error_set]") {
 
 TEST_CASE("error_set visit method", "[error_set]") {
     error_set<myerr<0>, myerr<1>, myerr<2>> e1 = myerr<1>{42};
-    e1.visit(overload([]([[maybe_unused]] myerr<0> err) {
-        REQUIRE(false);
-    }, [](myerr<1> err) {
-        REQUIRE(err.value == 42);
-    }, []([[maybe_unused]] myerr<2> err) {
-        REQUIRE(false);
-    }));
+    e1.visit(overload([]([[maybe_unused]] myerr<0> err) { REQUIRE(false); },
+                      [](myerr<1> err) { REQUIRE(err.value == 42); },
+                      []([[maybe_unused]] myerr<2> err) { REQUIRE(false); }));
 }
 
 TEST_CASE("error_set visit function", "[error_set]") {
     error_set<myerr<0>, myerr<1>, myerr<2>> e1 = myerr<1>{42};
-    visit(overload([]([[maybe_unused]] myerr<0> err) {
-        REQUIRE(false);
-    }, [](myerr<1> err) {
-        REQUIRE(err.value == 42);
-    }, []([[maybe_unused]] myerr<2> err) {
-        REQUIRE(false);
-    }), e1);
+    visit(overload([]([[maybe_unused]] myerr<0> err) { REQUIRE(false); },
+                   [](myerr<1> err) { REQUIRE(err.value == 42); },
+                   []([[maybe_unused]] myerr<2> err) { REQUIRE(false); }),
+          e1);
 }
 
 TEST_CASE("error_set construct from subset", "[error_set]") {
@@ -123,9 +116,7 @@ TEST_CASE("error_set assign from subset", "[error_set]") {
 
 TEST_CASE("error_set propagate by result", "[error_set]") {
     auto res = []() -> result<void, error_set<myerr<0>, myerr<1>, myerr<2>>> {
-        return []() -> result<void, myerr<1>> {
-            return error<myerr<1>>(42);
-        }();
+        return []() -> result<void, myerr<1>> { return error<myerr<1>>(42); }();
     }();
 
     REQUIRE(!res.has_value());
