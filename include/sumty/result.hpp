@@ -653,8 +653,10 @@ class result {
 #else
     CONDITIONALLY_EXPLICIT
 #endif
-        // NOLINTNEXTLINE(hicpp-explicit-conversions)
+        // clang-format off
+        // NOLINTNEXTLINE(hicpp-explicit-conversions,cppcoreguidelines-rvalue-reference-param-not-moved)
         constexpr result(result<U, V>&& other)
+        // clang-format on
         : res_(detail::uninit) {
         other.res_.visit_informed([this](auto&& value, auto info) {
             res_.template uninit_emplace<info.index>(info.forward(value));

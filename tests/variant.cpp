@@ -73,7 +73,7 @@ TEST_CASE("variant emplace construct", "[variant]") {
     REQUIRE(v2[index_v<1>].size() == 5);
     REQUIRE(v2[type<std::vector<int>>].size() == 5);
     REQUIRE(holds_alternative<std::vector<int>>(v2) == true);
-    variant<void, int> v3 = void_v;
+    const variant<void, int> v3 = void_v;
     REQUIRE(v3.index() == 0);
 }
 

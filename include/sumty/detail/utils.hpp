@@ -17,6 +17,7 @@
 #define SUMTY_DETAIL_UTILS_HPP
 
 #include "sumty/detail/fwd.hpp"
+#include "sumty/detail/traits.hpp"
 #include "sumty/utils.hpp"
 
 #include <cstddef>

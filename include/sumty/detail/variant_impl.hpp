@@ -219,6 +219,7 @@ class variant_impl {
     }
 
   public:
+    // NOLINTNEXTLINE(hicpp-explicit-conversions)
     constexpr variant_impl([[maybe_unused]] uninit_t tag) noexcept {}
 
     constexpr variant_impl() noexcept(
@@ -370,6 +371,7 @@ class variant_impl<void, T> {
     SUMTY_NO_UNIQ_ADDR auto_union<T> data_;
 
   public:
+    // NOLINTNEXTLINE(hicpp-explicit-conversions)
     constexpr variant_impl([[maybe_unused]] uninit_t tag) noexcept {}
 
     constexpr variant_impl() noexcept(traits<T>::is_nothrow_default_constructible) {
@@ -499,6 +501,7 @@ class variant_impl<void, void> {
   public:
     constexpr variant_impl() noexcept = default;
 
+    // NOLINTNEXTLINE(hicpp-explicit-conversions)
     constexpr variant_impl([[maybe_unused]] uninit_t tag) noexcept : variant_impl() {}
 
     explicit constexpr variant_impl(
@@ -528,6 +531,7 @@ class variant_impl<void, T&, void> {
   public:
     variant_impl() = delete;
 
+    // NOLINTNEXTLINE(hicpp-explicit-conversions)
     constexpr variant_impl([[maybe_unused]] uninit_t tag) noexcept : data_(nullptr) {}
 
     template <typename U>
@@ -609,6 +613,7 @@ class variant_impl<void, void, T&> {
   public:
     constexpr variant_impl() noexcept = default;
 
+    // NOLINTNEXTLINE(hicpp-explicit-conversions)
     constexpr variant_impl([[maybe_unused]] uninit_t tag) noexcept : variant_impl() {}
 
     explicit constexpr variant_impl(
@@ -694,6 +699,7 @@ class variant_impl<std::enable_if_t<(sizeof(U) <= sizeof(bool))>, T&, U> {
   public:
     variant_impl() = delete;
 
+    // NOLINTNEXTLINE(hicpp-explicit-conversions)
     constexpr variant_impl([[maybe_unused]] uninit_t tag) noexcept : head_(nullptr) {}
 
     constexpr variant_impl(const variant_impl& other) : head_(other.head_) {
@@ -896,6 +902,7 @@ class variant_impl<std::enable_if_t<(sizeof(T) <= sizeof(bool))>, T, U&> {
         std::construct_at(&head_.head);
     }
 
+    // NOLINTNEXTLINE(hicpp-explicit-conversions)
     constexpr variant_impl([[maybe_unused]] uninit_t tag) noexcept : tail_(nullptr) {}
 
     constexpr variant_impl(const variant_impl& other) : tail_(other.tail_) {

@@ -87,20 +87,20 @@ TEST_CASE("error_set visit function", "[error_set]") {
 }
 
 TEST_CASE("error_set construct from subset", "[error_set]") {
-    error_set<myerr<2>, myerr<0>> e1 = myerr<2>{42};
-    error_set<myerr<0>, myerr<1>, myerr<2>> e2 = e1;
+    const error_set<myerr<2>, myerr<0>> e1 = myerr<2>{42};
+    const error_set<myerr<0>, myerr<1>, myerr<2>> e2 = e1;
     REQUIRE(e2.index() == 2);
     REQUIRE(holds_alternative<myerr<2>>(e2));
     REQUIRE(get<2>(e2).value == 42);
 
-    error_set<myerr<1>, myerr<2>, myerr<0>> e3 = e2;
+    const error_set<myerr<1>, myerr<2>, myerr<0>> e3 = e2;
     REQUIRE(e3.index() == 1);
     REQUIRE(holds_alternative<myerr<2>>(e3));
     REQUIRE(get<1>(e3).value == 42);
 }
 
 TEST_CASE("error_set assign from subset", "[error_set]") {
-    error_set<myerr<2>, myerr<0>> e1 = myerr<2>{42};
+    const error_set<myerr<2>, myerr<0>> e1 = myerr<2>{42};
     error_set<myerr<0>, myerr<1>, myerr<2>> e2{};
     e2 = e1;
     REQUIRE(e2.index() == 2);

@@ -17,7 +17,6 @@
 #define SUMTY_UTILS_HPP
 
 #include <cstddef>
-#include <type_traits>
 #include <utility>
 
 #if defined(_MSC_VER) && !defined(__clang__)

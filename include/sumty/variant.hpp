@@ -19,7 +19,7 @@
 #include "sumty/detail/fwd.hpp"    // IWYU pragma: export
 #include "sumty/detail/traits.hpp" // IWYU pragma: export
 #include "sumty/detail/utils.hpp"
-#include "sumty/detail/variant_impl.hpp"
+#include "sumty/detail/variant_impl.hpp" // IWYU pragma: export
 #include "sumty/exceptions.hpp"
 #include "sumty/utils.hpp"
 
@@ -254,6 +254,7 @@ class variant {
     constexpr explicit variant([[maybe_unused]] emplace_construct_t<IDX> tag, U&& value)
         : variant(emplace_construct_t<IDX + 1>{}, std::forward<U>(value)) {}
 
+    // NOLINTNEXTLINE(hicpp-explicit-conversions)
     constexpr variant([[maybe_unused]] detail::uninit_t tag) noexcept : data_(tag) {}
 
     template <size_t I, typename... Args>
