@@ -26,6 +26,7 @@ if(${${PROJECT_NAME_CAPS}_IS_TOP_LEVEL})
     include("${CMAKE_CURRENT_LIST_DIR}/doxygen.cmake")
     include("${CMAKE_CURRENT_LIST_DIR}/warnings.cmake")
     include("${CMAKE_CURRENT_LIST_DIR}/lints.cmake")
+    include("${CMAKE_CURRENT_LIST_DIR}/coverage.cmake")
 endif()
 
 target_link_libraries(${PROJECT_NAME}-settings INTERFACE ${PROJECT_NAME}-warnings)

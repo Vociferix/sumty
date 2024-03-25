@@ -131,7 +131,7 @@ class error_set {
 #ifndef DOXYGEN
         requires(!std::is_same_v<error_set<U...>, error_set<T...>> &&
                  detail::is_subset_of_impl_v<error_set<U...>, error_set<T...>>)
-    explicit(detail::is_uniquely_explicitly_constructible_v<U, T...>)
+    explicit((false || ... || detail::is_uniquely_explicitly_constructible_v<U, T...>))
 #else
     CONDITIONALLY_EXPLICIT
 #endif
