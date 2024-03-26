@@ -32,6 +32,28 @@
 
 namespace sumty {
 
+/// @class error_t result.hpp <sumty/result.hpp>
+/// @brief Wrapper around a value representing an error
+///
+/// @details
+/// @ref error_t is an intermediate type that is generally used to construct a
+/// @ref result that contains an error. An @ref error_t instance implicitly
+/// converts into a @ref result, as long as the contained error value is
+/// implicitly convertible to the error type of the @ref result.
+///
+/// ## Example
+/// ```
+/// error_t<my_error> make_error();
+///
+/// result<int, my_error> ensure_positive(int value) {
+///     if (value < 0) {
+///         return make_error();
+///     }
+///     return value;
+/// }
+/// ```
+///
+/// @tparam E The type of the error value
 template <typename E>
 class error_t {
   private:
@@ -56,6 +78,17 @@ class error_t {
     using const_pointer = ...;
 #endif
 
+    /// @brief Default constructor
+    ///
+    /// @details
+    /// Initializes the @ref error_t with a default constructed error value.
+    ///
+    /// ## Example
+    /// ```
+    /// error_t<int> err;
+    ///
+    /// assert(*err == 0);
+    /// ```
     constexpr error_t()
 #ifndef DOXYGEN
         = default;
@@ -63,13 +96,39 @@ class error_t {
         ;
 #endif
 
+    /// @brief Copy constructor
+    ///
+    /// @details
+    /// Initializes the new @ref error_t such that the contained error value is
+    /// copy constructed from the value contained in the source @ref error_t.
+    ///
+    /// ## Example
+    /// ```
+    /// error_t<int> err1{42};
+    /// error_t<int> err2{err1};
+    ///
+    /// assert(*err2 == 42);
+    /// ```
     constexpr error_t(const error_t&)
 #ifndef DOXYGEN
-        = default;
+        noexcept(detail::traits<E>::is_nothrow_copy_constructible) = default;
 #else
-        ;
+        CONDITIONALLY_NOEXCEPT;
 #endif
 
+    /// @brief Move constructor
+    ///
+    /// @details
+    /// Initializes the new @ref error_t such that the contained error value is
+    /// move constructed from the value contained in the source @ref error_t.
+    ///
+    /// ## Example
+    /// ```
+    /// error_t<int> err1{42};
+    /// error_t<int> err2{std::move(err1)};
+    ///
+    /// assert(*err2 == 42);
+    /// ```
     constexpr error_t(error_t&&)
 #ifndef DOXYGEN
         noexcept(detail::traits<E>::is_nothrow_move_constructible) = default;
@@ -77,6 +136,18 @@ class error_t {
         CONDITIONALLY_NOEXCEPT;
 #endif
 
+    /// @brief Emplacement constructor
+    ///
+    /// @details
+    /// The @ref error_t is initialized such that the contained value is
+    /// constructed in place from the forwarded arguments following `inplace`.
+    ///
+    /// ## Example
+    /// ```
+    /// error_t<std::string> err{std::in_place, 5, 'a'};
+    ///
+    /// assert(*err == "aaaaa");
+    /// ```
     template <typename... Args>
 #ifndef DOXYGEN
     explicit(sizeof...(Args) == 0)
@@ -88,12 +159,36 @@ class error_t {
         : err_(std::in_place_index<0>, std::forward<Args>(args)...) {
     }
 
+    /// @brief Emplacement constructor with initializer list
+    ///
+    /// @details
+    /// The @ref error_t is initialized such that the contained value is
+    /// constructed in place from the forwarded arguments following `inplace`.
+    ///
+    /// ## Example
+    /// ```
+    /// error_t<std::vector<int>> err{std::in_place, {1, 2, 3, 4, 5}};
+    ///
+    /// assert(err->size() == 5);
+    /// ```
     template <typename U, typename... Args>
     constexpr error_t([[maybe_unused]] std::in_place_t inplace,
                       std::initializer_list<U> init,
                       Args&&... args)
         : err_(std::in_place_index<0>, init, std::forward<Args>(args)...) {}
 
+    /// @brief Emplacement constructor
+    ///
+    /// @details
+    /// The @ref error_t is initialized such that the contained value is
+    /// constructed in place from the forwarded arguments following `inplace`.
+    ///
+    /// ## Example
+    /// ```
+    /// error_t<std::string> err{in_place_error, 5, 'a'};
+    ///
+    /// assert(*err == "aaaaa");
+    /// ```
     template <typename... Args>
 #ifndef DOXYGEN
     explicit(sizeof...(Args) == 0)
@@ -105,19 +200,53 @@ class error_t {
         : err_(std::in_place_index<0>, std::forward<Args>(args)...) {
     }
 
+    /// @brief Emplacement constructor with initializer list
+    ///
+    /// @details
+    /// The @ref error_t is initialized such that the contained value is
+    /// constructed in place from the forwarded arguments following `inplace`.
+    ///
+    /// ## Example
+    /// ```
+    /// error_t<std::vector<int>> err{in_place_error, {1, 2, 3, 4, 5}};
+    ///
+    /// assert(err->size() == 5);
+    /// ```
     template <typename U, typename... Args>
     constexpr error_t([[maybe_unused]] in_place_error_t inplace,
                       std::initializer_list<U> init,
                       Args&&... args)
         : err_(std::in_place_index<0>, init, std::forward<Args>(args)...) {}
 
+    /// @brief Forwarding constructor
+    ///
+    /// @details
+    /// The @ref error_t is initialized such that it contains a value that is
+    /// constructed in place with the passed value forwarded to the error
+    /// type's constructor.
+    ///
+    /// This constructor only participates in overload resolution if the
+    /// contained error type is constructible from the passed value, and the
+    /// passed value is not of types `std::in_place_t`, `sumty::in_place_t`,
+    /// `sumty::in_place_error_t`, `sumty::in_place_index_t<1>`, or
+    /// `std::in_place_index_t<1>`.
+    ///
+    /// This constructor is `explicit` if the passed value is not implicitly
+    /// convertible to `E`.
+    ///
+    /// ## Example
+    /// ```
+    /// float value = 3.14;
+    ///
+    /// error_t<int> err{value};
+    ///
+    /// assert(*err == 3);
+    /// ```
     template <typename V>
 #ifndef DOXYGEN
         requires(std::is_constructible_v<variant<E>, std::in_place_index_t<0>, V &&> &&
                  !std::is_same_v<std::remove_cvref_t<V>, std::in_place_t> &&
-                 !std::is_same_v<std::remove_cvref_t<V>, std::in_place_index_t<1>> &&
-                 (!std::is_same_v<std::remove_cvref_t<E>, bool> ||
-                  !detail::is_result_v<std::remove_cvref_t<V>>))
+                 !std::is_same_v<std::remove_cvref_t<V>, std::in_place_index_t<1>>)
     explicit(detail::traits<E>::template is_convertible_from<V&&>)
 #else
     CONDITIONALLY_EXPLICIT
@@ -127,6 +256,13 @@ class error_t {
         : err_(std::in_place_index<0>, std::forward<V>(err)) {
     }
 
+    /// @brief Destructor
+    ///
+    /// @details
+    /// The contained error value is destroyed in place.
+    ///
+    /// The destructor is `noexcept` if the contained error type is nothrow
+    /// destructible.
     constexpr ~error_t()
 #ifndef DOXYGEN
         noexcept(detail::traits<E>::is_nothrow_destructible) = default;
@@ -134,6 +270,21 @@ class error_t {
         CONDITIONALLY_NOEXCEPT;
 #endif
 
+    /// @brief Copy assignment operator
+    ///
+    /// @details
+    /// The contained error value is copy assigned from the contained error
+    /// value of the source @ref error_t.
+    ///
+    /// ## Example
+    /// ```
+    /// error_t<int> err1{42};
+    /// error_t<int> err2{};
+    ///
+    /// err2 = err1;
+    ///
+    /// assert(*err2 == 42);
+    /// ```
     constexpr error_t& operator=(const error_t&)
 #ifndef DOXYGEN
         = default;
@@ -141,6 +292,21 @@ class error_t {
         ;
 #endif
 
+    /// @brief Move assignment operator
+    ///
+    /// @details
+    /// The contained error value is move assigned from the contained error
+    /// value of the source @ref error_t.
+    ///
+    /// ## Example
+    /// ```
+    /// error_t<int> err1{42};
+    /// error_t<int> err2{};
+    ///
+    /// err2 = std::move(err1);
+    ///
+    /// assert(*err2 == 42);
+    /// ```
     constexpr error_t& operator=(error_t&&)
 #ifndef DOXYGEN
         noexcept(detail::traits<E>::is_nothrow_move_assignable) = default;
@@ -148,6 +314,24 @@ class error_t {
         CONDITIONALLY_NOEXCEPT;
 #endif
 
+    /// @brief Value assignment operator
+    ///
+    /// @details
+    /// Assigns the new value directly to the contained error.
+    ///
+    /// This function only participates in overload resolution if:
+    /// * The source value is not an @ref error_t
+    /// * `E` is constructible from `V`
+    /// * `E` is assignable from `V`
+    ///
+    /// ## Example
+    /// ```
+    /// error_t<long long> err{};
+    ///
+    /// err = 42;
+    ///
+    /// assert(*err == 42);
+    /// ```
     template <typename V>
 #ifndef DOXYGEN
         requires(!std::is_same_v<error_t, std::remove_cvref_t<V>> &&
@@ -159,38 +343,148 @@ class error_t {
         return *this;
     }
 
+    /// @brief Accesses the contained error value
+    ///
+    /// @details
+    /// ## Example
+    /// ```
+    /// error_t<int> err{};
+    ///
+    /// *err = 42;
+    ///
+    /// assert(*err == 42);
+    /// ```
     [[nodiscard]] constexpr reference operator*() & noexcept { return err_[index<0>]; }
 
+    /// @brief Accesses the contained error value
+    ///
+    /// @details
+    /// ## Example
+    /// ```
+    /// const error_t<int> err{42};
+    ///
+    /// assert(*err == 42);
+    /// ```
     [[nodiscard]] constexpr const_reference operator*() const& noexcept {
         return err_[index<0>];
     }
 
+    /// @brief Accesses the contained error value
+    ///
+    /// @details
+    /// ## Example
+    /// ```
+    /// error_t<int> err{42};
+    ///
+    /// assert(*std::move(err) == 42);
+    /// ```
     [[nodiscard]] constexpr rvalue_reference operator*() && {
         return std::move(err_)[index<0>];
     }
 
+    /// @brief Accesses the contained error value
+    ///
+    /// @details
+    /// ## Example
+    /// ```
+    /// const error_t<int> err{42};
+    ///
+    /// assert(*std::move(err) == 42);
+    /// ```
     [[nodiscard]] constexpr const_rvalue_reference operator*() const&& {
         return std::move(err_)[index<0>];
     }
 
+    /// @brief Accesses members of the contained error value
+    ///
+    /// @details
+    /// ## Example
+    /// ```
+    /// error_t<std::string> err{"hello};
+    ///
+    /// assert(err->size() == 5);
+    /// ```
     constexpr pointer operator->() noexcept { return &err_[index<0>]; }
 
+    /// @brief Accesses members of the contained error value
+    ///
+    /// @details
+    /// ## Example
+    /// ```
+    /// const error_t<std::string> err{"hello};
+    ///
+    /// assert(err->size() == 5);
+    /// ```
     constexpr const_pointer operator->() const noexcept { return &err_[index<0>]; }
 
+    /// @brief Accesses the contained error value
+    ///
+    /// @details
+    /// ## Example
+    /// ```
+    /// error_t<int> err{};
+    ///
+    /// err.error() = 42;
+    ///
+    /// assert(err.error() == 42);
+    /// ```
     [[nodiscard]] constexpr reference error() & noexcept { return err_[index<0>]; }
 
+    /// @brief Accesses the contained error value
+    ///
+    /// @details
+    /// ## Example
+    /// ```
+    /// const error_t<int> err{42};
+    ///
+    /// assert(err.error() == 42);
+    /// ```
     [[nodiscard]] constexpr const_reference error() const& noexcept {
         return err_[index<0>];
     }
 
+    /// @brief Accesses the contained error value
+    ///
+    /// @details
+    /// ## Example
+    /// ```
+    /// error_t<int> err{42};
+    ///
+    /// assert(std::move(err).error() == 42);
+    /// ```
     [[nodiscard]] constexpr rvalue_reference error() && {
         return std::move(err_)[index<0>];
     }
 
+    /// @brief Accesses the contained error value
+    ///
+    /// @details
+    /// ## Example
+    /// ```
+    /// const error_t<int> err{42};
+    ///
+    /// assert(std::move(err).error() == 42);
+    /// ```
     [[nodiscard]] constexpr const_rvalue_reference error() const&& {
         return std::move(err_)[index<0>];
     }
 
+    /// @brief Swaps two @ref error_t instances
+    ///
+    /// @details
+    /// The two contained values of the @ref error_t instances are directly
+    /// swapped, as if by `std::swap`.
+    ///
+    /// ## Example
+    /// ```
+    /// error_t<int> err1{42};
+    /// error_t<int> err2{24};
+    ///
+    /// err1.swap(err2);
+    ///
+    /// assert(*err1 == 24);
+    /// assert(*err2 == 42);
+    /// ```
     constexpr void swap(error_t& other)
 #ifndef DOXYGEN
         noexcept(std::is_nothrow_swappable_v<variant<E>>)
@@ -203,6 +497,18 @@ class error_t {
 };
 
 /// @relates error_t
+/// @brief Compares the contained values of two @ref error_t instances
+///
+/// @details
+/// ## Example
+/// ```
+/// error_t<int> err1{42};
+/// error_t<int> err2{24};
+/// error_t<int> err3{42};
+///
+/// assert(err1 != err2);
+/// assert(err1 == err2);
+/// ```
 template <typename E, typename V>
 #ifndef DOXYGEN
     requires(std::is_void_v<E> == std::is_void_v<V>)
@@ -216,6 +522,16 @@ constexpr bool operator==(const error_t<E>& lhs, const error_t<V>& rhs) {
 }
 
 /// @relates error_t
+/// @brief Compares the contained value of an @ref error_t with another value.
+///
+/// @details
+/// ## Example
+/// ```
+/// error_t<int> err{42};
+///
+/// assert(err == 42);
+/// assert(err != 24);
+/// ```
 template <typename E, typename V>
 #ifndef DOXYGEN
     requires(!std::is_void_v<E>)
@@ -225,6 +541,16 @@ constexpr bool operator==(const error_t<E>& lhs, const V& rhs) {
 }
 
 /// @relates error_t
+/// @brief Compares the contained value of an @ref error_t with another value.
+///
+/// @details
+/// ## Example
+/// ```
+/// error_t<int> err{42};
+///
+/// assert(42 == err);
+/// assert(24 != err);
+/// ```
 template <typename E, typename V>
 #ifndef DOXYGEN
     requires(!std::is_void_v<V>)
@@ -234,6 +560,22 @@ constexpr bool operator==(const E& lhs, const error_t<V>& rhs) {
 }
 
 /// @relates error_t
+/// @brief Swaps two @ref error_t instances
+///
+/// @details
+/// The two contained values of the @ref error_t instances are directly
+/// swapped, as if by `std::swap`.
+///
+/// ## Example
+/// ```
+/// error_t<int> err1{42};
+/// error_t<int> err2{24};
+///
+/// swap(err1, err2);
+///
+/// assert(*err1 == 24);
+/// assert(*err2 == 42);
+/// ```
 template <typename E>
 constexpr void swap(error_t<E>& a, error_t<E>& b)
 #ifndef DOXYGEN
@@ -243,6 +585,54 @@ constexpr void swap(error_t<E>& a, error_t<E>& b)
 #endif
 {
     a.swap(b);
+}
+
+/// @relates error_t
+/// @brief Creates an @ref error_t constructed in place
+///
+/// @details
+/// This function is how most @ref error_t instances should be instantiated.
+/// Similar to STL functions like `std::make_unique` and `std::make_optional`,
+/// this function is provided a template argument to specify what contained
+/// error type should be constructed, and then is passed arguments that are
+/// forwarded to the constructor of the contained error type.
+///
+/// ## Example
+/// ```
+/// result<void, std::string> ensure_positive(int value) {
+///   if (value < 0) {
+///       return error<std::string>("value is negative");
+///   }
+///   return value;
+/// }
+/// ```
+template <typename E, typename... Args>
+constexpr error_t<E> error(Args&&... args) {
+    return error_t<E>(std::in_place, std::forward<Args>(args)...);
+}
+
+/// @relates error_t
+/// @brief Creates an @ref error_t constructed in place
+///
+/// @details
+/// This function is how most @ref error_t instances should be instantiated.
+/// Similar to STL functions like `std::make_unique` and `std::make_optional`,
+/// this function is provided a template argument to specify what contained
+/// error type should be constructed, and then is passed arguments that are
+/// forwarded to the constructor of the contained error type.
+///
+/// ## Example
+/// ```
+/// result<void, std::string> ensure_positive(int value) {
+///   if (value < 0) {
+///       return error<std::string>("value is negative");
+///   }
+///   return value;
+/// }
+/// ```
+template <typename E, typename U, typename... Args>
+constexpr error_t<E> error(std::initializer_list<U> ilist, Args&&... args) {
+    return error_t<E>(std::in_place, ilist, std::forward<Args>(args)...);
 }
 
 template <typename T>
@@ -1866,18 +2256,6 @@ constexpr void swap(result<T, E>& a, result<T, E>& b)
 #endif
 {
     a.swap(b);
-}
-
-/// @relates error_t
-template <typename E, typename... Args>
-constexpr error_t<E> error(Args&&... args) {
-    return error_t<E>(std::in_place, std::forward<Args>(args)...);
-}
-
-/// @relates error_t
-template <typename E, typename U, typename... Args>
-constexpr error_t<E> error(std::initializer_list<U> ilist, Args&&... args) {
-    return error_t<E>(std::in_place, ilist, std::forward<Args>(args)...);
 }
 
 /// @relates ok_t

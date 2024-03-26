@@ -124,7 +124,7 @@ class option {
     /// @details
     /// Initializes the @ref option as none or null.
     ///
-    /// ## Example:
+    /// ## Example
     /// ```cpp
     /// option<int> opt;
     ///
@@ -438,8 +438,9 @@ class option {
     ///
     /// This constructor only participates in overload resolution if the
     /// contained value type is constructible from the passed value, the passed
-    /// value is not of type `std::in_place_t`, and the contained value type is
-    /// not `bool`.
+    /// value is not of type `std::in_place_t`, and either the the contained
+    /// value type is not a scalar, or the forwarded value is not an @ref
+    /// option instance.
     ///
     /// This constructor is `explicit` if the passed value is not implicitly
     /// convertible to `T`.
@@ -456,11 +457,10 @@ class option {
     /// ```
     template <typename U>
 #ifndef DOXYGEN
-        requires(
-            std::is_constructible_v<variant<void, T>, std::in_place_index_t<1>, U &&> &&
-            !std::is_same_v<std::remove_cvref_t<U>, std::in_place_t> &&
-            !std::is_same_v<std::remove_const_t<T>, bool> &&
-            !detail::is_option_v<std::remove_cvref_t<U>>)
+        requires(detail::traits<T>::template is_constructible<U> &&
+                 !std::is_same_v<std::remove_cvref_t<U>, std::in_place_t> &&
+                 (!std::is_scalar_v<std::remove_cvref_t<T>> ||
+                  !detail::is_option_v<std::remove_cvref_t<U>>))
     explicit(!detail::traits<T>::template is_convertible_from<U>)
 #else
     CONDITIONALLY_EXPLICIT
@@ -3187,7 +3187,7 @@ class option {
     /// This function is `noexcept` if the contained value type is nothrow
     /// swappable.
     ///
-    /// # Example
+    /// ## Example
     /// ```
     /// option<int> opt1{};
     /// option<int> opt2{42};
