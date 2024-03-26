@@ -34,15 +34,15 @@ regardless of the order of the types in source and destination sets. E.g.
 `result<T, error_set<int, std::string>>` implicitly converts to
 `result<T, error_set<void, std::string, std::vector<float>, int>>` for
 easy propagation of errors. In practice, you might define a type alias
-of an `error_set` that represents the possible errors for your API, and
+of an `error_set` that represents the possible errors for your API to
 be able to convert any of your individual errors directly to your aliased
 `error_set`.
 
 Due to the same size optimizations described for the other sum types, an
 `error_set` consisting of only empty types is essentially an enum, since
-only the discriminant is stored. But unlike a real `enum`, the `error_set`
-can easilty convert to other compatible `error_set`s where the "enum"
-alternatives might be in a different order and/or include additional
+only the discriminant is stored. But unlike a language `enum`, the
+`error_set` can easily convert to other compatible `error_set`s where the
+"enum" alternatives might be in a different order and/or include additional
 alternatives.
 
 ## Why Would I Use `option<T&>` Instead of `T*`?
