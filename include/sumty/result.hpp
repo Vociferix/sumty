@@ -41,13 +41,17 @@ namespace sumty {
 /// converts into a @ref result, as long as the contained error value is
 /// implicitly convertible to the error type of the @ref result.
 ///
+/// In most cases, @ref error_t will not be named directly. Instead, an @ref
+/// error_t will be created using the @ref error function, as shown in the
+/// example below.
+///
 /// ## Example
 /// ```
-/// error_t<my_error> make_error();
-///
-/// result<int, my_error> ensure_positive(int value) {
+/// result<int, std::string> ensure_positive(int value) {
 ///     if (value < 0) {
-///         return make_error();
+///         // returns an error_t<std::string>, which gets converted
+///         // into a result<int, std::string>.
+///         return error<std::string>("value is negative");
 ///     }
 ///     return value;
 /// }
@@ -507,7 +511,7 @@ class error_t {
 /// error_t<int> err3{42};
 ///
 /// assert(err1 != err2);
-/// assert(err1 == err2);
+/// assert(err1 == err3);
 /// ```
 template <typename E, typename V>
 #ifndef DOXYGEN
@@ -635,6 +639,32 @@ constexpr error_t<E> error(std::initializer_list<U> ilist, Args&&... args) {
     return error_t<E>(std::in_place, ilist, std::forward<Args>(args)...);
 }
 
+/// @class ok_t result.hpp <sumty/result.hpp>
+/// @brief Wrapper around a non-error value
+///
+/// @details
+/// @ref ok_t is an intermediate type that is generally used to construct a
+/// @ref result that contains a non-error value. An @ref ok_t instance
+/// implicitly converts into a @ref result, as long as the contained value is
+/// implicitly convertible to the value type of the @ref result.
+///
+/// In most cases, @ref ok_t will not be named directly. Instead, an @ref ok_t
+/// will be created using the @ref ok function, as shown in the example below.
+/// Also, note that using @ref ok_t or the @ref ok function is often
+/// unnecessary, unlike with @ref error_t and the @ref error function. A
+/// non-error value does not need to be wrapped to be able to convert to a
+/// @ref result.
+///
+/// ## Example
+/// ```
+/// result<std::string, void> make_string() {
+///     // returns an ok_t<std::string> which gets converted to
+///     // a result<std::string, void>
+///     return ok<std::string>("hello");
+/// }
+/// ```
+///
+/// @tparam T The type of the contained value
 template <typename T>
 class ok_t {
   private:
@@ -659,6 +689,17 @@ class ok_t {
     using const_pointer = ...;
 #endif
 
+    /// @brief Default constructor
+    ///
+    /// @details
+    /// Initializes the @ref ok_t with a default constructed contained value.
+    ///
+    /// ## Example
+    /// ```
+    /// ok_t<int> val;
+    ///
+    /// assert(*val == 0);
+    /// ```
     constexpr ok_t()
 #ifndef DOXYGEN
         = default;
@@ -666,6 +707,19 @@ class ok_t {
         ;
 #endif
 
+    /// @brief Copy constructor
+    ///
+    /// @details
+    /// Initializes the new @ref ok_t such that the contained value is
+    /// copy constructed from the value contained in the source @ref ok_t.
+    ///
+    /// ## Example
+    /// ```
+    /// ok_t<int> val1{42};
+    /// ok_t<int> val2{val1};
+    ///
+    /// assert(*val2 == 42);
+    /// ```
     constexpr ok_t(const ok_t&)
 #ifndef DOXYGEN
         = default;
@@ -673,6 +727,19 @@ class ok_t {
         ;
 #endif
 
+    /// @brief Move constructor
+    ///
+    /// @details
+    /// Initializes the new @ref ok_t such that the contained value is
+    /// move constructed from the value contained in the source @ref ok_t.
+    ///
+    /// ## Example
+    /// ```
+    /// ok_t<int> val1{42};
+    /// ok_t<int> val2{std::move(val1)};
+    ///
+    /// assert(*val2 == 42);
+    /// ```
     constexpr ok_t(ok_t&&)
 #ifndef DOXYGEN
         noexcept(detail::traits<T>::is_nothrow_move_constructible) = default;
@@ -680,6 +747,18 @@ class ok_t {
         ;
 #endif
 
+    /// @brief Emplacement constructor
+    ///
+    /// @details
+    /// The @ref ok_t is initialized such that the contained value is
+    /// constructed in place from the forwarded arguments following `inplace`.
+    ///
+    /// ## Example
+    /// ```
+    /// ok_t<std::string> val{std::in_place, 5, 'a'};
+    ///
+    /// assert(*val == "aaaaa");
+    /// ```
     template <typename... Args>
 #ifndef DOXYGEN
     explicit(sizeof...(Args) == 0)
@@ -691,12 +770,46 @@ class ok_t {
         : ok_(std::in_place_index<0>, std::forward<Args>(args)...) {
     }
 
+    /// @brief Emplacement constructor with initializer list
+    ///
+    /// @details
+    /// The @ref ok_t is initialized such that the contained value is
+    /// constructed in place from the forwarded arguments following `inplace`.
+    ///
+    /// ## Example
+    /// ```
+    /// ok_t<std::vector<int>> val{std::in_place, {1, 2, 3, 4, 5}};
+    ///
+    /// assert(val->size() == 5);
+    /// ```
     template <typename U, typename... Args>
     constexpr ok_t([[maybe_unused]] std::in_place_t inplace,
                    std::initializer_list<U> init,
                    Args&&... args)
         : ok_(std::in_place_index<0>, init, std::forward<Args>(args)...) {}
 
+    /// @brief Forwarding constructor
+    ///
+    /// @details
+    /// The @ref ok_t is initialized such that it contains a value that is
+    /// constructed in place with the passed value forwarded to the contained
+    /// type's constructor.
+    ///
+    /// This constructor only participates in overload resolution if the
+    /// contained type is constructible from the passed value, and the
+    /// passed value is not of types `std::in_place_t` or `sumty::in_place_t`.
+    ///
+    /// This constructor is `explicit` if the passed value is not implicitly
+    /// convertible to `T`.
+    ///
+    /// ## Example
+    /// ```
+    /// float value = 3.14;
+    ///
+    /// ok_t<int> val{value};
+    ///
+    /// assert(*val == 3);
+    /// ```
     template <typename U>
 #ifndef DOXYGEN
         requires(std::is_constructible_v<variant<T>, std::in_place_index_t<0>, U &&> &&
@@ -712,6 +825,13 @@ class ok_t {
         : ok_(std::in_place_index<0>, std::forward<U>(value)) {
     }
 
+    /// @brief Destructor
+    ///
+    /// @details
+    /// The contained value is destroyed in place.
+    ///
+    /// The destructor is `noexcept` if the contained type is nothrow
+    /// destructible.
     constexpr ~ok_t()
 #ifndef DOXYGEN
         noexcept(detail::traits<T>::is_nothrow_destructible) = default;
@@ -719,6 +839,21 @@ class ok_t {
         CONDITIONALLY_NOEXCEPT;
 #endif
 
+    /// @brief Copy assignment operator
+    ///
+    /// @details
+    /// The contained value is copy assigned from the contained
+    /// value of the source @ref ok_t.
+    ///
+    /// ## Example
+    /// ```
+    /// ok_t<int> val1{42};
+    /// ok_t<int> val2{};
+    ///
+    /// val2 = val1;
+    ///
+    /// assert(*val2 == 42);
+    /// ```
     constexpr ok_t& operator=(const ok_t&)
 #ifndef DOXYGEN
         = default;
@@ -726,6 +861,21 @@ class ok_t {
         ;
 #endif
 
+    /// @brief Move assignment operator
+    ///
+    /// @details
+    /// The contained value is move assigned from the contained
+    /// value of the source @ref ok_t.
+    ///
+    /// ## Example
+    /// ```
+    /// ok_t<int> val1{42};
+    /// ok_t<int> val2{};
+    ///
+    /// val2 = std::move(val1);
+    ///
+    /// assert(*val2 == 42);
+    /// ```
     constexpr ok_t& operator=(ok_t&&)
 #ifndef DOXYGEN
         noexcept(detail::traits<T>::is_nothrow_move_assignable) = default;
@@ -733,6 +883,24 @@ class ok_t {
         CONDITIONALLY_NOEXCEPT;
 #endif
 
+    /// @brief Value assignment operator
+    ///
+    /// @details
+    /// Assigns the new value directly to the contained value.
+    ///
+    /// This function only participates in overload resolution if:
+    /// * The source value is not an @ref ok_t
+    /// * `T` is constructible from `U`
+    /// * `T` is assignable from `U`
+    ///
+    /// ## Example
+    /// ```
+    /// ok_t<long long> val{};
+    ///
+    /// val = 42;
+    ///
+    /// assert(*val == 42);
+    /// ```
     template <typename U>
 #ifndef DOXYGEN
         requires(!std::is_same_v<ok_t, std::remove_cvref_t<U>> &&
@@ -744,36 +912,146 @@ class ok_t {
         return *this;
     }
 
+    /// @brief Accesses the contained value
+    ///
+    /// @details
+    /// ## Example
+    /// ```
+    /// ok_t<int> val{};
+    ///
+    /// *val = 42;
+    ///
+    /// assert(*val == 42);
+    /// ```
     [[nodiscard]] constexpr reference operator*() & noexcept { return ok_[index<0>]; }
 
+    /// @brief Accesses the contained value
+    ///
+    /// @details
+    /// ## Example
+    /// ```
+    /// const ok_t<int> val{42};
+    ///
+    /// assert(*val == 42);
+    /// ```
     [[nodiscard]] constexpr const_reference operator*() const& noexcept {
         return ok_[index<0>];
     }
 
+    /// @brief Accesses the contained value
+    ///
+    /// @details
+    /// ## Example
+    /// ```
+    /// ok_t<int> val{42};
+    ///
+    /// assert(*std::move(val) == 42);
+    /// ```
     [[nodiscard]] constexpr rvalue_reference operator*() && {
         return std::move(ok_)[index<0>];
     }
 
+    /// @brief Accesses the contained value
+    ///
+    /// @details
+    /// ## Example
+    /// ```
+    /// const ok_t<int> val{42};
+    ///
+    /// assert(*std::move(val) == 42);
+    /// ```
     [[nodiscard]] constexpr const_rvalue_reference operator*() const&& {
         return std::move(ok_)[index<0>];
     }
 
+    /// @brief Accesses members of the contained value
+    ///
+    /// @details
+    /// ## Example
+    /// ```
+    /// ok_t<std::string> val{"hello};
+    ///
+    /// assert(val->size() == 5);
+    /// ```
     constexpr pointer operator->() noexcept { return &ok_[index<0>]; }
 
+    /// @brief Accesses members of the contained value
+    ///
+    /// @details
+    /// ## Example
+    /// ```
+    /// const ok_t<std::string> val{"hello};
+    ///
+    /// assert(val->size() == 5);
+    /// ```
     constexpr const_pointer operator->() const noexcept { return &ok_[index<0>]; }
 
+    /// @brief Accesses the contained value
+    ///
+    /// @details
+    /// ## Example
+    /// ```
+    /// ok_t<int> val{};
+    ///
+    /// val.value() = 42;
+    ///
+    /// assert(val.value() == 42);
+    /// ```
     [[nodiscard]] constexpr reference value() & noexcept { return ok_[index<0>]; }
 
+    /// @brief Accesses the contained value
+    ///
+    /// @details
+    /// ## Example
+    /// ```
+    /// const ok_t<int> val{42};
+    ///
+    /// assert(val.value() == 42);
+    /// ```
     [[nodiscard]] constexpr const_reference value() const& noexcept {
         return ok_[index<0>];
     }
 
+    /// @brief Accesses the contained value
+    ///
+    /// @details
+    /// ## Example
+    /// ```
+    /// ok_t<int> val{42};
+    ///
+    /// assert(std::move(val).value() == 42);
+    /// ```
     [[nodiscard]] constexpr rvalue_reference value() && { return std::move(ok_)[index<0>]; }
 
+    /// @brief Accesses the contained value
+    ///
+    /// @details
+    /// ## Example
+    /// ```
+    /// const ok_t<int> val{42};
+    ///
+    /// assert(std::move(val).value() == 42);
+    /// ```
     [[nodiscard]] constexpr const_rvalue_reference value() const&& {
         return std::move(ok_)[index<0>];
     }
 
+    /// @brief Swaps two @ref ok_t instances
+    ///
+    /// @details
+    /// The two contained values of the @ref ok_t instances are directly
+    /// swapped, as if by `std::swap`.
+    ///
+    /// ## Example
+    /// ```
+    /// ok_t<int> val1{42};
+    /// ok_t<int> val2{24};
+    ///
+    /// val1.swap(val2);
+    ///
+    /// assert(*val1 == 24);
+    /// assert(*val2 == 42);
+    /// ```
     constexpr void swap(ok_t& other)
 #ifndef DOXYGEN
         noexcept(std::is_nothrow_swappable_v<variant<T>>)
@@ -786,6 +1064,18 @@ class ok_t {
 };
 
 /// @relates ok_t
+/// @brief Compares the contained values of two @ref ok_t instances
+///
+/// @details
+/// ## Example
+/// ```
+/// ok_t<int> val1{42};
+/// ok_t<int> val2{24};
+/// ok_t<int> val3{42};
+///
+/// assert(val1 != val2);
+/// assert(val1 == val3);
+/// ```
 template <typename T, typename U>
 #ifndef DOXYGEN
     requires(std::is_void_v<T> == std::is_void_v<U>)
@@ -799,6 +1089,16 @@ constexpr bool operator==(const ok_t<T>& lhs, const ok_t<U>& rhs) {
 }
 
 /// @relates ok_t
+/// @brief Compares the contained value of an @ref ok_t with another value.
+///
+/// @details
+/// ## Example
+/// ```
+/// ok_t<int> val{42};
+///
+/// assert(val == 42);
+/// assert(val != 24);
+/// ```
 template <typename T, typename U>
 #ifndef DOXYGEN
     requires(!std::is_void_v<T>)
@@ -808,6 +1108,16 @@ constexpr bool operator==(const ok_t<T>& lhs, const U& rhs) {
 }
 
 /// @relates ok_t
+/// @brief Compares the contained value of an @ref ok_t with another value.
+///
+/// @details
+/// ## Example
+/// ```
+/// ok_t<int> val{42};
+///
+/// assert(42 == val);
+/// assert(24 != val);
+/// ```
 template <typename T, typename U>
 #ifndef DOXYGEN
     requires(!std::is_void_v<U>)
@@ -817,6 +1127,22 @@ constexpr bool operator==(const T& lhs, const ok_t<U>& rhs) {
 }
 
 /// @relates ok_t
+/// @brief Swaps two @ref ok_t instances
+///
+/// @details
+/// The two contained values of the @ref ok_t instances are directly
+/// swapped, as if by `std::swap`.
+///
+/// ## Example
+/// ```
+/// ok_t<int> val1{42};
+/// ok_t<int> val2{24};
+///
+/// swap(val1, val2);
+///
+/// assert(*val1 == 24);
+/// assert(*val2 == 42);
+/// ```
 template <typename T>
 constexpr void swap(ok_t<T>& a, ok_t<T>& b)
 #ifndef DOXYGEN
@@ -826,6 +1152,52 @@ constexpr void swap(ok_t<T>& a, ok_t<T>& b)
 #endif
 {
     a.swap(b);
+}
+
+/// @relates ok_t
+/// @brief Creates an @ref ok_t constructed in place
+///
+/// @details
+/// This function is how most @ref ok_t instances should be instantiated.
+/// Similar to STL functions like `std::make_unique` and `std::make_optional`,
+/// this function is provided a template argument to specify what contained
+/// type should be constructed, and then is passed arguments that are
+/// forwarded to the constructor of the contained type.
+///
+/// ## Example
+/// ```
+/// result<std::string, void> make_string() {
+///     // returns an ok_t<std::string> which gets converted to
+///     // a result<std::string, void>
+///     return ok<std::string>("hello");
+/// }
+/// ```
+template <typename T, typename... Args>
+constexpr ok_t<T> ok(Args&&... args) {
+    return ok_t<T>{std::in_place, std::forward<Args>(args)...};
+}
+
+/// @relates ok_t
+/// @brief Creates an @ref ok_t constructed in place
+///
+/// @details
+/// This function is how most @ref ok_t instances should be instantiated.
+/// Similar to STL functions like `std::make_unique` and `std::make_optional`,
+/// this function is provided a template argument to specify what contained
+/// type should be constructed, and then is passed arguments that are
+/// forwarded to the constructor of the contained type.
+///
+/// ## Example
+/// ```
+/// result<std::string, void> make_string() {
+///     // returns an ok_t<std::string> which gets converted to
+///     // a result<std::string, void>
+///     return ok<std::string>("hello");
+/// }
+/// ```
+template <typename T, typename U, typename... Args>
+constexpr ok_t<T> ok(std::initializer_list<U> ilist, Args&&... args) {
+    return ok_t<T>{std::in_place, ilist, std::forward<Args>(args)...};
 }
 
 template <typename T, typename E>
@@ -2256,18 +2628,6 @@ constexpr void swap(result<T, E>& a, result<T, E>& b)
 #endif
 {
     a.swap(b);
-}
-
-/// @relates ok_t
-template <typename T, typename... Args>
-constexpr ok_t<T> ok(Args&&... args) {
-    return ok_t<T>{std::in_place, std::forward<Args>(args)...};
-}
-
-/// @relates ok_t
-template <typename T, typename U, typename... Args>
-constexpr ok_t<T> ok(std::initializer_list<U> ilist, Args&&... args) {
-    return ok_t<T>{std::in_place, ilist, std::forward<Args>(args)...};
 }
 
 } // namespace sumty

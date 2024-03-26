@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.25)
 project(
     sumty
     VERSION 0.1.0
-    DESCRIPTION "Better optional data types for C++"
+    DESCRIPTION "Better sum types for C++"
     HOMEPAGE_URL "https://github.com/vociferix/sumty"
     LANGUAGES CXX)
 
