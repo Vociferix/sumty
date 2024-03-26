@@ -23,6 +23,28 @@ two main improvements over the standard library equivalents:
   * E.g. `sizeof(sumty::option<int&>) == sizeof(void*)`
   * E.g. `sizeof(sumty::result<void, void>) == sizeof(bool)`
 
+`sumty` also provides the brand new sum type, `error_set`. `error_set` is
+intended to be used in combination with `result` in order to represent
+multiple possible error types. `error_set` is similar to `variant`, but
+each type of the set must be unique, and an `error_set` can be implicitly
+converted to another `error_set` that holds a super set of error types,
+regardless of the order of the types in source and destination sets. E.g.
+`error_set<int, std::string>` implicitly converts to
+`error_set<void, std::string, std::vector<float>, int>`. Consequently,
+`result<T, error_set<int, std::string>>` implicitly converts to
+`result<T, error_set<void, std::string, std::vector<float>, int>>` for
+easy propagation of errors. In practice, you might define a type alias
+of an `error_set` that represents the possible errors for your API, and
+be able to convert any of your individual errors directly to your aliased
+`error_set`.
+
+Due to the same size optimizations described for the other sum types, an
+`error_set` consisting of only empty types is essentially an enum, since
+only the discriminant is stored. But unlike a real `enum`, the `error_set`
+can easilty convert to other compatible `error_set`s where the "enum"
+alternatives might be in a different order and/or include additional
+alternatives.
+
 ## Why Would I Use `option<T&>` Instead of `T*`?
 In general, maybe you wouldn't. However, when you make frequent use of
 `std::optional<T>` in generic code, you often end up with cases where you
